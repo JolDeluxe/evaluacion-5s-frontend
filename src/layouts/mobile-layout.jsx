@@ -1,0 +1,20 @@
+import { useState } from 'react';
+import { Outlet } from 'react-router';
+import { MobileBottomNav } from '@/layouts/components/mobile-bottom-nav';
+import { MobileHeader } from '@/layouts/components/mobile-header';
+import { MobileSidebar } from '@/layouts/components/mobile-sidebar';
+
+export function MobileLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-app-surface">
+      <MobileHeader onOpenMenu={() => setMenuOpen(true)} />
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] custom-scrollbar">
+        <Outlet />
+      </main>
+      <MobileBottomNav onOpenMore={() => setMenuOpen(true)} />
+      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </div>
+  );
+}

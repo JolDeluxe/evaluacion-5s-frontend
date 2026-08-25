@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Work Sans";
+  src: url("/src/assets/fonts/WorkSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Work Sans";
+  src: url("/src/assets/fonts/WorkSans-SemiBold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Lato";
+  src: url("/src/assets/fonts/Lato-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bebas Neue";
+  src: url("/src/assets/fonts/BebasNeue-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Material Symbols Rounded";
+  src: url("/src/assets/icons/MaterialSymbolsRounded.woff2") format("woff2");
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: block;
+}
+
+@theme {
+  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-lectura: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-codigo: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-app-surface: #f4f7f5;
+  --color-cuadra-arena: #f4f1ea;
+  --color-marca-primario: #2f4f45;
+  --color-marca-primario-hover: #243f37;
+  --color-marca-secundario: #1e8473;
+  --color-marca-acento: #b26b35;
+
+  --color-estado-pendiente: #d39a00;
+  --color-estado-asignada: #2563eb;
+  --color-estado-en-progreso: #7c3aed;
+  --color-estado-en-pausa: #64748b;
+  --color-estado-resuelto: #16a34a;
+  --color-estado-cerrado: #334155;
+  --color-estado-rechazado: #dc2626;
+  --color-estado-cancelada: #94a3b8;
+
+  --color-prioridad-media: #0f766e;
+  --color-prioridad-alta: #ea580c;
+  --color-prioridad-critica: #be123c;
+}
+
+html {
+  background: #f4f7f5;
+  color-scheme: light;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(30, 132, 115, 0.14), transparent 28rem),
+    radial-gradient(circle at 90% 20%, rgba(178, 107, 53, 0.12), transparent 26rem),
+    linear-gradient(135deg, #f8fafc 0%, #f1f5f3 54%, #fff7ed 100%);
+  font-family: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  cursor: pointer;
+}
+
+.fuente-titulos {
+  font-family: "Lato", "Work Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-lectura {
+  font-family: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.material-symbols-rounded {
+  direction: ltr;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-family: "Material Symbols Rounded";
+  font-feature-settings: "liga";
+  font-style: normal;
+  font-weight: normal;
+  letter-spacing: normal;
+  line-height: 1;
+  overflow-wrap: normal;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.custom-scrollbar {
+  scrollbar-color: rgba(47, 79, 69, 0.26) transparent;
+  scrollbar-width: thin;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(47, 79, 69, 0.22);
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
