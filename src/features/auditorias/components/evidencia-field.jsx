@@ -1,8 +1,9 @@
-import { useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { ImageViewer } from '@/components/ui/image-viewer';
 import { auditoriasApi } from '@/features/auditorias/api/auditorias-api';
+import { setAuditUploadActive } from '@/features/auditorias/utils/auditoria-runtime-status';
 import { procesarImagen } from '@/utils/procesar-imagen';
 
 const MAX_EVIDENCIAS = 3;
@@ -47,6 +48,7 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
   const [mensaje, setMensaje] = useState('');
   const [viewer, setViewer] = useState(null);
   const inputRef = useRef(null);
+  const activeUploadIdsRef = useRef(new Set());
 
   const totalActual = evidencias.length + colaSubidas.length;
   const restantes = Math.max(0, MAX_EVIDENCIAS - totalActual);
@@ -58,7 +60,21 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
     label: `Evidencia ${index + 1}`,
   })), [evidencias]);
 
+  useEffect(() => {
+    const activeUploadIds = activeUploadIdsRef.current;
+
+    return () => {
+      activeUploadIds.forEach((id) => {
+        setAuditUploadActive(id, false);
+      });
+      activeUploadIds.clear();
+    };
+  }, []);
+
   const ejecutarSubida = async (tarea) => {
+    activeUploadIdsRef.current.add(tarea.id);
+    setAuditUploadActive(tarea.id, true);
+
     try {
       // 1. Process and compress image in frontend (webp, max 1600px, quality 0.8)
       let fileParaSubir = tarea.file;
@@ -127,6 +143,9 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
       setColaSubidas((prev) =>
         prev.map((t) => (t.id === tarea.id ? { ...t, estado: 'error', errorMsg: err?.message || 'Error de subida' } : t))
       );
+    } finally {
+      activeUploadIdsRef.current.delete(tarea.id);
+      setAuditUploadActive(tarea.id, false);
     }
   };
 

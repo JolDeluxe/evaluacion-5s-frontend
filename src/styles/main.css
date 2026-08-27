@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: "Bebas Neue";
-  src: url("/src/assets/fonts/BebasNeue-Regular.woff2") format("woff2");
+  src: url("../assets/fonts/BebasNeue-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -10,7 +10,7 @@
 
 @font-face {
   font-family: "Lato";
-  src: url("/src/assets/fonts/Lato-Light.woff2") format("woff2");
+  src: url("../assets/fonts/Lato-Light.woff2") format("woff2");
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -18,7 +18,7 @@
 
 @font-face {
   font-family: "Lato";
-  src: url("/src/assets/fonts/Lato-Regular.woff2") format("woff2");
+  src: url("../assets/fonts/Lato-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -26,7 +26,7 @@
 
 @font-face {
   font-family: "Lato";
-  src: url("/src/assets/fonts/Lato-Bold.woff2") format("woff2");
+  src: url("../assets/fonts/Lato-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -34,7 +34,7 @@
 
 @font-face {
   font-family: "Lato";
-  src: url("/src/assets/fonts/Lato-Black.woff2") format("woff2");
+  src: url("../assets/fonts/Lato-Black.woff2") format("woff2");
   font-weight: 900;
   font-style: normal;
   font-display: swap;
@@ -42,7 +42,7 @@
 
 @font-face {
   font-family: "Work Sans";
-  src: url("/src/assets/fonts/WorkSans-Regular.woff2") format("woff2");
+  src: url("../assets/fonts/WorkSans-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -50,7 +50,7 @@
 
 @font-face {
   font-family: "Work Sans";
-  src: url("/src/assets/fonts/WorkSans-Medium.woff2") format("woff2");
+  src: url("../assets/fonts/WorkSans-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -58,7 +58,7 @@
 
 @font-face {
   font-family: "Work Sans";
-  src: url("/src/assets/fonts/WorkSans-SemiBold.woff2") format("woff2");
+  src: url("../assets/fonts/WorkSans-SemiBold.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -66,7 +66,7 @@
 
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("/src/assets/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  src: url("../assets/fonts/JetBrainsMono-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -74,7 +74,7 @@
 
 @font-face {
   font-family: "Material Symbols Rounded";
-  src: url("/src/assets/icons/MaterialSymbolsRounded.woff2") format("woff2");
+  src: url("../assets/icons/MaterialSymbolsRounded.woff2") format("woff2");
   font-weight: 100 700;
   font-style: normal;
   font-display: block;
@@ -263,21 +263,25 @@
 
 .material-symbols-rounded {
   direction: ltr;
-  display: inline-flex;
+  display: inline-block;
   flex-shrink: 0;
   font-family: "Material Symbols Rounded";
   font-feature-settings: "liga";
   -webkit-font-feature-settings: "liga";
+  font-variant-ligatures: normal;
   font-style: normal;
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   font-weight: normal;
   letter-spacing: normal;
   line-height: 1;
   overflow-wrap: normal;
+  text-rendering: optimizeLegibility;
   text-transform: none;
   user-select: none;
   white-space: nowrap;
+  word-wrap: normal;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @media print {

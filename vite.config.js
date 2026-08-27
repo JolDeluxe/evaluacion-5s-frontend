@@ -32,6 +32,7 @@ export default defineConfig({
 
     VitePWA({
       registerType: 'prompt',
+      injectRegister: false,
 
       manifest: {
         name: 'Encuestas de 5S',
@@ -56,6 +57,7 @@ export default defineConfig({
 
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallbackDenylist: [/^\/api\//],
       },
