@@ -1,11 +1,10 @@
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
-import { EstadoVersionBadge } from '@/features/formularios/components/estado-version-badge';
+import { obtenerResumenEstructura } from '@/features/formularios/helpers/estructura-formulario-helpers';
 
 export function FormularioCard({ formulario }) {
-  const ultima = formulario.versiones?.[0];
-  const criterios = ultima?.bloques?.filter?.((bloque) => bloque.tipo === 'CRITERIO_5S').length;
+  const resumen = obtenerResumenEstructura(formulario.actual);
 
   return (
     <Card className="border-white/70 bg-white/75 shadow-xl shadow-slate-950/5 backdrop-blur-2xl">
@@ -23,16 +22,16 @@ export function FormularioCard({ formulario }) {
 
         <div className="grid grid-cols-3 gap-2 rounded-3xl bg-slate-50/80 p-3 text-center">
           <div>
-            <p className="text-xs font-black uppercase text-slate-500">Version</p>
-            <p className="text-lg font-black text-slate-950">V{ultima?.numeroVersion ?? '-'}</p>
+            <p className="text-xs font-black uppercase text-slate-500">Preguntas</p>
+            <p className="text-lg font-black text-slate-950">{resumen.totalPreguntas}</p>
           </div>
           <div>
-            <p className="text-xs font-black uppercase text-slate-500">Estado</p>
-            {ultima ? <EstadoVersionBadge estado={ultima.estado} /> : <p className="text-lg font-black text-slate-950">-</p>}
+            <p className="text-xs font-black uppercase text-slate-500">Secciones</p>
+            <p className="text-lg font-black text-slate-950">{resumen.totalSecciones}</p>
           </div>
           <div>
-            <p className="text-xs font-black uppercase text-slate-500">Criterios</p>
-            <p className="text-lg font-black text-slate-950">{criterios ?? '-'}</p>
+            <p className="text-xs font-black uppercase text-slate-500">Tipo</p>
+            <p className="text-lg font-black text-slate-950">{formulario.alcance}</p>
           </div>
         </div>
 

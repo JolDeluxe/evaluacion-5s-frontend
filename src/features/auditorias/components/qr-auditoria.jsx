@@ -66,9 +66,24 @@ export function QrAuditoria({ area, onVerify, onSkip }) {
         </div>
       )}
 
-      <Button type="button" size="lg" icon="qr_code_scanner" className="min-h-14 w-full rounded-2xl" isLoading={loading} disabled={!codigo.trim()} onClick={verificar}>
-        Verificar QR
-      </Button>
+      <div className="space-y-3">
+        <Button type="button" size="lg" icon="qr_code_scanner" className="min-h-14 w-full rounded-2xl" isLoading={loading} disabled={!codigo.trim()} onClick={verificar}>
+          Verificar QR
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          icon="skip_next"
+          className="min-h-12 w-full rounded-2xl hover:translate-y-0 hover:shadow-none"
+          onClick={() => onSkip({
+            codigoQr: area?.codigoVerificacion || codigo.trim() || undefined,
+            motivoSinVerificacion: 'Omitido temporalmente durante configuracion de QR',
+          })}
+        >
+          Omitir QR temporalmente
+        </Button>
+      </div>
     </section>
   );
 }

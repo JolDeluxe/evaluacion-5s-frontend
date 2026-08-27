@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 let state = {
   mobileMenuOpen: false,
-  sidebarExpanded: false,
+  sidebarExpanded: true,
   isBottomNav: false,
   badgeCounts: {},
 };
@@ -15,6 +15,7 @@ const actions = {
   setIsBottomNav: (isBottomNav) => setState({ isBottomNav }),
   setBadgeCounts: (badgeCounts) => setState({ badgeCounts }),
   setSidebarExpanded: (sidebarExpanded) => setState({ sidebarExpanded }),
+  toggleSidebar: () => setState((current) => ({ sidebarExpanded: !current.sidebarExpanded })),
 };
 
 let snapshot = { ...state, ...actions };

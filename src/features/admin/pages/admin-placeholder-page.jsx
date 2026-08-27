@@ -39,13 +39,13 @@ function SecondaryNavigation({ items, title }) {
               className={cn(
                 'flex items-center gap-3 rounded-lg border p-4 shadow-sm transition',
                 isActive
-                  ? 'border-marca-primario/30 bg-marca-primario text-white shadow-marca-primario/15'
+                  ? 'border-marca-acento/30 bg-marca-acento text-white shadow-marca-primario/15'
                   : 'border-white/70 bg-white/75 text-slate-700 backdrop-blur-xl hover:bg-white',
               )}
             >
               <span className={cn(
                 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
-                isActive ? 'bg-white/18 text-white' : 'bg-marca-primario/10 text-marca-primario',
+                isActive ? 'bg-white/20 text-white' : 'bg-marca-primario/10 text-marca-primario',
               )}
               >
                 <Icon name={item.icon} />

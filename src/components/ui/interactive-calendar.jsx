@@ -224,7 +224,7 @@ export const InteractiveCalendar = ({
                             onClick={() => handleViewChange('week')}
                             className={cn(
                                 'px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer',
-                                activeView === 'week' ? 'bg-white text-marca-primario shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                                activeView === 'week' ? 'bg-white text-navigation-active shadow-sm' : 'text-slate-500 hover:text-slate-800'
                             )}
                         >
                             Semana
@@ -234,7 +234,7 @@ export const InteractiveCalendar = ({
                             onClick={() => handleViewChange('month')}
                             className={cn(
                                 'px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer',
-                                activeView === 'month' ? 'bg-white text-marca-primario shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                                activeView === 'month' ? 'bg-white text-navigation-active shadow-sm' : 'text-slate-500 hover:text-slate-800'
                             )}
                         >
                             Mes
@@ -310,7 +310,7 @@ export const InteractiveCalendar = ({
                                         className={cn(
                                             'aspect-square flex flex-col items-center justify-between p-0.5 rounded-lg border transition-all cursor-pointer relative',
                                             isSelected
-                                                ? 'bg-marca-primario/10 border-marca-primario/40 ring-1 ring-marca-primario'
+                                                ? 'bg-navigation-active-soft border-navigation-active/40 ring-1 ring-navigation-active'
                                                 : isToday
                                                     ? 'bg-slate-50 border-marca-secundario text-marca-secundario'
                                                     : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700',
@@ -320,7 +320,7 @@ export const InteractiveCalendar = ({
                                         <span className={cn(
                                             'text-[10px] font-extrabold w-5 h-5 flex items-center justify-center rounded-full leading-none mt-0.5',
                                             isToday && !isSelected && 'bg-marca-secundario text-white',
-                                            isSelected && 'bg-marca-primario text-white'
+                                            isSelected && 'bg-navigation-active text-white'
                                         )}>
                                             {dayNum}
                                         </span>
@@ -348,7 +348,7 @@ export const InteractiveCalendar = ({
                                     className={cn(
                                         'min-h-[75px] lg:min-h-[95px] bg-white border rounded-xl p-1 flex flex-col gap-0.5 transition-all group relative cursor-pointer',
                                         isSelected
-                                            ? 'bg-marca-primario/5 border-marca-primario ring-1 ring-marca-primario'
+                                            ? 'bg-navigation-active-soft border-navigation-active ring-1 ring-navigation-active'
                                             : isToday
                                                 ? 'bg-slate-50/40 border-marca-secundario/40 text-marca-secundario'
                                                 : 'bg-white border-slate-150 hover:bg-slate-50 text-slate-700',

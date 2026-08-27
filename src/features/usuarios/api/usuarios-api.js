@@ -1,4 +1,3 @@
-// src/features/admin/api/usuarios-api.js
 import { apiClient } from '@/lib/api/api-client';
 
 const datos = (response) => response?.datos ?? response;
@@ -7,7 +6,8 @@ export const usuariosApi = {
   /**
    * Listar usuarios con paginacion y filtros.
    * query: { busqueda, rol, activo, pagina, limite }
-   * La respuesta incluye areasUsuario con { esResponsable, area: { id, codigo, nombre, tipo } }
+   * La respuesta incluye areasUsuario con { area: { id, codigo, nombre, tipo } }.
+   * El codigo es interno; la UI debe renderizar nombre.
    */
   listar: async (query = {}, options) => {
     const params = new URLSearchParams();

@@ -1,4 +1,3 @@
-// src/features/admin/api/areas-api.js
 import { apiClient } from '@/lib/api/api-client';
 
 const datos = (response) => response?.datos ?? response;
@@ -32,8 +31,31 @@ export const areasApi = {
     datos(await apiClient.put(`/areas/${areaId}/usuarios`, body, options)),
 
   /**
+   * Crear nueva area.
+   */
+  crear: async (body, options) => datos(await apiClient.post('/areas', body, options)),
+
+  /**
    * Actualizar datos basicos de un area.
    */
   actualizar: async (id, body, options) =>
     datos(await apiClient.patch(`/areas/${id}`, body, options)),
+
+  /**
+   * Desactivar un area.
+   */
+  desactivar: async (id, options) =>
+    datos(await apiClient.post(`/areas/${id}/desactivar`, {}, options)),
+
+  /**
+   * Eliminar la relacion usuario-area.
+   */
+  eliminarUsuarioArea: async (areaId, usuarioId, options) =>
+    datos(await apiClient.delete(`/areas/${areaId}/usuarios?usuarioId=${usuarioId}`, options)),
+
+  /**
+   * Reactivar un area.
+   */
+  reactivar: async (id, body = {}, options) =>
+    datos(await apiClient.post(`/areas/${id}/reactivar`, body, options)),
 };

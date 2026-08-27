@@ -4,9 +4,9 @@ import { cn } from '@/utils/cn';
 const VARIANTS = {
     por_defecto: {
         desktopBase: "bg-white border border-slate-200/80 text-slate-600 shadow-sm hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 active:shadow-sm",
-        desktopActive: "bg-gradient-to-b from-marca-primario to-marca-primario/90 border border-marca-primario text-white shadow-md shadow-marca-primario/25 active:scale-[0.98]",
+        desktopActive: "bg-navigation-active border border-navigation-active text-white shadow-md shadow-marca-primario/20 active:scale-[0.98]",
         mobileBase: "bg-white border border-slate-200/80 text-slate-600 shadow-sm active:scale-[0.98]",
-        mobileActive: "bg-gradient-to-b from-marca-primario to-marca-primario/90 border border-marca-primario text-white shadow-md shadow-marca-primario/25 active:scale-[0.98]",
+        mobileActive: "bg-navigation-active border border-navigation-active text-white shadow-md shadow-marca-primario/20 active:scale-[0.98]",
     },
     gris: {
         desktopBase: "bg-white border border-gray-200/80 text-gray-600 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 active:shadow-sm",
@@ -58,9 +58,9 @@ const VARIANTS = {
     },
     todos: {
         desktopBase: "bg-white border border-slate-200/80 text-slate-600 shadow-sm hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 active:shadow-sm",
-        desktopActive: "bg-gradient-to-b from-marca-primario to-marca-primario/90 border border-marca-primario text-white shadow-md shadow-marca-primario/25 active:scale-[0.98]",
+        desktopActive: "bg-navigation-active border border-navigation-active text-white shadow-md shadow-marca-primario/20 active:scale-[0.98]",
         mobileBase: "bg-white border border-slate-200/80 text-slate-600 shadow-sm active:scale-[0.98]",
-        mobileActive: "bg-gradient-to-b from-marca-primario to-marca-primario/90 border border-marca-primario text-white shadow-md shadow-marca-primario/25 active:scale-[0.98]",
+        mobileActive: "bg-navigation-active border border-navigation-active text-white shadow-md shadow-marca-primario/20 active:scale-[0.98]",
     },
     pendiente: { // #f59e0b (amber)
         desktopBase: "bg-white border border-amber-200/80 text-amber-700 shadow-sm hover:shadow-md hover:border-amber-300 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 active:shadow-sm",

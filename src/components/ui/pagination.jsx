@@ -1,4 +1,4 @@
-import { Icon } from './icon';
+import { Button } from './button';
 import { cn } from '@/utils/cn';
 
 /**
@@ -61,28 +61,26 @@ export const Pagination = ({
 
                 {/* Controles */}
                 <div className="flex gap-2">
-                    <button
+                    <Button
                         onClick={() => goTo(page - 1)}
                         disabled={isFirst || loading}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300
-                       rounded-md hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors cursor-pointer"
+                        variant="outline"
+                        size="sm"
                     >
                         Anterior
-                    </button>
+                    </Button>
 
                     {/* Números de página — máximo 5 visibles */}
                     <PageNumbers page={page} totalPages={totalPages} goTo={goTo} loading={loading} />
 
-                    <button
+                    <Button
                         onClick={() => goTo(page + 1)}
                         disabled={isLast || loading}
-                        className="px-3 py-1.5 text-xs font-medium text-white bg-marca-primario border border-transparent
-                       rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors shadow-sm cursor-pointer"
+                        variant="success"
+                        size="sm"
                     >
                         Siguiente
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -96,15 +94,15 @@ export const Pagination = ({
             className
         )}>
             <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full px-4 py-2 shadow-lg">
-                <button
+                <Button
                     onClick={() => goTo(page - 1)}
                     disabled={isFirst || loading}
-                    className="flex items-center justify-center w-7 h-7 rounded-full text-slate-700
-                     hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    variant="ghost"
+                    size="icon"
+                    icon="chevron_left"
+                    className="h-7 w-7 rounded-full shadow-none hover:translate-y-0 hover:shadow-none"
                     aria-label="Página anterior"
-                >
-                    <Icon name="chevron_left" size="xs" />
-                </button>
+                />
 
                 <div className="text-center min-w-20">
                     <p className="text-xs font-bold text-slate-700 leading-tight">
@@ -117,15 +115,15 @@ export const Pagination = ({
                     )}
                 </div>
 
-                <button
+                <Button
                     onClick={() => goTo(page + 1)}
                     disabled={isLast || loading}
-                    className="flex items-center justify-center w-7 h-7 rounded-full text-white bg-marca-primario
-                     hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                    variant="success"
+                    size="icon"
+                    icon="chevron_right"
+                    className="h-7 w-7 rounded-full shadow-sm hover:translate-y-0"
                     aria-label="Página siguiente"
-                >
-                    <Icon name="chevron_right" size="xs" />
-                </button>
+                />
             </div>
         </div>
     );
@@ -169,16 +167,16 @@ const PageNumbers = ({ page, totalPages, goTo, loading }) => {
 };
 
 const PageBtn = ({ n, active, goTo, loading }) => (
-    <button
+    <Button
         onClick={() => goTo(n)}
         disabled={active || loading}
+        variant={active ? 'success' : 'outline'}
+        size="icon"
         className={cn(
-            "w-7 h-7 text-xs font-medium rounded-md transition-colors cursor-pointer",
-            active
-                ? "bg-marca-primario text-white shadow-sm cursor-default"
-                : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed"
+            "h-7 w-7 rounded-md text-xs hover:translate-y-0",
+            active && "cursor-default"
         )}
     >
         {n}
-    </button>
+    </Button>
 );

@@ -8,9 +8,9 @@ export function MobileLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-app-surface">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-cuadra-arena text-app-text">
       <MobileHeader onOpenMenu={() => setMenuOpen(true)} />
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] custom-scrollbar">
+      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto bg-transparent p-4 pb-[calc(7rem+env(safe-area-inset-bottom))] custom-scrollbar">
         <Outlet />
       </main>
       <MobileBottomNav onOpenMore={() => setMenuOpen(true)} />

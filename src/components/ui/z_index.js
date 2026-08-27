@@ -2,6 +2,8 @@ export { Badge }                                               from './badge';
 export { Button }                                              from './button';
 export { Card, CardHeader, CardTitle, CardBody, CardFooter }   from './card';
 export { Icon }                                                from './icon';
+export { ImageViewer }                                         from './image-viewer';
+export { QrCode }                                              from './qr-code';
 export { Modal, ModalHeader, ModalBody, ModalFooter }          from './modal';
 export { Spinner, Skeleton }                                   from './spinner';
 export { Tooltip }                                             from './tooltip';

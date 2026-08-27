@@ -1,199 +1,411 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// src/features/formularios/components/editor-formulario.jsx
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Input } from '@/components/form/input';
+import { Label } from '@/components/form/label';
+import { Icon } from '@/components/ui/icon';
 import { formulariosApi } from '@/features/formularios/api/formularios-api';
-import { AddBlockMenu } from '@/features/formularios/components/add-block-menu';
-import { BloqueEditor } from '@/features/formularios/components/bloque-editor';
-import { EstadoVersionBadge } from '@/features/formularios/components/estado-version-badge';
-import { FormularioPreviewModal } from '@/features/formularios/components/formulario-preview-modal';
-import {
-  crearBloque,
-  crearReglasDefaultCriterio,
-  construirVersionPreview,
-  moverBloque,
-  normalizarOrden,
-  prepararPayload,
-  reglasAEstadoEditor,
-  validarEditor,
-} from '@/features/formularios/helpers/formulario-editor-helpers';
+import { crearClaveEstable } from '@/features/formularios/helpers/estructura-formulario-helpers';
 
-export function EditorFormulario({ formularioId, versionId }) {
+export function EditorFormulario({ formularioId }) {
   const navigate = useNavigate();
-  const [state, setState] = useState({ status: 'loading', version: null, error: null });
-  const [bloques, setBloques] = useState([]);
-  const [reglas, setReglas] = useState([]);
-  const [dirty, setDirty] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [saveState, setSaveState] = useState('');
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [dragIndex, setDragIndex] = useState(null);
+  const [error, setError] = useState(null);
 
-  const readOnly = state.version?.estado !== 'BORRADOR';
-  const previewVersion = useMemo(() => ({
-    ...construirVersionPreview(state.version ?? {}, bloques, reglas),
-  }), [bloques, reglas, state.version]);
+  // Formulario general
+  const [formMeta, setFormMeta] = useState({
+    nombre: '',
+    descripcion: '',
+    alcance: '',
+    activo: true,
+  });
 
-  const cargar = useCallback(async () => {
-    setState({ status: 'loading', version: null, error: null });
-    try {
-      const { version } = await formulariosApi.obtenerVersion(versionId);
-      setState({ status: 'ready', version, error: null });
-      setBloques(normalizarOrden(version.bloques ?? []));
-      setReglas(reglasAEstadoEditor(version));
-      setDirty(false);
-    } catch (error) {
-      setState({ status: 'error', version: null, error: error?.message || 'No se pudo cargar la version.' });
-    }
-  }, [versionId]);
+  // Estructura (secciones y preguntas)
+  const [secciones, setSecciones] = useState([]);
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    async function cargarFormulario() {
+      try {
+        setLoading(true);
+        const { formulario } = await formulariosApi.obtener(formularioId);
+        setFormMeta({
+          nombre: formulario.nombre,
+          descripcion: formulario.descripcion ?? '',
+          alcance: formulario.alcance,
+          activo: formulario.activo,
+        });
 
-  useEffect(() => {
-    if (!dirty) return undefined;
-    const handler = (event) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [dirty]);
-
-  const actualizarBloque = (index, cambios) => {
-    setBloques((actuales) => actuales.map((bloque, i) => (i === index ? { ...bloque, ...cambios } : bloque)));
-    setDirty(true);
-    setSaveState('Cambios sin guardar');
-  };
-
-  const agregarBloque = (tipo) => {
-    const nuevo = { ...crearBloque(tipo), orden: bloques.length };
-    setBloques((actuales) => [...actuales, nuevo]);
-    if (tipo === 'CRITERIO_5S') setReglas((actuales) => [...actuales, ...crearReglasDefaultCriterio(nuevo)]);
-    setDirty(true);
-    setSaveState('Cambios sin guardar');
-  };
-
-  const quitarBloque = (index) => {
-    const bloque = bloques[index];
-    if (bloque.tipo === 'CRITERIO_5S' && !window.confirm('Eliminar este criterio quitara sus opciones y reglas del borrador.')) return;
-    setBloques((actuales) => normalizarOrden(actuales.filter((_, i) => i !== index)));
-    setReglas((actuales) => actuales.filter((regla) => regla.bloqueOrigenClaveEstable !== bloque.claveEstable && regla.bloqueDestinoClaveEstable !== bloque.claveEstable));
-    setDirty(true);
-    setSaveState('Cambios sin guardar');
-  };
-
-  const mover = (from, to) => {
-    setBloques((actuales) => moverBloque(actuales, from, to));
-    setDirty(true);
-    setSaveState('Cambios sin guardar');
-  };
-
-  const guardar = async () => {
-    const errores = validarEditor(bloques, reglas);
-    if (errores.length) {
-      setSaveState(errores.slice(0, 3).join(' '));
-      return false;
+        // Mapear secciones y preguntas con ordenes estables
+        const mappedSecciones = (formulario.actual?.secciones ?? []).map((sec, secIdx) => ({
+          id: sec.id,
+          claveEstable: sec.claveEstable ?? crearClaveEstable(),
+          nombre: sec.nombre,
+          objetivo: sec.objetivo ?? '',
+          orden: secIdx,
+          preguntas: (sec.preguntas ?? []).map((p, pIdx) => ({
+            id: p.id,
+            claveEstable: p.claveEstable ?? crearClaveEstable(),
+            texto: p.texto,
+            orden: pIdx,
+          })),
+        }));
+        setSecciones(mappedSecciones);
+      } catch (err) {
+        setError(err.message || 'No se pudo cargar el formulario.');
+      } finally {
+        setLoading(false);
+      }
     }
 
-    setSaving(true);
-    setSaveState('Guardando...');
+    cargarFormulario();
+  }, [formularioId]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formMeta.nombre.trim()) {
+      setError('El nombre del formulario es requerido.');
+      return;
+    }
+    if (secciones.length === 0) {
+      setError('Debes agregar al menos una sección.');
+      return;
+    }
+    for (let i = 0; i < secciones.length; i++) {
+      if (!secciones[i].nombre.trim()) {
+        setError(`El nombre de la sección ${i + 1} es requerido.`);
+        return;
+      }
+      if (secciones[i].preguntas.length === 0) {
+        setError(`La sección ${i + 1} ("${secciones[i].nombre}") debe tener al menos una pregunta.`);
+        return;
+      }
+      for (let j = 0; j < secciones[i].preguntas.length; j++) {
+        if (!secciones[i].preguntas[j].texto.trim()) {
+          setError(`La pregunta ${j + 1} en la sección "${secciones[i].nombre}" no puede estar vacía.`);
+          return;
+        }
+      }
+    }
+
     try {
-      const { version } = await formulariosApi.guardarEstructura(versionId, prepararPayload(bloques, reglas));
-      setState({ status: 'ready', version, error: null });
-      setBloques(normalizarOrden(version.bloques ?? []));
-      setReglas(reglasAEstadoEditor(version));
-      setDirty(false);
-      setSaveState('Guardado');
-      return true;
-    } catch (error) {
-      setSaveState(error?.message || 'Error al guardar');
-      return false;
+      setSaving(true);
+      setError(null);
+
+      // Preparar payload normalizando el orden consecutivo
+      const payload = {
+        nombre: formMeta.nombre.trim(),
+        descripcion: formMeta.descripcion.trim() || null,
+        activo: formMeta.activo,
+        secciones: secciones.map((sec, secIdx) => ({
+          claveEstable: sec.claveEstable,
+          nombre: sec.nombre.trim(),
+          objetivo: sec.objetivo.trim() || null,
+          orden: secIdx,
+          preguntas: sec.preguntas.map((p, pIdx) => ({
+            claveEstable: p.claveEstable,
+            texto: p.texto.trim(),
+            orden: pIdx,
+          })),
+        })),
+      };
+
+      await formulariosApi.guardarFormulario(formularioId, payload);
+      navigate(`/admin/formularios/${formularioId}`);
+    } catch (err) {
+      setError(err.message || 'Error al guardar cambios.');
     } finally {
       setSaving(false);
     }
   };
 
-  const publicar = async () => {
-    const ok = dirty ? await guardar() : true;
-    if (!ok) return;
-    const criterios = bloques.filter((bloque) => bloque.tipo === 'CRITERIO_5S').length;
-    const opciones = bloques.reduce((total, bloque) => total + (bloque.opciones?.length ?? 0), 0);
-    const secciones = bloques.filter((bloque) => bloque.tipo === 'TITULO').length;
-    if (!window.confirm(`Al publicar esta version ya no podra modificarse.\n\n${criterios} criterios\n${opciones} opciones\n${reglas.length} reglas\n${secciones} secciones`)) return;
-
-    setPublishing(true);
-    try {
-      const { version } = await formulariosApi.publicarVersion(versionId);
-      setState((actual) => ({ ...actual, version: { ...actual.version, ...version } }));
-      setDirty(false);
-      setSaveState('Version publicada');
-    } catch (error) {
-      setSaveState(error?.message || 'No se pudo publicar');
-    } finally {
-      setPublishing(false);
-    }
+  // Acciones de Sección
+  const agregarSeccion = () => {
+    setSecciones([
+      ...secciones,
+      {
+        claveEstable: crearClaveEstable(),
+        nombre: '',
+        objetivo: '',
+        orden: secciones.length,
+        preguntas: [],
+      },
+    ]);
   };
 
-  if (state.status === 'loading') return <Spinner />;
-  if (state.status === 'error') return <p className="rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">{state.error}</p>;
+  const eliminarSeccion = (secIdx) => {
+    setSecciones(secciones.filter((_, idx) => idx !== secIdx));
+  };
+
+  const moverSeccion = (secIdx, direccion) => {
+    const targetIdx = secIdx + direccion;
+    if (targetIdx < 0 || targetIdx >= secciones.length) return;
+    const copia = [...secciones];
+    const temp = copia[secIdx];
+    copia[secIdx] = copia[targetIdx];
+    copia[targetIdx] = temp;
+    setSecciones(copia);
+  };
+
+  // Acciones de Pregunta
+  const agregarPregunta = (secIdx) => {
+    const copia = [...secciones];
+    copia[secIdx].preguntas.push({
+      claveEstable: crearClaveEstable(),
+      texto: '',
+      orden: copia[secIdx].preguntas.length,
+    });
+    setSecciones(copia);
+  };
+
+  const eliminarPregunta = (secIdx, preIdx) => {
+    const copia = [...secciones];
+    copia[secIdx].preguntas = copia[secIdx].preguntas.filter((_, idx) => idx !== preIdx);
+    setSecciones(copia);
+  };
+
+  const moverPregunta = (secIdx, preIdx, direccion) => {
+    const targetIdx = preIdx + direccion;
+    if (targetIdx < 0 || targetIdx >= secciones[secIdx].preguntas.length) return;
+    const copia = [...secciones];
+    const targetPreguntas = copia[secIdx].preguntas;
+    const temp = targetPreguntas[preIdx];
+    targetPreguntas[preIdx] = targetPreguntas[targetIdx];
+    targetPreguntas[targetIdx] = temp;
+    setSecciones(copia);
+  };
+
+  const cambiarTextoPregunta = (secIdx, preIdx, valor) => {
+    const copia = [...secciones];
+    copia[secIdx].preguntas[preIdx].texto = valor;
+    setSecciones(copia);
+  };
+
+  const cambiarMetaSeccion = (secIdx, campo, valor) => {
+    const copia = [...secciones];
+    copia[secIdx][campo] = valor;
+    setSecciones(copia);
+  };
+
+  if (loading) return <Spinner />;
 
   return (
-    <section className="space-y-5">
-      <div className="sticky top-0 z-20 -mx-4 border-b border-white/70 bg-app-surface/80 px-4 py-4 backdrop-blur-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <button type="button" className="text-sm font-bold text-slate-500" onClick={() => navigate(`/admin/formularios/${formularioId}`)}>
-              ← Formularios
-            </button>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-black text-slate-950">{state.version.formulario?.nombre}</h1>
-              <span className="text-lg font-black text-slate-500">V{state.version.numeroVersion}</span>
-              <EstadoVersionBadge estado={state.version.estado} />
+    <section className="mx-auto max-w-5xl space-y-6">
+      <div>
+        <button
+          type="button"
+          onClick={() => navigate(`/admin/formularios/${formularioId}`)}
+          className="text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+        >
+          ← Volver al formulario
+        </button>
+
+        <h1 className="mt-4 text-3xl font-black text-slate-950">
+          Editar Formulario
+        </h1>
+      </div>
+
+      {error && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-bold text-red-700">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Información general */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <h2 className="text-lg font-black text-slate-950">Información General</h2>
+          
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={formMeta.nombre}
+                required
+                onChange={(e) => setFormMeta({ ...formMeta, nombre: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Alcance / Tipo (Solo Lectura)</Label>
+              <Input
+                value={formMeta.alcance}
+                disabled
+              />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" icon="visibility" onClick={() => setPreviewOpen(true)}>Vista previa</Button>
-            {!readOnly && <Button variant="outline" icon="save" isLoading={saving} onClick={guardar}>Guardar</Button>}
-            {!readOnly && <Button icon="publish" isLoading={publishing} onClick={publicar}>Publicar</Button>}
+
+          <div>
+            <Label>Descripción</Label>
+            <Input
+              multiline
+              value={formMeta.descripcion}
+              onChange={(e) => setFormMeta({ ...formMeta, descripcion: e.target.value })}
+            />
           </div>
+
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formMeta.activo}
+              onChange={(e) => setFormMeta({ ...formMeta, activo: e.target.checked })}
+              className="rounded text-marca-primario focus:ring-marca-primario/30"
+            />
+            Formulario activo
+          </label>
         </div>
-        <p className="mt-2 text-xs font-bold text-slate-500">{readOnly ? 'Esta version es inmutable.' : saveState || 'Sin cambios pendientes'}</p>
-      </div>
 
-      <div className="mx-auto max-w-5xl space-y-4">
-        {bloques.map((bloque, index) => (
-          <BloqueEditor
-            key={bloque.claveEstable}
-            versionId={versionId}
-            bloque={bloque}
-            index={index}
-            total={bloques.length}
-            reglas={reglas}
-            readOnly={readOnly}
-            onChange={(cambios) => actualizarBloque(index, cambios)}
-            onChangeReglas={(nuevasReglas) => {
-              setReglas(nuevasReglas);
-              setDirty(true);
-              setSaveState('Cambios sin guardar');
-            }}
-            onMoveUp={() => mover(index, index - 1)}
-            onMoveDown={() => mover(index, index + 1)}
-            onDelete={() => quitarBloque(index)}
-            onDragStart={() => setDragIndex(index)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => {
-              if (dragIndex !== null && dragIndex !== index) mover(dragIndex, index);
-              setDragIndex(null);
-            }}
-          />
-        ))}
-        <AddBlockMenu disabled={readOnly} onAdd={agregarBloque} />
-      </div>
+        {/* Estructura de Secciones */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-950">Estructura</h2>
+            <Button type="button" variant="outline" icon="add" onClick={agregarSeccion}>
+              Agregar sección
+            </Button>
+          </div>
 
-      {previewOpen && <FormularioPreviewModal version={previewVersion} onClose={() => setPreviewOpen(false)} />}
+          {secciones.map((seccion, secIdx) => (
+            <div key={seccion.claveEstable} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span className="text-xs font-black uppercase tracking-wider text-marca-acento">
+                  Sección {secIdx + 1}
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    disabled={secIdx === 0}
+                    onClick={() => moverSeccion(secIdx, -1)}
+                    className="p-1 hover:bg-slate-100 rounded disabled:opacity-40"
+                  >
+                    <Icon name="arrow_upward" size="18px" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={secIdx === secciones.length - 1}
+                    onClick={() => moverSeccion(secIdx, 1)}
+                    className="p-1 hover:bg-slate-100 rounded disabled:opacity-40"
+                  >
+                    <Icon name="arrow_downward" size="18px" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => eliminarSeccion(secIdx)}
+                    className="p-1 hover:bg-red-50 text-red-500 rounded"
+                  >
+                    <Icon name="delete" size="18px" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Nombre de la Sección</Label>
+                  <Input
+                    value={seccion.nombre}
+                    required
+                    placeholder="Ej: 1'S SEIRI"
+                    onChange={(e) => cambiarMetaSeccion(secIdx, 'nombre', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Objetivo de la Sección</Label>
+                  <Input
+                    value={seccion.objetivo}
+                    placeholder="Objetivo a cumplir..."
+                    onChange={(e) => cambiarMetaSeccion(secIdx, 'objetivo', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Preguntas */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Preguntas</span>
+                  <button
+                    type="button"
+                    onClick={() => agregarPregunta(secIdx)}
+                    className="flex items-center gap-1 text-xs font-black text-marca-primario hover:underline"
+                  >
+                    <Icon name="add" size="14px" />
+                    Agregar pregunta
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {seccion.preguntas.map((pregunta, preIdx) => (
+                    <div key={pregunta.claveEstable} className="flex gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marca-primario/10 text-xs font-black text-marca-primario">
+                        {preIdx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={pregunta.texto}
+                        placeholder="Redactar criterio de evaluación..."
+                        onChange={(e) => cambiarTextoPregunta(secIdx, preIdx, e.target.value)}
+                        className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
+                      />
+                      <div className="flex gap-0.5 shrink-0">
+                        <button
+                          type="button"
+                          disabled={preIdx === 0}
+                          onClick={() => moverPregunta(secIdx, preIdx, -1)}
+                          className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
+                        >
+                          <Icon name="keyboard_arrow_up" size="16px" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={preIdx === seccion.preguntas.length - 1}
+                          onClick={() => moverPregunta(secIdx, preIdx, 1)}
+                          className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
+                        >
+                          <Icon name="keyboard_arrow_down" size="16px" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => eliminarPregunta(secIdx, preIdx)}
+                          className="p-1 hover:bg-red-50 text-red-500 rounded"
+                        >
+                          <Icon name="delete" size="16px" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {seccion.preguntas.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">No hay preguntas agregadas a esta sección.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {secciones.length === 0 && (
+            <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-sm text-slate-400 italic">
+              No hay secciones. Agrega una para comenzar.
+            </div>
+          )}
+        </div>
+
+        {/* Botones de acción */}
+        <div className="flex justify-end gap-3 pt-2">
+          <Button
+            type="button"
+            variant="cancelar"
+            onClick={() => navigate(`/admin/formularios/${formularioId}`)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="guardar"
+            isLoading={saving}
+          >
+            Guardar cambios
+          </Button>
+        </div>
+      </form>
     </section>
   );
 }

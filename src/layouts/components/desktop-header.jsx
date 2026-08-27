@@ -1,27 +1,47 @@
-import { useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { getRouteTitle } from '@/config/navigation-config';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { UserMenu } from '@/layouts/components/user-menu';
+import { useUIStore } from '@/stores/ui-store';
 
 export function DesktopHeader() {
   const location = useLocation();
   const title = getRouteTitle(location.pathname);
+  const { sidebarExpanded } = useUIStore();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-white/70 bg-white/70 px-6 py-4 shadow-sm shadow-slate-950/5 backdrop-blur-2xl">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">Encuestas 5S</p>
-          <h2 className="text-2xl font-black text-slate-950">{title}</h2>
+    <header className="sticky top-0 z-[70] border-b border-slate-200 bg-white shadow-sm">
+      <div className="grid grid-cols-3 items-center gap-4 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2 justify-self-start">
+          <Icon
+            name="fact_check"
+            size={!sidebarExpanded ? '32px' : '24px'}
+            className="hidden text-marca-acento transition-all duration-300 sm:block"
+          />
+          <h2 className={`hidden truncate font-normal uppercase text-marca-primario fuente-titulos transition-all duration-300 md:block ${!sidebarExpanded ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'}`}>
+            {title}
+          </h2>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/70 text-slate-700 shadow-sm backdrop-blur-xl transition hover:bg-white"
+
+        <div className="flex items-center justify-center">
+          <img
+            src="/img/01_Cuadra.webp"
+            alt="Cuadra"
+            className="h-8 w-auto object-contain sm:h-10"
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-2 sm:gap-4">
+          <Button
+            as={Link}
+            to="/notificaciones"
+            variant="icon"
+            size="icon"
+            icon="notifications"
+            className="h-10 w-10 rounded-md border-transparent bg-transparent text-slate-600 shadow-none hover:bg-slate-100 hover:text-marca-primario hover:translate-y-0 hover:shadow-none"
             aria-label="Notificaciones"
-          >
-            <Icon name="notifications" />
-          </button>
+          />
           <UserMenu />
         </div>
       </div>

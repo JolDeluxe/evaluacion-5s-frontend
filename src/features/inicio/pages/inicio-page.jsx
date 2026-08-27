@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -5,15 +6,32 @@ import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { OfflinePendingBadge } from '@/components/ui/offline-pending-badge';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-
-const quickStats = [
-  { label: 'Asignadas', value: '0', icon: 'assignment' },
-  { label: 'Pendientes', value: '0', icon: 'schedule' },
-  { label: 'Recibidas', value: '0', icon: 'task_alt' },
-];
+import { asignacionesApi } from '@/features/asignaciones/api/asignaciones-api';
 
 export function InicioPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({ asignadas: 0, pendientes: 0, realizadas: 0 });
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const data = await asignacionesApi.listar();
+        const asignadas = data.length;
+        const pendientes = data.filter(a => a.estado === 'PENDIENTE').length;
+        const realizadas = data.filter(a => a.estado === 'COMPLETADA').length;
+        setStats({ asignadas, pendientes, realizadas });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    cargar();
+  }, []);
+
+  const quickStats = [
+    { label: 'Asignadas', value: stats.asignadas, icon: 'assignment' },
+    { label: 'Pendientes', value: stats.pendientes, icon: 'schedule' },
+    { label: 'Realizadas', value: stats.realizadas, icon: 'task_alt' },
+  ];
 
   return (
     <section className="space-y-6">

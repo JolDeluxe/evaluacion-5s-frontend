@@ -1,20 +1,34 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
+import { QrCode } from '@/components/ui/qr-code';
 import { Spinner } from '@/components/ui/spinner';
+import { notify } from '@/components/notification/adaptive-notify';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { auditoriasApi } from '@/features/auditorias/api/auditorias-api';
 import { FormularioDinamico } from '@/features/auditorias/components/formulario-dinamico';
 import { normalizarContextoAuditoria } from '@/features/auditorias/components/formulario-dinamico.helpers';
+import { buildPublicAppUrl, copyToClipboard } from '@/utils/share-url';
 
-function MobileRequired({ contexto }) {
+function MobileRequired({ contexto, publicPath, qrLabel = 'Escanea para continuar en tu celular' }) {
+  const enlace = buildPublicAppUrl(publicPath);
+
+  const copiar = async () => {
+    if (!enlace) return;
+    await copyToClipboard(enlace);
+    notify.success('Enlace copiado.');
+  };
+
   return (
     <section className="flex min-h-dvh items-center justify-center bg-app-surface p-6">
       <Card className="max-w-xl border-amber-200 bg-amber-50/85 shadow-xl shadow-amber-950/5">
-        <CardBody className="space-y-4 p-8 text-center">
+        <CardBody className="space-y-5 p-8 text-center">
+          <Button as={Link} to="/mis-auditorias" variant="ghost" icon="arrow_back" className="mx-auto hover:translate-y-0 hover:shadow-none">
+            Volver a mis auditorías
+          </Button>
           <Icon name="smartphone" size="xl" className="mx-auto text-amber-700" />
           <h1 className="text-2xl font-black text-amber-950">Captura movil requerida</h1>
           <p className="text-sm font-semibold leading-6 text-amber-900">
@@ -24,6 +38,20 @@ function MobileRequired({ contexto }) {
             <p className="rounded-2xl bg-white/60 px-4 py-3 text-sm font-black text-amber-950">
               {contexto.area.nombre}
             </p>
+          )}
+
+          {enlace ? (
+            <div className="flex flex-col items-center gap-3 rounded-3xl bg-white/70 p-4">
+              <QrCode value={enlace} label={qrLabel} />
+              <p className="text-sm font-black text-slate-800">{qrLabel}</p>
+              <Button type="button" variant="outline" icon="content_copy" onClick={copiar}>
+                Copiar enlace
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-200 bg-white/70 px-4 py-3 text-sm font-bold leading-6 text-amber-900">
+              Configura <span className="font-black">VITE_PUBLIC_APP_URL</span> con una URL publica para generar el QR. No se usa localhost para compartir.
+            </div>
           )}
         </CardBody>
       </Card>
@@ -49,11 +77,12 @@ function ErrorState({ error, onRetry, onBack }) {
   );
 }
 
-export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp }) {
+export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, nombreInvitado }) {
   const params = useParams();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
-  const { user } = useAuth();
+  const auth = useAuth();
+  const { user } = auth;
   const token = tokenProp ?? params.token;
   const [state, setState] = useState({ status: 'loading', contexto: null, error: null });
 
@@ -83,6 +112,12 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp }
     cargar();
   }, [cargar]);
 
+  useEffect(() => {
+    if (modo !== 'invitado') return;
+    if (auth.status === 'loading') return;
+    if (!user && !nombreInvitado) navigate(`/invitado/${token}`, { replace: true });
+  }, [auth.status, modo, navigate, nombreInvitado, token, user]);
+
   if (state.status === 'loading') {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-app-surface">
@@ -95,30 +130,31 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp }
     return <ErrorState error={state.error} onRetry={cargar} onBack={() => navigate(modo === 'invitado' ? '/invitado' : '/mis-auditorias')} />;
   }
 
-  if (isDesktop) return <MobileRequired contexto={state.contexto} />;
+  if (isDesktop) {
+    const publicPath = modo === 'invitado' ? `/invitado/${token}` : `/auditorias/${params.id}/realizar`;
+    return (
+      <MobileRequired
+        contexto={state.contexto}
+        publicPath={publicPath}
+        qrLabel={modo === 'invitado' ? 'Escanea para abrir la invitación en tu celular' : 'Escanea para continuar en tu celular'}
+      />
+    );
+  }
+
+  const handleExit = () => {
+    navigate(modo === 'invitado' ? '/invitado' : '/mis-auditorias');
+  };
 
   return (
-    <main className="min-h-dvh bg-app-surface px-4 py-4">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <header className="rounded-[1.75rem] border border-white/70 bg-white/70 p-4 shadow-lg shadow-slate-950/5 backdrop-blur-2xl">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-marca-acento">
-                {state.contexto.area?.tipo ?? '5S'}
-              </p>
-              <h1 className="truncate text-xl font-black text-slate-950">{state.contexto.area?.nombre ?? 'Auditoria 5S'}</h1>
-              <p className="mt-1 truncate text-xs font-bold text-slate-500">
-                {state.contexto.versionFormulario?.formulario?.nombre ?? 'Formulario'}
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" icon="close" onClick={() => navigate(modo === 'invitado' ? '/invitado' : '/mis-auditorias')}>
-              Salir
-            </Button>
-          </div>
-        </header>
-
-        <FormularioDinamico contexto={state.contexto} modo={modo} token={token} currentUser={user} />
-      </div>
+    <main className="min-h-dvh bg-app-surface px-4">
+      <FormularioDinamico
+        contexto={state.contexto}
+        modo={modo}
+        token={token}
+        currentUser={user}
+        nombreInvitado={nombreInvitado}
+        onExit={handleExit}
+      />
     </main>
   );
 }

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router';
+import { useUrlState, parseMonthParam, parseYearParam } from '@/hooks/use-url-state';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
+import { ImageViewer } from '@/components/ui/image-viewer';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { apiClient } from '@/lib/api/api-client';
 import { formatPercentTrunc } from '@/utils/format';
@@ -58,14 +61,24 @@ function RenderScoreWithDot({ value, className = '' }) {
   );
 }
 
+const URL_DEFAULTS_RESULTADOS = {
+  tipo: 'TODAS', // TODAS, ADMINISTRATIVA, OPERATIVA
+};
+
 export function ResultadosPage() {
   const { user } = useAuth();
   const esAdminOrSuper = user?.rol === 'ADMINISTRADOR' || user?.rol === 'SUPER_ADMIN';
 
-  // Filters State - Defaults to "TODAS"
-  const [tipoArea, setTipoArea] = useState('TODAS');
-  const [anio, setAnio] = useState(2026);
-  const [mes, setMes] = useState(6); // Default to June (Junio) to view test records
+  const { anio: anioParam, mes: mesParam } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const ahora = useMemo(() => new Date(), []);
+  const anio = parseYearParam(anioParam, ahora.getFullYear());
+  const mes = parseMonthParam(mesParam, ahora.getMonth() + 1);
+
+  const { params, setParam } = useUrlState(URL_DEFAULTS_RESULTADOS);
+  const tipoArea = params.tipo;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,13 +97,13 @@ export function ResultadosPage() {
   const [zoomImagenUrl, setZoomImagenUrl] = useState(null);
 
   // Fetch Results for both types in parallel
-  const cargarResultados = useCallback(async () => {
+  const cargarResultados = useCallback(async (currentAnio, currentMes) => {
     setLoading(true);
     setError(null);
     try {
       const [adminRes, operRes] = await Promise.all([
-        apiClient.get(`/resultados/areas?anio=${anio}&mes=${mes}&tipoArea=ADMINISTRATIVA`),
-        apiClient.get(`/resultados/areas?anio=${anio}&mes=${mes}&tipoArea=OPERATIVA`),
+        apiClient.get(`/resultados/areas?anio=${currentAnio}&mes=${currentMes}&tipoArea=ADMINISTRATIVA`),
+        apiClient.get(`/resultados/areas?anio=${currentAnio}&mes=${currentMes}&tipoArea=OPERATIVA`),
       ]);
       setAdminData(adminRes.datos || adminRes);
       setOperData(operRes.datos || operRes);
@@ -100,11 +113,11 @@ export function ResultadosPage() {
     } finally {
       setLoading(false);
     }
-  }, [anio, mes]);
+  }, []);
 
   useEffect(() => {
-    cargarResultados();
-  }, [cargarResultados]);
+    cargarResultados(anio, mes);
+  }, [anio, mes, cargarResultados]);
 
   // Fetch Detailed Audit Envio
   const cargarDetail = async (id) => {
@@ -324,7 +337,7 @@ export function ResultadosPage() {
             </label>
             <select
               value={tipoArea}
-              onChange={(e) => setTipoArea(e.target.value)}
+              onChange={(e) => setParam('tipo', e.target.value, { resetPage: false })}
               className="bg-slate-50 border border-slate-200 rounded-md p-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-marca-primario/25 transition-all"
             >
               <option value="TODAS">Todas</option>
@@ -337,8 +350,8 @@ export function ResultadosPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-black uppercase tracking-wider text-slate-500">Año</label>
             <select
-              value={anio}
-              onChange={(e) => setAnio(Number(e.target.value))}
+              value={String(anio)}
+              onChange={(e) => navigate(`/resultados/${e.target.value}/${mes}${location.search}`)}
               className="bg-slate-50 border border-slate-200 rounded-md p-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-marca-primario/25 transition-all"
             >
               <option value={2025}>2025</option>
@@ -350,8 +363,8 @@ export function ResultadosPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-black uppercase tracking-wider text-slate-500">Mes</label>
             <select
-              value={mes}
-              onChange={(e) => setMes(Number(e.target.value))}
+              value={String(mes)}
+              onChange={(e) => navigate(`/resultados/${anio}/${e.target.value}${location.search}`)}
               className="bg-slate-50 border border-slate-200 rounded-md p-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-marca-primario/25 transition-all"
             >
               {MESES.map((m) => (
@@ -566,11 +579,8 @@ export function ResultadosPage() {
                             <h4 className="text-base font-black text-slate-800 leading-tight">
                               {area.nombre}
                             </h4>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold tracking-wider">
-                              <span className="bg-slate-100 border border-slate-200 px-1 py-0.2 rounded shrink-0">
-                                {area.codigo}
-                              </span>
-                              <span>{area.tipoArea}</span>
+                            <div className="text-[10px] font-bold tracking-wider text-slate-400">
+                              {area.tipoArea}
                             </div>
                           </div>
                         </td>
@@ -606,10 +616,8 @@ export function ResultadosPage() {
                     <h3 className="text-sm font-black text-slate-800 truncate leading-snug">
                       {area.nombre}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold uppercase mt-0.5">
-                      <span>{area.codigo}</span>
-                      <span>·</span>
-                      <span>{area.tipoArea}</span>
+                    <div className="mt-0.5 text-[9px] font-bold uppercase text-slate-400">
+                      {area.tipoArea}
                     </div>
                   </div>
                 </CardHeader>
@@ -817,25 +825,13 @@ export function ResultadosPage() {
         </ModalFooter>
       </Modal>
 
-      {/* Lightbox / Zoomed image Viewer */}
-      {zoomImagenUrl && (
-        <div
-          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => setZoomImagenUrl(null)}
-        >
-          <button
-            onClick={() => setZoomImagenUrl(null)}
-            className="absolute top-4 right-4 text-white hover:text-slate-300 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 cursor-pointer"
-          >
-            <Icon name="close" size="32px" />
-          </button>
-          <img
-            src={zoomImagenUrl}
-            alt="Evidencia Ampliada"
-            className="max-w-full max-h-full object-contain rounded"
-          />
-        </div>
-      )}
+      <ImageViewer
+        open={Boolean(zoomImagenUrl)}
+        src={zoomImagenUrl}
+        alt="Evidencia ampliada"
+        title="Evidencia"
+        onClose={() => setZoomImagenUrl(null)}
+      />
     </section>
   );
 }

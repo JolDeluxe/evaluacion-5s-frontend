@@ -15,7 +15,64 @@ export function ordenarPorOrden(items = []) {
 }
 
 export function obtenerBloques(versionFormulario) {
-  return ordenarPorOrden(versionFormulario?.bloques ?? []);
+  if (Array.isArray(versionFormulario?.bloques)) return ordenarPorOrden(versionFormulario.bloques);
+
+  const secciones = ordenarPorOrden(versionFormulario?.secciones ?? []);
+  return secciones.flatMap((seccion, seccionIndex) => {
+    const titulo = {
+      id: `seccion-${seccion.id ?? seccion.claveEstable}`,
+      claveEstable: seccion.claveEstable,
+      tipo: 'TITULO',
+      orden: seccionIndex * 1000,
+      etiqueta: seccion.nombre,
+      descripcion: seccion.objetivo ?? null,
+    };
+    const preguntas = ordenarPorOrden(seccion.preguntas ?? []).map((pregunta, preguntaIndex) => {
+      let texto = pregunta.texto;
+      if (seccion.nombre?.toUpperCase() === 'CULTURA' && (!texto || texto.trim().toLowerCase().startsWith('cultura'))) {
+        const culturaQuestions = [
+          "¿Cuántas y cuáles son las 5'S?",
+          "¿Qué significa WPO y para qué nos sirve dentro de nuestro lugar de trabajo?",
+          "¿Sabes cuál es el estándar ideal de WPO en tu lugar de trabajo?"
+        ];
+        if (preguntaIndex < culturaQuestions.length) {
+          texto = culturaQuestions[preguntaIndex];
+        }
+      }
+
+      return {
+        id: pregunta.id,
+        preguntaFormularioId: pregunta.id,
+        claveEstable: pregunta.claveEstable,
+        tipo: 'CRITERIO_5S',
+        orden: seccionIndex * 1000 + preguntaIndex + 10,
+        etiqueta: texto,
+        obligatorio: true,
+        puntua: true,
+        puntajeMaximo: preguntaIndex + 1,
+        opciones: [
+          {
+            id: `${pregunta.id}-si`,
+            etiqueta: 'SI',
+            valor: 'SI',
+            orden: 0,
+            valorPuntaje: 1,
+            activo: true,
+          },
+          {
+            id: `${pregunta.id}-no`,
+            etiqueta: 'NO',
+            valor: 'NO',
+            orden: 1,
+            valorPuntaje: 0,
+            activo: true,
+          },
+        ],
+      };
+    });
+
+    return [titulo, ...preguntas];
+  });
 }
 
 export function agruparSecciones(bloques = []) {
@@ -60,6 +117,14 @@ export function obtenerCriterios(secciones = []) {
 }
 
 export function evaluarReglas(reglas = [], respuesta) {
+  if (respuesta?.cumple === false) {
+    return {
+      reglas: [],
+      exigeHallazgo: true,
+      exigeEvidencia: false,
+    };
+  }
+
   const opcionIds = new Set(respuesta?.opcionFormularioIds ?? []);
   const reglasAplicadas = reglas.filter((regla) => (
     regla.activo !== false
@@ -101,8 +166,10 @@ export function normalizarContextoAuditoria(datos, modo) {
 export function crearRespuestaInicial(bloque) {
   return {
     bloqueFormularioId: bloque.id,
+    preguntaFormularioId: bloque.preguntaFormularioId ?? bloque.id,
     claveEstable: bloque.claveEstable,
     opcionFormularioIds: [],
+    cumple: null,
     valorTexto: null,
     valorNumero: null,
     valorBooleano: null,

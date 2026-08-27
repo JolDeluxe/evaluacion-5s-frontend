@@ -1,21 +1,29 @@
 import React, { forwardRef } from 'react';
 import { cn } from '@/utils/cn';
 
-export const Checkbox = forwardRef(({ className, label, error, ...props }, ref) => {
+export const Checkbox = forwardRef(({ className, label, error, helperText, ...props }, ref) => {
   return (
-    <label className={cn("flex items-center gap-2 cursor-pointer text-sm select-none w-fit", className)}>
-      <input
-        type="checkbox"
-        ref={ref}
-        className="w-4 h-4 rounded-sm border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed accent-marca-primario"
-        {...props}
-      />
-      {label && (
-        <span className={cn("font-medium", error ? "text-red-600" : "text-slate-700")}>
-          {label}
-        </span>
+    <div className="w-fit">
+      <label className={cn('flex cursor-pointer select-none items-center gap-2 text-sm', className)}>
+        <input
+          type="checkbox"
+          ref={ref}
+          className="h-4 w-4 rounded border-app-border accent-navigation-active transition disabled:cursor-not-allowed disabled:opacity-50"
+          aria-invalid={error ? true : undefined}
+          {...props}
+        />
+        {label && (
+          <span className={cn('font-semibold', error ? 'text-estado-rechazado' : 'text-slate-700')}>
+            {label}
+          </span>
+        )}
+      </label>
+      {helperText && (
+        <p className={cn('mt-1 pl-6 text-xs font-semibold', error ? 'text-estado-rechazado' : 'text-app-text-muted')}>
+          {helperText}
+        </p>
       )}
-    </label>
+    </div>
   );
 });
 Checkbox.displayName = 'Checkbox';

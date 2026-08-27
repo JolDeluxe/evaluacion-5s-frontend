@@ -3,7 +3,13 @@ import { ordenarPorOrden } from '@/features/auditorias/components/formulario-din
 
 export function OpcionesCriterio({ bloque, respuesta, onSelect }) {
   const seleccionadas = new Set(respuesta?.opcionFormularioIds ?? []);
-  const opciones = ordenarPorOrden(bloque?.opciones ?? []).filter((opcion) => opcion.activo !== false);
+  const opciones = [...(bloque?.opciones ?? [])]
+    .filter((opcion) => opcion.activo !== false)
+    .sort((a, b) => {
+      if (a.valor === 'NO' && b.valor === 'SI') return -1;
+      if (a.valor === 'SI' && b.valor === 'NO') return 1;
+      return Number(a.orden ?? 0) - Number(b.orden ?? 0);
+    });
 
   return (
     <div className="grid grid-cols-2 gap-3">

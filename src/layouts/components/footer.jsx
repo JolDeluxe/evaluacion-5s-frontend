@@ -1,7 +1,11 @@
 export function Footer() {
+  const year = new Date().getFullYear();
+
   return (
-    <footer className="border-t border-slate-200/70 bg-white/60 px-5 py-3 text-center text-[11px] font-semibold text-slate-500 backdrop-blur-xl">
-      © 2026 | Herramienta desarrollada por Procesos Tecnológicos.
+    <footer className="border-t border-slate-200 bg-white px-4 py-4 text-center">
+      <p className="text-sm text-slate-600">
+        <span className="font-semibold">Manufacturera de Botas Cuadra</span> © {year}
+      </p>
     </footer>
   );
 }

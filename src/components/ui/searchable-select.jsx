@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Icon } from './icon';
 import { Tooltip } from './tooltip';
 import { cn } from '@/utils/cn';
+import { controlBase, controlSizes, controlState } from '@/components/form/form-control-styles';
 
 export const SearchableSelect = ({
     options = [],
@@ -48,6 +49,7 @@ export const SearchableSelect = ({
     }, [options, value]);
 
     const usesRemoteSearch = typeof onSearchChange === 'function';
+    const hasValue = value !== null && value !== undefined && value !== '';
 
     const filteredOptions = useMemo(() => {
         if (!options || !Array.isArray(options)) return [];
@@ -79,22 +81,22 @@ export const SearchableSelect = ({
                     }
                 }}
                 className={cn(
-                    "flex items-center justify-between gap-2 px-3 py-1.5 text-sm font-medium rounded-xl border transition-all h-9.5 w-full",
+                    controlBase,
+                    controlSizes.md,
+                    controlState({ selected: hasValue && !disabled }),
+                    "flex items-center justify-between gap-2 pr-3 text-left",
                     disabled ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed" : "cursor-pointer",
-                    value && !disabled
-                        ? "bg-marca-primario/[0.03] border-marca-primario/30 text-marca-primario shadow-sm"
-                        : "bg-white border-slate-200 text-slate-700 hover:border-slate-300",
                     className
                 )}
             >
                 <span className="flex items-center min-w-0 flex-1">
                     {icon && <Icon name={icon} size="sm" className="mr-2 opacity-70 flex-shrink-0" />}
                     <span className="truncate min-w-0 overflow-hidden">
-                        {value ? selectedOption?.label : placeholder}
+                        {hasValue ? selectedOption?.label : placeholder}
                     </span>
                 </span>
 
-                {value && !disabled ? (
+                {hasValue && !disabled ? (
                     <Tooltip text="Limpiar selección" variant="dark" position="top">
                         <div
                             role="button"
@@ -121,10 +123,10 @@ export const SearchableSelect = ({
             </button>
 
             {isOpen && !disabled && (
-                <div className={cn("absolute top-full left-0 mt-1 w-full max-w-full bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in", menuClassName)}>
+                <div className={cn("absolute top-full left-0 mt-1 w-full max-w-full bg-white border border-app-border rounded-lg shadow-xl z-50 overflow-hidden animate-fade-in", menuClassName)}>
 
                     {/* Buscador Interno */}
-                    <div className="p-2 border-b border-slate-100 bg-slate-50 sticky top-0">
+                    <div className="p-2 border-b border-app-border bg-app-surface-muted sticky top-0">
                         <div className="relative">
                             <Icon name="search" size="xs" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
@@ -134,7 +136,7 @@ export const SearchableSelect = ({
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
                                 }}
-                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-marca-secundario bg-white"
+                                className={cn(controlBase, 'h-8 pl-8 pr-3 text-xs', controlState())}
                                 autoFocus
                             />
                         </div>
@@ -146,8 +148,8 @@ export const SearchableSelect = ({
                             <button
                                 onClick={() => handleSelect("")}
                                 className={cn(
-                                    "w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors cursor-pointer",
-                                    !value ? "bg-slate-50 font-bold text-slate-900" : "text-slate-600"
+                                    "w-full text-left px-4 py-2.5 text-sm hover:bg-app-surface-muted transition-colors cursor-pointer",
+                                    !hasValue ? "bg-slate-50 font-bold text-slate-900" : "text-slate-600"
                                 )}
                             >
                                 <span className="block truncate">{allOptionText}</span>
@@ -166,8 +168,8 @@ export const SearchableSelect = ({
                                         key={valStr || opt.label}
                                         onClick={() => handleSelect(valStr)}
                                         className={cn(
-                                            "w-full text-left px-4 py-2.5 text-sm hover:bg-marca-primario/5 transition-colors border-t border-slate-50 cursor-pointer",
-                                            String(value ?? '') === valStr ? "bg-marca-primario/5 font-bold text-marca-primario" : "text-slate-600"
+                                            "w-full text-left px-4 py-2.5 text-sm hover:bg-navigation-active-soft transition-colors border-t border-slate-50 cursor-pointer",
+                                            String(value ?? '') === valStr ? "bg-navigation-active-soft font-bold text-navigation-active" : "text-slate-600"
                                         )}
                                     >
                                         <span className="block truncate min-w-0">{opt.label}</span>

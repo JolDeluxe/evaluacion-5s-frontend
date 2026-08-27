@@ -1,6 +1,6 @@
 // src/components/ui/table-actions.jsx
 import { cn } from "@/utils/cn";
-import { Icon } from "./icon";
+import { Button } from "./button";
 import { Tooltip } from "./tooltip";
 
 const ACTION_CONFIG = {
@@ -118,15 +118,18 @@ export const TableActions = ({ row, actions = [] }) => {
                         // Reducción drástica del tamaño del Tooltip:
                         className="text-[13px] px-2 py-0.5 font-bold tracking-tight"
                     >
-                        <button
+                        <Button
+                            type="button"
                             onClick={() => onClick?.(row)}
+                            variant="ghost"
+                            size="icon"
+                            icon={config.icon}
+                            aria-label={tooltip}
                             className={cn(
-                                "p-1.5 rounded-md transition-colors cursor-pointer", // Padding del botón intacto
+                                "h-8 w-8 rounded-lg shadow-none hover:translate-y-0 hover:shadow-none",
                                 config.className
                             )}
-                        >
-                            <Icon name={config.icon} size="sm" /> {/* Icono intacto */}
-                        </button>
+                        />
                     </Tooltip>
                 );
             })}

@@ -5,14 +5,14 @@ import { useUIStore } from '@/stores/ui-store';
 
 // ── Tokens de variantes ────────────────────────────────────────────────────
 const GLASS_VARIANTS = {
-    primary: { bg: 'rgba(72, 43, 44, 0.78)', shadow: '0 12px 36px rgba(72,43,44,0.40), 0 2px 8px rgba(72,43,44,0.20)' },
+    primary: { bg: 'rgba(72, 43, 44, 0.82)', shadow: '0 12px 36px rgba(72,43,44,0.28), 0 2px 8px rgba(72,43,44,0.16)' },
     neutral: { bg: 'rgba(100, 116, 139, 0.62)', shadow: '0 10px 30px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)' },
     action: { bg: 'rgba(59, 130, 246, 0.72)', shadow: '0 10px 30px rgba(59,130,246,0.35), 0 2px 6px rgba(59,130,246,0.18)' },
     success: { bg: 'rgba(16, 185, 129, 0.70)', shadow: '0 10px 30px rgba(16,185,129,0.32), 0 2px 6px rgba(16,185,129,0.16)' },
     danger: { bg: 'rgba(220, 38, 38, 0.72)', shadow: '0 10px 30px rgba(220,38,38,0.30), 0 2px 6px rgba(220,38,38,0.16)' },
     light: { bg: 'rgba(255, 255, 255, 0.45)', shadow: '0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)' },
     // NUEVA VARIANTE SURFACE: Especial para Headers y Bottom Navs anclados.
-    surface: { bg: 'rgba(235, 227, 218, 0.75)', shadow: '0 -8px 30px rgba(0,0,0,0.06)' },
+    surface: { bg: 'rgba(255, 255, 255, 0.74)', shadow: '0 -8px 30px rgba(15,23,42,0.08)' },
 };
 
 export const glassBase = (variant = 'primary') => {
@@ -183,8 +183,8 @@ export const GlassPaginationPill = ({
         overflow: 'hidden',
         ...glassBase('primary'),
         boxShadow: `
-      0 14px 44px rgba(72,43,44,0.38),
-      0 4px 12px rgba(72,43,44,0.18),
+      0 14px 44px rgba(72,43,44,0.24),
+      0 4px 12px rgba(72,43,44,0.14),
       0 1px 0 rgba(255,255,255,0.48) inset,
       0 -1px 0 rgba(0,0,0,0.10) inset
     `,
@@ -342,7 +342,7 @@ export const GlassBottomNavItem = ({ icon, label, isActive, onClick, badge, isBl
                     "flex items-center justify-center w-16 h-8 rounded-full transition-all duration-300 relative overflow-hidden",
                     isActive ? "border border-white/20 shadow-inner" : "bg-transparent group-active:bg-white/30"
                 )}
-                style={isActive ? glassBase('primary') : undefined}
+                    style={isActive ? glassBase('primary') : undefined}
             >
                 {isActive && <GlassSheen />}
                 <Icon

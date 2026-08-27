@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { cn } from '@/utils/cn';
 import { Icon } from '@/components/ui/icon';
+import { controlBase, controlSizes, controlState, helperTextClass } from './form-control-styles';
 
 export const Select = forwardRef(({ 
     className, 
@@ -10,17 +11,10 @@ export const Select = forwardRef(({
     icon,
     onClear,
     value,
+    size = 'md',
     ...props 
 }, ref) => {
     const hasValue = value && value !== "";
-    
-    const baseStyles = "w-full border px-3 py-2 text-sm appearance-none focus:outline-none transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed bg-white h-9.5 font-medium";
-    
-    const stateStyles = error
-        ? "border-red-500 focus:ring-2 focus:ring-red-100 text-red-900"
-        : hasValue 
-            ? "border-marca-primario/30 bg-marca-primario/[0.03] text-marca-primario focus:ring-2 focus:ring-marca-primario/10"
-            : "border-slate-200 text-slate-700 hover:border-slate-300 focus:ring-2 focus:ring-marca-secundario/20 focus:border-marca-secundario";
 
     return (
         <div className="w-full">
@@ -42,13 +36,15 @@ export const Select = forwardRef(({
                     ref={ref}
                     value={value}
                     className={cn(
-                        baseStyles, 
-                        stateStyles, 
-                        "rounded-xl",
+                        controlBase,
+                        controlSizes[size] || controlSizes.md,
+                        controlState({ error, selected: hasValue }),
+                        "appearance-none",
                         icon ? "pl-9" : "pl-3",
                         onClear && hasValue ? "pr-14" : "pr-9",
                         className
                     )}
+                    aria-invalid={error ? true : undefined}
                     {...props}
                 >
                     {children}
@@ -64,6 +60,7 @@ export const Select = forwardRef(({
                                 onClear();
                             }}
                             className="pointer-events-auto flex items-center justify-center w-6 h-6 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
+                            aria-label="Limpiar selección"
                         >
                             <Icon name="close" size="14px" />
                         </button>
@@ -80,7 +77,7 @@ export const Select = forwardRef(({
                 </div>
             </div>
             {helperText && (
-                <p className={cn("text-[10px] mt-1 font-bold px-1", error ? "text-red-600" : "text-slate-400 uppercase tracking-tight")}>
+                <p className={helperTextClass(error)}>
                     {helperText}
                 </p>
             )}

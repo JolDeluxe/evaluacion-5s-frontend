@@ -1,27 +1,44 @@
-// src/components/ui/modal.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '@/utils/cn';
-import { Icon } from './icon';
 
+import { Button } from '@/components/ui/button';
+import { cn } from '@/utils/cn';
+
+const sizes = {
+  sm: 'max-w-md',
+  md: 'max-w-2xl',
+  lg: 'max-w-4xl',
+  xl: 'max-w-6xl',
+  full: 'max-w-[calc(100vw-2rem)]',
+};
 
 export const Modal = ({
   isOpen,
   onClose,
   children,
-  className = ""
+  className = '',
+  size = 'md',
+  closeOnBackdrop = true,
 }) => {
+  const titleId = useId();
+
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) onClose();
+    if (!isOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose?.();
+      }
     };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = previousOverflow;
     };
   }, [isOpen, onClose]);
 
@@ -29,51 +46,170 @@ export const Modal = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      className="
+        fixed inset-0 z-[var(--z-modal)]
+        flex items-end justify-center
+        bg-slate-950/55
+        p-0
+        backdrop-blur-sm
+        animate-in fade-in duration-200
+        sm:items-center sm:p-4
+      "
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
+      onMouseDown={closeOnBackdrop ? onClose : undefined}
     >
       <div
         className={cn(
-          "bg-white rounded-lg shadow-2xl relative flex flex-col max-h-[90vh] w-full max-w-2xl animate-in zoom-in-95 duration-200",
-          className
+          `
+            relative
+            flex max-h-[92dvh] w-full flex-col
+            overflow-hidden
+            rounded-t-lg
+            border border-white/70
+            bg-white
+            shadow-2xl shadow-slate-950/20
+            animate-in slide-in-from-bottom-3 duration-200
+
+            sm:max-h-[90vh]
+            sm:rounded-lg
+            sm:zoom-in-95
+          `,
+          sizes[size] || sizes.md,
+          className,
         )}
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        {children}
+        {React.Children.map(children, (child) => {
+          if (!React.isValidElement(child)) return child;
+
+          if (child.type !== ModalHeader) {
+            return child;
+          }
+
+          return React.cloneElement(child, {
+            titleId: child.props.titleId || titleId,
+          });
+        })}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
-export const ModalHeader = ({ title, onClose, className = "", children }) => (
-  <div className={cn("shrink-0 p-6 pb-4 border-b border-slate-100 relative", className)}>
-    {children || (
-      <h2 className="text-lg font-bold text-marca-primario text-center uppercase tracking-wider fuente-titulos">
-        {title}
-      </h2>
+export const ModalHeader = ({
+  title,
+  description,
+  onClose,
+  className = '',
+  children,
+  titleId,
+}) => (
+  <div
+    className={cn(
+      `
+        relative
+        shrink-0
+        border-b border-app-border
+        bg-white
+        px-5 py-5 pr-16
+
+        sm:px-6 sm:py-5 sm:pr-16
+      `,
+      className,
     )}
+  >
+    {children || (
+      <div className="space-y-1.5 text-left">
+        <h2
+          id={titleId}
+          className="
+            fuente-titulos
+            text-2xl
+            font-normal
+            uppercase
+            leading-[1.1]
+            text-marca-primario
+          "
+        >
+          {title}
+        </h2>
+
+        {description && (
+          <p
+            className="
+              text-sm
+              font-semibold
+              leading-5
+              text-app-text-muted
+            "
+          >
+            {description}
+          </p>
+        )}
+      </div>
+    )}
+
     {onClose && (
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-4 right-4 text-slate-400 hover:text-marca-primario transition-colors cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100"
-      >
-        <Icon name="close" size="24px" weight={600} />
-      </button>
+      <div className="absolute inset-y-0 right-4 flex items-center">
+        <Button
+          type="button"
+          variant="icon"
+          size="icon"
+          icon="close"
+          onClick={onClose}
+          aria-label="Cerrar"
+        />
+      </div>
     )}
   </div>
 );
 
-export const ModalBody = ({ children, className = "" }) => (
-  <div className={cn("grow overflow-y-auto overflow-x-hidden p-6 font-lectura", className)}>
+export const ModalBody = ({
+  children,
+  className = '',
+}) => (
+  <div
+    className={cn(
+      `
+        custom-scrollbar
+        grow
+        overflow-y-auto
+        overflow-x-hidden
+        p-5
+        font-lectura
+
+        sm:p-6
+      `,
+      className,
+    )}
+  >
     {children}
   </div>
 );
 
-export const ModalFooter = ({ children, className = "" }) => (
-  <div className={cn("shrink-0 flex justify-end gap-3 p-4 px-6 border-t border-slate-100 bg-slate-50 rounded-b-lg", className)}>
+export const ModalFooter = ({
+  children,
+  className = '',
+}) => (
+  <div
+    className={cn(
+      `
+        shrink-0
+        flex flex-col-reverse
+        gap-2
+        border-t border-app-border
+        bg-app-surface-muted/65
+        p-4
+
+        sm:flex-row
+        sm:justify-end
+        sm:px-6
+      `,
+      className,
+    )}
+  >
     {children}
   </div>
 );
