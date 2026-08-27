@@ -1,6 +1,6 @@
 const apiUrl =
   import.meta.env.VITE_API_URL ||
-  'http://localhost:3000/api/v1';
+  '/api/v1';
 
 const publicAppUrl =
   import.meta.env.VITE_PUBLIC_APP_URL || '';

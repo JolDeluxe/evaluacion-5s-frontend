@@ -5,20 +5,20 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-server: {
-  allowedHosts: true,
+  server: {
+    allowedHosts: true,
 
-  proxy: {
-    '/api': {
-      target: 'http://localhost:3000',
-      changeOrigin: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
 
-      headers: {
-        Origin: 'http://localhost:5173',
+        headers: {
+          Origin: 'http://localhost:5173',
+        },
       },
     },
   },
-},
 
   resolve: {
     alias: {
@@ -57,6 +57,7 @@ server: {
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],

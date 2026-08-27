@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "bun run build:redirects && vite build",
+    "build:redirects": "node scripts/generate-netlify-redirects.mjs",
     "preview": "vite preview",
     "typecheck": "node -e \"console.log('Proyecto JavaScript/JSX: typecheck TS no aplica')\"",
     "lint": "eslint ."

@@ -10,10 +10,10 @@ const isLocalHost = (url) => {
 };
 
 export function getPublicAppBaseUrl() {
-  if (ENV.PUBLIC_APP_URL && !isLocalHost(ENV.PUBLIC_APP_URL)) return ENV.PUBLIC_APP_URL;
   if (typeof window !== 'undefined' && window.location?.origin && !isLocalHost(window.location.origin)) {
     return window.location.origin.replace(/\/+$/, '');
   }
+  if (ENV.PUBLIC_APP_URL && !isLocalHost(ENV.PUBLIC_APP_URL)) return ENV.PUBLIC_APP_URL;
   return '';
 }
 
