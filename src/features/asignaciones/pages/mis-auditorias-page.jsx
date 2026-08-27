@@ -727,11 +727,6 @@ export function MisAuditoriasPage() {
                     const enCurso =
                       borrador !== null;
 
-                    const compartida =
-                      Boolean(
-                        asig.invitacionActiva,
-                      );
-
                     const progresoLabel =
                       enCurso
                         ? borrador.total >
@@ -752,13 +747,7 @@ export function MisAuditoriasPage() {
                           backdrop-blur-xl
                           transition
                           ${
-                            compartida
-                              ? `
-                                border-orange-200/80
-                                bg-orange-50/30
-                                shadow-[0_8px_24px_rgba(249,115,22,0.06)]
-                              `
-                              : enCurso
+                            enCurso
                                 ? `
                                   border-amber-200/80
                                   bg-amber-50/25
@@ -801,26 +790,20 @@ export function MisAuditoriasPage() {
                           >
                             <span
                               className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                                compartida
-                                  ? 'text-orange-600'
-                                  : enCurso
+                                enCurso
                                     ? 'text-amber-600'
                                     : 'text-slate-500'
                               }`}
                             >
                               <span
                                 className={`h-1.5 w-1.5 rounded-full ${
-                                  compartida
-                                    ? 'bg-orange-500'
-                                    : enCurso
+                                  enCurso
                                       ? 'bg-amber-500'
                                       : 'bg-slate-400'
                                 }`}
                               />
 
-                              {compartida
-                                ? 'Compartida'
-                                : enCurso
+                              {enCurso
                                   ? 'En curso'
                                   : 'Pendiente'}
                             </span>
@@ -834,14 +817,6 @@ export function MisAuditoriasPage() {
                               </span>
                             )}
                           </div>
-
-                          {compartida && (
-                            <p className="mt-1 text-xs font-semibold text-orange-700/70">
-                              Enlace de
-                              invitación
-                              activo
-                            </p>
-                          )}
 
                           {/* DISPONIBILIDAD MOBILE */}
 
@@ -915,38 +890,22 @@ export function MisAuditoriasPage() {
                                 font-bold
                                 transition
                                 active:scale-[0.97]
-                                ${
-                                  compartida
-                                    ? `
-                                      text-orange-600
-                                      hover:bg-orange-50/60
-                                    `
-                                    : `
-                                      text-slate-400
-                                      hover:bg-white/60
-                                      hover:text-slate-600
-                                    `
-                                }
+                                text-slate-400
+                                hover:bg-white/60
+                                hover:text-slate-600
                               `}
                             >
                               <Icon
-                                name={
-                                  compartida
-                                    ? 'link'
-                                    : 'share'
-                                }
+                                name="share"
                                 size="13px"
                               />
 
-                              {compartida
-                                ? 'Invitación'
-                                : 'Compartir'}
+                              Compartir
                             </button>
 
                             <Link
                               to={`/auditorias/${asig.id}/realizar`}
                               className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition active:scale-[0.98] ${
-                                compartida ||
                                 enCurso
                                   ? `
                                     border-amber-200/80
@@ -962,9 +921,7 @@ export function MisAuditoriasPage() {
                                   `
                               }`}
                             >
-                              {compartida
-                                ? 'Realizar yo'
-                                : enCurso
+                              {enCurso
                                   ? 'Continuar'
                                   : 'Iniciar'}
 
@@ -1147,11 +1104,6 @@ export function MisAuditoriasPage() {
                         borrador !==
                         null;
 
-                      const compartida =
-                        Boolean(
-                          asig.invitacionActiva,
-                        );
-
                       const progresoLabel =
                         enCurso
                           ? borrador.total >
@@ -1174,9 +1126,7 @@ export function MisAuditoriasPage() {
                             py-4
                             transition-colors
                             ${
-                              compartida
-                                ? 'bg-orange-50/10 hover:bg-orange-50/25'
-                                : enCurso
+                              enCurso
                                   ? 'bg-amber-50/10 hover:bg-amber-50/30'
                                   : 'hover:bg-slate-50/70'
                             }
@@ -1192,26 +1142,20 @@ export function MisAuditoriasPage() {
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                               <span
                                 className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                                  compartida
-                                    ? 'text-orange-600'
-                                    : enCurso
+                                  enCurso
                                       ? 'text-amber-600'
                                       : 'text-slate-500'
                                 }`}
                               >
                                 <span
                                   className={`h-1.5 w-1.5 rounded-full ${
-                                    compartida
-                                      ? 'bg-orange-500'
-                                      : enCurso
+                                    enCurso
                                         ? 'bg-amber-500'
                                         : 'bg-slate-400'
                                   }`}
                                 />
 
-                                {compartida
-                                  ? 'Compartida'
-                                  : enCurso
+                                {enCurso
                                     ? 'En curso'
                                     : 'Pendiente'}
                               </span>
@@ -1225,12 +1169,6 @@ export function MisAuditoriasPage() {
                                 </span>
                               )}
 
-                              {compartida && (
-                                <span className="text-xs font-semibold text-orange-700/60">
-                                  · Enlace
-                                  activo
-                                </span>
-                              )}
                             </div>
                           </div>
 
@@ -1313,38 +1251,22 @@ export function MisAuditoriasPage() {
                                   font-bold
                                   transition
                                   active:scale-[0.97]
-                                  ${
-                                    compartida
-                                      ? `
-                                        text-orange-600
-                                        hover:bg-orange-50/60
-                                      `
-                                      : `
-                                        text-slate-400
-                                        hover:bg-white/70
-                                        hover:text-slate-600
-                                      `
-                                  }
+                                  text-slate-400
+                                  hover:bg-white/70
+                                  hover:text-slate-600
                                 `}
                               >
                                 <Icon
-                                  name={
-                                    compartida
-                                      ? 'link'
-                                      : 'share'
-                                  }
+                                  name="share"
                                   size="13px"
                                 />
 
-                                {compartida
-                                  ? 'Invitación'
-                                  : 'Compartir'}
+                                Compartir
                               </button>
 
                               <Link
                                 to={`/auditorias/${asig.id}/realizar`}
                                 className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-sm font-black backdrop-blur-md transition active:scale-[0.98] ${
-                                  compartida ||
                                   enCurso
                                     ? `
                                       border-amber-200/80
@@ -1360,9 +1282,7 @@ export function MisAuditoriasPage() {
                                     `
                                 }`}
                               >
-                                {compartida
-                                  ? 'Realizar yo'
-                                  : enCurso
+                                {enCurso
                                     ? 'Continuar'
                                     : 'Iniciar'}
 
