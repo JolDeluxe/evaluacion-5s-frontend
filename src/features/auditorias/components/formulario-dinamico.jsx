@@ -13,6 +13,7 @@ import {
   obtenerCriterios,
 } from '@/features/auditorias/components/formulario-dinamico.helpers';
 import { auditoriasApi } from '@/features/auditorias/api/auditorias-api';
+import { markAuditDraftDirty, markAuditDraftSaved } from '@/features/auditorias/utils/auditoria-runtime-status';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -201,6 +202,8 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   useEffect(() => {
     if (preview || !draftHydrated || !draftKey || fase === 'enviado') return undefined;
 
+    const draftRevision = markAuditDraftDirty();
+
     const timeoutId = window.setTimeout(() => {
       try {
         const updatedAt = new Date().toISOString();
@@ -212,6 +215,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           fase,
           updatedAt,
         }));
+        markAuditDraftSaved(draftRevision, Date.now());
         setDraftSavedAt(updatedAt);
       } catch {
         // Si localStorage falla, la auditoría sigue funcionando en memoria.
@@ -224,6 +228,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   const limpiarDraft = () => {
     try {
       localStorage.removeItem(draftKey);
+      markAuditDraftSaved();
     } catch {
       // noop
     }
@@ -341,6 +346,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
 
       try {
         localStorage.removeItem(draftKey);
+        markAuditDraftSaved();
       } catch {
         // noop
       }

@@ -2,16 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import {
-  getAuditRuntimeStatus,
-  subscribeAuditRuntimeStatus,
-  waitForAuditIdle,
+  waitForAuditSafeToReload,
 } from '@/features/auditorias/utils/auditoria-runtime-status';
 
 const UPDATE_CHECK_INTERVAL_MS = 45 * 60 * 1000;
 const AUTOSAVE_SETTLE_MS = 800;
+const AUDIT_UPDATE_RETRY_MS = 30 * 1000;
 const RELOAD_GUARD_KEY = 'encuestas-5s:pwa-update-reload-at';
 const RELOAD_GUARD_MS = 30 * 1000;
 
@@ -54,11 +51,12 @@ export function PwaUpdateManager() {
   const swUrlRef = useRef('');
   const checkingRef = useRef(false);
   const applyingRef = useRef(false);
+  const pendingReloadRef = useRef(false);
+  const controllerReloadedRef = useRef(false);
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  const [status, setStatus] = useState(getAuditRuntimeStatus);
-  const [message, setMessage] = useState('');
+  const [retryTick, setRetryTick] = useState(0);
 
   const checkForUpdate = useCallback(async () => {
     const registration = registrationRef.current;
@@ -96,6 +94,17 @@ export function PwaUpdateManager() {
     }
   }, []);
 
+  const reloadForNewController = useCallback(() => {
+    if (controllerReloadedRef.current || hasRecentReloadGuard()) {
+      return;
+    }
+
+    controllerReloadedRef.current = true;
+    pendingReloadRef.current = false;
+    markReloadGuard();
+    window.location.reload();
+  }, []);
+
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
@@ -129,9 +138,22 @@ export function PwaUpdateManager() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = subscribeAuditRuntimeStatus(setStatus);
-    return unsubscribe;
-  }, []);
+    if (!('serviceWorker' in navigator)) {
+      return undefined;
+    }
+
+    const handleControllerChange = () => {
+      if (pendingReloadRef.current) {
+        reloadForNewController();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    };
+  }, [reloadForNewController]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -158,35 +180,38 @@ export function PwaUpdateManager() {
     }
 
     applyingRef.current = true;
-    setIsApplying(true);
 
     try {
       if (waitForAudit) {
-        setMessage('Guardando progreso antes de actualizar...');
-        await new Promise((resolve) => window.setTimeout(resolve, AUTOSAVE_SETTLE_MS));
+        const isSafe = await waitForAuditSafeToReload({
+          autosaveSettleMs: AUTOSAVE_SETTLE_MS,
+          uploadTimeoutMs: 15000,
+        });
 
-        if (getAuditRuntimeStatus().isBusy) {
-          setMessage('Esperando a que terminen las fotos en subida...');
-        }
-
-        const isIdle = await waitForAuditIdle({ timeoutMs: 15000 });
-
-        if (!isIdle) {
-          setMessage('Termina o cancela las fotos en subida antes de actualizar.');
+        if (!isSafe) {
           applyingRef.current = false;
           setIsApplying(false);
+          window.setTimeout(() => setRetryTick(Date.now()), AUDIT_UPDATE_RETRY_MS);
           return;
         }
       }
 
-      markReloadGuard();
-      await updateServiceWorker(true);
+      setIsApplying(true);
+      pendingReloadRef.current = true;
+      await updateServiceWorker(false);
+
+      window.setTimeout(() => {
+        if (pendingReloadRef.current) {
+          reloadForNewController();
+        }
+      }, 3000);
     } catch {
       applyingRef.current = false;
       setIsApplying(false);
-      setMessage('No se pudo aplicar la actualización. Intenta de nuevo.');
+      pendingReloadRef.current = false;
+      window.setTimeout(() => setRetryTick(Date.now()), AUDIT_UPDATE_RETRY_MS);
     }
-  }, [updateServiceWorker]);
+  }, [reloadForNewController, updateServiceWorker]);
 
   const isAuditCapture = isAuditCapturePath(location.pathname);
 
@@ -196,53 +221,24 @@ export function PwaUpdateManager() {
     }
 
     applyUpdate();
-  }, [applyUpdate, isAuditCapture, updateAvailable]);
+  }, [applyUpdate, isAuditCapture, updateAvailable, retryTick]);
 
-  if (!updateAvailable || !isAuditCapture) {
+  useEffect(() => {
+    if (!updateAvailable || !isAuditCapture || applyingRef.current) {
+      return;
+    }
+
+    applyUpdate({ waitForAudit: true });
+  }, [applyUpdate, isAuditCapture, retryTick, updateAvailable]);
+
+  if (!isApplying) {
     return null;
   }
 
   return (
-    <div className="fixed inset-x-3 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[9998] mx-auto max-w-md print:hidden">
-      <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-2xl shadow-slate-950/18 backdrop-blur-2xl">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
-            <Icon name="system_update_alt" size="sm" />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-black text-slate-950">
-              Nueva versión disponible
-            </p>
-
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
-              Hay una actualización disponible. Tu progreso está guardado.
-            </p>
-
-            {status.isBusy && (
-              <p className="mt-1 text-xs font-bold text-amber-700">
-                Hay {status.uploadsInProgress} foto{status.uploadsInProgress === 1 ? '' : 's'} en subida.
-              </p>
-            )}
-
-            {message && (
-              <p className="mt-1 text-xs font-bold text-slate-500">
-                {message}
-              </p>
-            )}
-
-            <Button
-              type="button"
-              size="sm"
-              className="mt-3 rounded-xl"
-              icon="refresh"
-              onClick={() => applyUpdate({ waitForAudit: true })}
-              disabled={isApplying}
-            >
-              {isApplying ? 'Actualizando...' : 'Actualizar ahora'}
-            </Button>
-          </div>
-        </div>
+    <div className="fixed inset-x-3 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[9998] mx-auto max-w-sm print:hidden">
+      <div className="rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-3 text-center text-sm font-black text-slate-900 shadow-2xl shadow-slate-950/18 backdrop-blur-2xl">
+        Actualizando aplicación...
       </div>
     </div>
   );
