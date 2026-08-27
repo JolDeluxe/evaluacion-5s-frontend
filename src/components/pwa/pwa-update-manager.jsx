@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,6 @@ const isAuditCapturePath = (pathname) => (
   /^\/auditorias\/[^/]+\/realizar\/?$/i.test(pathname) ||
   /^\/invitado\/[^/]+\/auditoria\/?$/i.test(pathname)
 );
-
-const getCurrentPath = () => window.location.pathname;
 
 const hasRecentReloadGuard = () => {
   try {
@@ -50,12 +49,12 @@ const clearExpiredReloadGuard = () => {
 };
 
 export function PwaUpdateManager() {
+  const location = useLocation();
   const registrationRef = useRef(null);
   const swUrlRef = useRef('');
   const checkingRef = useRef(false);
   const applyingRef = useRef(false);
 
-  const [path, setPath] = useState(getCurrentPath);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [status, setStatus] = useState(getAuditRuntimeStatus);
@@ -65,20 +64,28 @@ export function PwaUpdateManager() {
     const registration = registrationRef.current;
     const swUrl = swUrlRef.current;
 
-    if (!registration || checkingRef.current) {
+    if (
+      !registration ||
+      checkingRef.current ||
+      navigator.onLine === false ||
+      registration.installing ||
+      !swUrl
+    ) {
       return;
     }
 
     checkingRef.current = true;
 
     try {
-      if (swUrl) {
-        await fetch(swUrl, {
-          cache: 'no-store',
-          headers: {
-            'cache-control': 'no-cache',
-          },
-        });
+      const response = await fetch(swUrl, {
+        cache: 'no-store',
+        headers: {
+          'cache-control': 'no-cache',
+        },
+      });
+
+      if (response.status !== 200) {
+        return;
       }
 
       await registration.update();
@@ -124,20 +131,6 @@ export function PwaUpdateManager() {
   useEffect(() => {
     const unsubscribe = subscribeAuditRuntimeStatus(setStatus);
     return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const syncPath = () => setPath(getCurrentPath());
-    const intervalId = window.setInterval(syncPath, 1000);
-
-    window.addEventListener('popstate', syncPath);
-    window.addEventListener('hashchange', syncPath);
-
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener('popstate', syncPath);
-      window.removeEventListener('hashchange', syncPath);
-    };
   }, []);
 
   useEffect(() => {
@@ -195,7 +188,7 @@ export function PwaUpdateManager() {
     }
   }, [updateServiceWorker]);
 
-  const isAuditCapture = isAuditCapturePath(path);
+  const isAuditCapture = isAuditCapturePath(location.pathname);
 
   useEffect(() => {
     if (!updateAvailable || isAuditCapture || applyingRef.current) {

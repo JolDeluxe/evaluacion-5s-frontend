@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router';
+import { AppRouteShell } from '@/app/app-route-shell';
 import { DashboardLayout } from '@/layouts/dashboard-layout';
 import { RequireAuth, RequireRole, RedirectIfAuthenticated } from '@/app/route-guards';
 import { AUDIT_EXECUTION_ROLES, AUDIT_VIEW_ROLES, BUSINESS_ADMIN_ROLES, ROLES, SYSTEM_ROLES } from '@/config/navigation-config';
@@ -49,6 +50,9 @@ const adminChildren = [
 ];
 
 export const router = createBrowserRouter([
+  {
+    element: <AppRouteShell />,
+    children: [
   {
     element: <RedirectIfAuthenticated />,
     children: [
@@ -113,4 +117,6 @@ export const router = createBrowserRouter([
   },
   { path: '/403', element: <ForbiddenPage /> },
   { path: '*', element: <NotFoundPage /> },
+    ],
+  },
 ]);
