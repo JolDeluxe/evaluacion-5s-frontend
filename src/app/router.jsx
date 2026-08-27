@@ -14,6 +14,8 @@ import { AsignacionesPage } from '@/features/admin/pages/asignaciones-page';
 import { AreasPage } from '@/features/areas/pages/areas-page';
 import { UsuariosPage } from '@/features/usuarios/pages/usuarios-page';
 import { ResultadosPage } from '@/features/resultados/pages/resultados-page';
+import { ResultadoAreaPage } from '@/features/resultados/pages/resultado-area-page';
+import { ResultadoPeriodoPage } from '@/features/resultados/pages/resultado-periodo-page';
 import { NotificacionesPage } from '@/features/notificaciones/pages/notificaciones-page';
 import { PerfilPage } from '@/features/perfil/pages/perfil-page';
 import { HistorialPage } from '@/features/historial/pages/historial-page';
@@ -91,6 +93,10 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={[ROLES.SUPER_ADMIN, ROLES.ADMINISTRADOR, ROLES.AUDITOR]} />, 
             children: [
               { index: true, element: <ResultadosPage /> },
+              { path: 'general', element: <ResultadosPage /> },
+              { path: 'areas', element: <ResultadosPage /> },
+              { path: 'areas/:areaId', element: <ResultadoAreaPage /> },
+              { path: 'areas/:areaId/periodo/:periodo', element: <ResultadoPeriodoPage /> },
               { path: ':anio/:mes', element: <ResultadosPage /> }
             ] 
           },
