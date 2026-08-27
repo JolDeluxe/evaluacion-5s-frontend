@@ -808,14 +808,14 @@ export function MisAuditoriasPage() {
                                   : 'Pendiente'}
                             </span>
 
-                            {progresoLabel && (
+                            {/* {progresoLabel && (
                               <span className="text-xs font-semibold text-amber-700/75">
                                 ·{' '}
                                 {
                                   progresoLabel
                                 }
                               </span>
-                            )}
+                            )} */}
                           </div>
 
                           {/* DISPONIBILIDAD MOBILE */}
@@ -1160,14 +1160,14 @@ export function MisAuditoriasPage() {
                                     : 'Pendiente'}
                               </span>
 
-                              {progresoLabel && (
+                              {/* {progresoLabel && (
                                 <span className="text-xs font-semibold text-amber-700/65">
                                   ·{' '}
                                   {
                                     progresoLabel
                                   }
                                 </span>
-                              )}
+                              )} */}
 
                             </div>
                           </div>
