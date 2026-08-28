@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { HallazgoResultado } from '@/features/resultados/components/area/hallazgo-resultado';
-import { HallazgosNavigator } from '@/features/resultados/components/area/hallazgos-navigator';
+import { HallazgosList } from '@/features/resultados/components/area/hallazgos-list';
 import { ResumenPeriodoHeader } from '@/features/resultados/components/area/resumen-periodo-header';
 import { formatPeriodLabel } from '@/features/resultados/utils/resultados-format';
 
@@ -23,7 +21,6 @@ function CompactSinHallazgos() {
 }
 
 export function ResultadoPeriodoMobile({ data, areaId, mes }) {
-  const [currentHallazgoIndex, setCurrentHallazgoIndex] = useState(0);
   const hallazgos = data.hallazgos ?? [];
   const totalHallazgos = hallazgos.length;
 
@@ -58,16 +55,7 @@ export function ResultadoPeriodoMobile({ data, areaId, mes }) {
       ) : totalHallazgos === 0 ? (
         <CompactSinHallazgos />
       ) : (
-        <div className="space-y-3">
-          <HallazgosNavigator
-            total={totalHallazgos}
-            current={currentHallazgoIndex}
-            onChange={setCurrentHallazgoIndex}
-          />
-          {hallazgos[currentHallazgoIndex] && (
-            <HallazgoResultado hallazgo={hallazgos[currentHallazgoIndex]} />
-          )}
-        </div>
+        <HallazgosList hallazgos={hallazgos} />
       )}
     </div>
   );

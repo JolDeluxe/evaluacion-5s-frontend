@@ -3,7 +3,7 @@ import { Card, CardBody } from '@/components/ui/card';
 import { EvidenciaResultado } from '@/features/resultados/components/area/evidencia-resultado';
 import { ImageViewer } from '@/components/ui/image-viewer';
 
-export function HallazgoResultado({ hallazgo }) {
+export function HallazgoResultado({ hallazgo, numero, total }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
@@ -20,7 +20,7 @@ export function HallazgoResultado({ hallazgo }) {
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-              {hallazgo.seccion.nombre}
+              {numero && total ? `Hallazgo ${numero} de ${total} · ` : ''}{hallazgo.seccion.nombre}
             </p>
             <h3 className="mt-0.5 text-sm font-black text-slate-900 leading-snug">
               {hallazgo.pregunta.texto}
