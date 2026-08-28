@@ -1,10 +1,23 @@
 import { Link } from 'react-router';
 import { SelectorMes } from '@/features/resultados/components/shared/selector-mes';
+import { SelectorRangoResultados } from '@/features/resultados/components/general/selector-rango-resultados';
+import { ExportarResultadosButton } from '@/features/resultados/components/general/exportar-resultados-button';
 import { cn } from '@/utils/cn';
 
-export function ResultadosHeader({ mes, onMesChange, activeView, canViewGeneral }) {
+export function ResultadosHeader({
+  mes,
+  onMesChange,
+  activeView,
+  canViewGeneral,
+  rangoParams = {},
+  onRangoChange,
+  searchParamsStr = '',
+  data,
+}) {
+  const currentQueryStr = searchParamsStr ? `?${searchParamsStr}` : `?mes=${mes}`;
+
   const tabs = [
-    ...(canViewGeneral ? [{ id: 'general', label: 'General', to: `/resultados/general?mes=${mes}` }] : []),
+    ...(canViewGeneral ? [{ id: 'general', label: 'General', to: `/resultados/general${currentQueryStr}` }] : []),
     { id: 'areas', label: 'Áreas', to: `/resultados/areas?mes=${mes}` },
   ];
 
@@ -20,7 +33,21 @@ export function ResultadosHeader({ mes, onMesChange, activeView, canViewGeneral 
           </h1>
         </div>
 
-        <SelectorMes value={mes} onChange={onMesChange} />
+        {activeView === 'general' ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <SelectorRangoResultados
+              tipo={rangoParams.tipo}
+              mes={rangoParams.mes || mes}
+              anio={rangoParams.anio}
+              trimestre={rangoParams.trimestre}
+              semestre={rangoParams.semestre}
+              onChange={onRangoChange}
+            />
+            <ExportarResultadosButton rangoParams={rangoParams} data={data} />
+          </div>
+        ) : (
+          <SelectorMes value={mes} onChange={onMesChange} />
+        )}
       </div>
 
       <div className="flex gap-2 border-b border-app-border">

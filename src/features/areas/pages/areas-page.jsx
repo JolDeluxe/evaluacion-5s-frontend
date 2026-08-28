@@ -50,13 +50,13 @@ function ResponsablesList({ usuariosArea }) {
   return (
     <div className="flex flex-wrap gap-1 max-w-[280px]">
       {responsables.map((ua) => (
-          <Badge
-            key={ua.usuario.id}
-            variant="neutral"
-            className="text-[11px] shadow-none"
-          >
-            {ua.usuario.nombre}
-          </Badge>
+        <Badge
+          key={ua.usuario.id}
+          variant="neutral"
+          className="text-[11px] shadow-none"
+        >
+          {ua.usuario.nombre}
+        </Badge>
       ))}
     </div>
   );
@@ -349,7 +349,7 @@ export function AreasPage() {
     try {
       const p = parsePageParam(currentParams.pagina);
       const query = { pagina: p, limite: LIMITE };
-      if (currentparams.q) query.busqueda = currentparams.q;
+      if (currentParams.q) query.busqueda = currentParams.q;
       if (currentParams.tipo) query.tipo = currentParams.tipo;
       if (currentParams.activo !== '') query.activo = currentParams.activo;
       if (currentParams.sinResponsable !== '') query.sinResponsable = currentParams.sinResponsable;
@@ -484,6 +484,11 @@ export function AreasPage() {
     }
   };
 
+  const [deactivatingArea, setDeactivatingArea] = useState(null);
+  const [deactivationImpact, setDeactivationImpact] = useState(null);
+  const [loadingImpact, setLoadingImpact] = useState(false);
+  const [deactivationEffectiveFrom, setDeactivationEffectiveFrom] = useState('ESTE_MES');
+
   const toggleEstado = async (area) => {
     // Si se quiere reactivar un área inactiva, validar que tenga al menos 1 responsable
     if (!area.activo) {
@@ -497,14 +502,35 @@ export function AreasPage() {
       return;
     }
 
-    const confirmMsg = `¿Desactivar ${area.nombre}? Esta área dejará de utilizarse para nuevas auditorías. Su histórico se conservará.`;
-    if (!window.confirm(confirmMsg)) return;
-
+    setDeactivatingArea(area);
+    setDeactivationEffectiveFrom('ESTE_MES');
+    setLoadingImpact(true);
+    setActionError(null);
     try {
-      await areasApi.desactivar(area.id);
+      const impacto = await areasApi.obtenerImpactoDesactivacion(area.id);
+      setDeactivationImpact(impacto);
+    } catch (err) {
+      setActionError(err.message || 'Error al obtener impacto de desactivación.');
+    } finally {
+      setLoadingImpact(false);
+    }
+  };
+
+  const confirmarDesactivacion = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setActionError(null);
+    try {
+      await areasApi.desactivar(deactivatingArea.id, {
+        efectivaDesde: deactivationEffectiveFrom,
+      });
+      setDeactivatingArea(null);
+      setDeactivationImpact(null);
       cargar(params);
     } catch (err) {
-      alert(err.message || 'Error al cambiar estado.');
+      setActionError(err.message || 'Error al desactivar el área.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -607,86 +633,80 @@ export function AreasPage() {
 
       {/* Error */}
       {state.status === 'error' && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-          <p className="text-sm font-bold text-red-700">{state.error}</p>
-          <Button type="button" variant="ghost" size="sm" onClick={() => cargar(params)} className="mt-1 px-0 text-red-600 hover:bg-transparent hover:translate-y-0 hover:shadow-none">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+          <p className="text-sm font-bold text-red-700">{state.error || 'Error al cargar las áreas.'}</p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={() => cargar(params)}>
             Reintentar
           </Button>
         </div>
       )}
 
-      {/* Desktop: Tabla */}
-      {state.status === 'ready' && !isMobile && (
-        <Table
-          columns={columns}
-          data={state.areas}
-          keyField="id"
-          loading={false}
-          emptyMessage="No hay áreas con los filtros aplicados."
-          page={pagina}
-          totalPages={state.totalPaginas}
-          totalItems={state.total}
-          onPageChange={handlePagina}
-        />
-      )}
-
-      {/* Mobile: Cards */}
-      {state.status === 'ready' && isMobile && (
+      {/* Tabla desktop / Tarjetas mobile */}
+      {state.status === 'ready' && (
         <>
           {state.areas.length === 0 ? (
-            <div className="flex h-32 items-center justify-center rounded-xl bg-white border border-slate-200 text-sm text-slate-400 italic">
-              No hay áreas con los filtros aplicados.
+            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+              <Icon name="search_off" size="36px" className="mx-auto text-slate-300" />
+              <p className="mt-2 text-sm font-bold text-slate-700">No se encontraron áreas</p>
+              <p className="text-xs text-slate-500">Prueba ajustando los filtros de búsqueda.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {state.areas.map((area) => (
-                <AreaCard
-                  key={area.id}
-                  area={area}
-                  onVerDetalle={(a) => setAreaDetalle(a)}
-                  onEditar={(a) => startEdit(a)}
-                  onToggleEstado={(a) => toggleEstado(a)}
-                />
-              ))}
-            </div>
-          )}
-          {state.totalPaginas > 1 && (
-            <div className="flex items-center justify-between gap-2 pt-2">
-              <Button
-                type="button"
-                disabled={pagina <= 1}
-                onClick={() => handlePagina(pagina - 1)}
-                variant="outline"
-                size="sm"
-              >
-                Anterior
-              </Button>
-              <span className="text-xs text-slate-500">{pagina} / {state.totalPaginas}</span>
-              <Button
-                type="button"
-                disabled={pagina >= state.totalPaginas}
-                onClick={() => handlePagina(pagina + 1)}
-                variant="outline"
-                size="sm"
-              >
-                Siguiente
-              </Button>
-            </div>
+            <>
+              {/* Desktop */}
+              <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <Table columns={columns} data={state.areas} />
+              </div>
+
+              {/* Mobile */}
+              <div className="md:hidden space-y-3">
+                {state.areas.map((area) => (
+                  <AreaCard
+                    key={area.id}
+                    area={area}
+                    onVerDetalle={(a) => setAreaDetalle(a)}
+                    onEditar={(a) => startEdit(a)}
+                    onToggleEstado={(a) => toggleEstado(a)}
+                  />
+                ))}
+              </div>
+
+              {/* Paginación */}
+              {state.totalPaginas > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 rounded-xl sm:px-6">
+                  <p className="text-xs text-slate-500">
+                    Página {pagina} de {state.totalPaginas}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pagina <= 1}
+                      onClick={() => handlePagina(pagina - 1)}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pagina >= state.totalPaginas}
+                      onClick={() => handlePagina(pagina + 1)}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
 
-      {/* Modal de detalle */}
-      {areaDetalle && (
-        <AreaDetalleModal area={areaDetalle} onClose={() => setAreaDetalle(null)} />
-      )}
+      {/* Modales */}
+      <AreaDetalleModal area={areaDetalle} onClose={() => setAreaDetalle(null)} />
 
-      {/* Modal de Crear / Editar */}
+      {/* Modal Crear/Editar */}
       <Modal isOpen={isCreating || !!editingArea} onClose={() => { setIsCreating(false); setEditingArea(null); }}>
-        <ModalHeader 
-          title={editingArea ? 'Editar Área' : 'Nueva Área'} 
-          onClose={() => { setIsCreating(false); setEditingArea(null); }} 
-        />
+        <ModalHeader title={editingArea ? 'Editar área' : 'Nueva área'} onClose={() => { setIsCreating(false); setEditingArea(null); }} />
         <form onSubmit={saveArea}>
           <ModalBody>
             <div className="space-y-4">
@@ -695,25 +715,26 @@ export function AreasPage() {
                   {actionError}
                 </div>
               )}
-              
+
               <div>
-                <Label>Nombre</Label>
+                <Label required>Nombre del área</Label>
                 <Input
+                  type="text"
+                  placeholder="Ej. Almacén Principal"
                   value={form.nombre}
-                  required
-                  placeholder="Ej: Área de Corte"
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                  required
                 />
               </div>
 
               <div>
-                <Label>Tipo</Label>
+                <Label required>Tipo de área</Label>
                 <Select
                   value={form.tipo}
                   onChange={(e) => setForm({ ...form, tipo: e.target.value })}
                 >
-                  <option value="OPERATIVA">OPERATIVA</option>
-                  <option value="ADMINISTRATIVA">ADMINISTRATIVA</option>
+                  <option value="OPERATIVA">Operativa</option>
+                  <option value="ADMINISTRATIVA">Administrativa</option>
                 </Select>
               </div>
 
@@ -732,15 +753,17 @@ export function AreasPage() {
 
                   {form.inicioProgramaAuditoria === 'ESTE_MES' && (
                     <div>
-                      <Label>Auditor asignado para este mes</Label>
+                      <Label required>Auditor asignado para este mes</Label>
                       <Select
                         value={form.auditorMensualId}
-                        required
                         onChange={(e) => setForm({ ...form, auditorMensualId: e.target.value })}
+                        required
                       >
                         <option value="">Selecciona auditor</option>
                         {auditoresElegiblesFormulario.map((usuario) => (
-                          <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>
+                          <option key={usuario.id} value={usuario.id}>
+                            {usuario.nombre} (@{usuario.nombreUsuario})
+                          </option>
                         ))}
                       </Select>
                     </div>
@@ -793,6 +816,103 @@ export function AreasPage() {
         </form>
       </Modal>
 
+      {/* Modal Desactivar Área */}
+      <Modal isOpen={!!deactivatingArea} onClose={() => { setDeactivatingArea(null); setDeactivationImpact(null); setActionError(null); }}>
+        <ModalHeader title="Desactivar área" onClose={() => { setDeactivatingArea(null); setDeactivationImpact(null); setActionError(null); }} />
+        <form onSubmit={confirmarDesactivacion}>
+          <ModalBody>
+            <div className="space-y-4">
+              {actionError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-bold text-red-700">
+                  {actionError}
+                </div>
+              )}
+
+              <p className="text-xs font-black uppercase tracking-wider text-marca-acento">
+                Área seleccionada
+              </p>
+              <h3 className="text-base font-black text-slate-900 leading-tight">
+                {deactivatingArea?.nombre}
+              </h3>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-xs text-slate-600">
+                  Esta área tiene auditorías programadas. Define desde cuándo dejará de ser auditable:
+                </p>
+                {loadingImpact ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Spinner size="sm" />
+                    <span className="text-xs text-slate-500">Calculando impacto...</span>
+                  </div>
+                ) : deactivationImpact ? (
+                  <div className="text-xs text-slate-500 space-y-1 bg-white p-2 rounded border border-slate-200">
+                    <p>• Auditorías pendientes este mes: <strong>{deactivationImpact.objetivosEsteMes}</strong></p>
+                    <p>• Auditorías programadas posteriores: <strong>{deactivationImpact.objetivosPosteriores}</strong></p>
+                    <p>• Auditores afectados: <strong>{deactivationImpact.auditoresAfectados}</strong></p>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-3">
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition",
+                  deactivationEffectiveFrom === 'ESTE_MES' ? "border-marca-primario bg-marca-primario/5" : "border-slate-200 bg-white"
+                )}>
+                  <input
+                    type="radio"
+                    name="efectivaDesde"
+                    value="ESTE_MES"
+                    checked={deactivationEffectiveFrom === 'ESTE_MES'}
+                    onChange={() => setDeactivationEffectiveFrom('ESTE_MES')}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <p className="text-xs font-black text-slate-900">Desde este mes</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Las auditorías pendientes de este mes y las de los meses posteriores dejarán de aplicar.
+                    </p>
+                  </div>
+                </label>
+
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition",
+                  deactivationEffectiveFrom === 'PROXIMO_MES' ? "border-marca-primario bg-marca-primario/5" : "border-slate-200 bg-white"
+                )}>
+                  <input
+                    type="radio"
+                    name="efectivaDesde"
+                    value="PROXIMO_MES"
+                    checked={deactivationEffectiveFrom === 'PROXIMO_MES'}
+                    onChange={() => setDeactivationEffectiveFrom('PROXIMO_MES')}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <p className="text-xs font-black text-slate-900">A partir del siguiente mes</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Las auditorías de este mes continuarán normalmente. A partir del siguiente mes dejarán de aplicar.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              type="button"
+              variant="cancelar"
+              size="sm"
+              onClick={() => { setDeactivatingArea(null); setDeactivationImpact(null); setActionError(null); }}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="guardar" size="sm" isLoading={saving}>
+              Desactivar área
+            </Button>
+          </ModalFooter>
+        </form>
+      </Modal>
+
+      {/* Modal Reactivar Área */}
       <Modal isOpen={!!reactivatingArea} onClose={() => { setReactivatingArea(null); setActionError(null); }}>
         <ModalHeader title="Reactivar área" onClose={() => { setReactivatingArea(null); setActionError(null); }} />
         <form onSubmit={confirmarReactivacion}>

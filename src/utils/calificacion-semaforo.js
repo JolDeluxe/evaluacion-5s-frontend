@@ -92,3 +92,20 @@ export function getCalificacionSemaforo(calificacion) {
     percentage: clampedRatio * 100,
   };
 }
+
+/**
+ * Returns a soft visual style object (light background, soft border, dark text)
+ * based on the global semáforo rule.
+ */
+export function getCalificacionSemaforoSoftStyle(calificacion) {
+  const semaforo = getCalificacionSemaforo(calificacion);
+  if (!semaforo) return {};
+
+  const [r, g, b] = semaforo.rgb;
+
+  return {
+    backgroundColor: `rgba(${r}, ${g}, ${b}, 0.08)`,
+    borderColor: `rgba(${r}, ${g}, ${b}, 0.30)`,
+    color: semaforo.textColor,
+  };
+}

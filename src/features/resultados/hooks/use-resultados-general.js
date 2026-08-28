@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { resultadosApi } from '@/features/resultados/api/resultados-api';
 
-export function useResultadosGeneral({ mes, enabled = true }) {
+export function useResultadosGeneral({ tipo, mes, anio, trimestre, semestre, enabled = true }) {
   const [state, setState] = useState({
     loading: true,
     error: null,
@@ -12,7 +12,7 @@ export function useResultadosGeneral({ mes, enabled = true }) {
     if (!enabled) return;
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
-      const data = await resultadosApi.obtenerGeneral({ mes });
+      const data = await resultadosApi.obtenerGeneral({ tipo, mes, anio, trimestre, semestre });
       setState({ loading: false, error: null, data });
     } catch (error) {
       setState({
@@ -21,7 +21,7 @@ export function useResultadosGeneral({ mes, enabled = true }) {
         data: null,
       });
     }
-  }, [enabled, mes]);
+  }, [enabled, tipo, mes, anio, trimestre, semestre]);
 
   useEffect(() => {
     if (enabled) fetchData();

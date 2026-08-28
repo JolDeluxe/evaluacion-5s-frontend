@@ -14,8 +14,8 @@ const withQuery = (path, params = {}) => {
 };
 
 export const resultadosApi = {
-  async obtenerGeneral({ mes, tipoArea } = {}) {
-    return unwrap(await apiClient.get(withQuery('/resultados/general', { mes, tipoArea })));
+  async obtenerGeneral({ tipo, mes, anio, trimestre, semestre, tipoArea } = {}) {
+    return unwrap(await apiClient.get(withQuery('/resultados/general', { tipo, mes, anio, trimestre, semestre, tipoArea })));
   },
 
   async obtenerAreas({ mes, tipoArea } = {}) {

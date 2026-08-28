@@ -1,50 +1,72 @@
+import { useState } from 'react';
 import { Card, CardBody } from '@/components/ui/card';
 import { EvidenciaResultado } from '@/features/resultados/components/area/evidencia-resultado';
+import { ImageViewer } from '@/components/ui/image-viewer';
 
-export function HallazgoResultado({ hallazgo, onOpenImage }) {
+export function HallazgoResultado({ hallazgo }) {
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+  const evidencias = hallazgo.evidencias ?? [];
+
+  const handleOpenImage = (index) => {
+    setActiveImageIndex(index);
+    setIsViewerOpen(true);
+  };
+
   return (
-    <Card>
-      <CardBody className="space-y-4">
+    <Card className="border-app-border bg-white shadow-sm">
+      <CardBody className="p-4 md:p-5 space-y-3.5">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-marca-acento">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
               {hallazgo.seccion.nombre}
             </p>
-            <h3 className="mt-1 text-sm font-black leading-5 text-slate-900">
+            <h3 className="mt-0.5 text-sm font-black text-slate-900 leading-snug">
               {hallazgo.pregunta.texto}
             </h3>
           </div>
-          <span className="inline-flex w-fit rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700">
-            Respuesta NO
-          </span>
+          <div className="flex items-center gap-1.5 w-fit text-xs font-semibold text-rose-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
+            <span>Respuesta: NO</span>
+          </div>
         </div>
 
-        <div className="rounded-lg border border-amber-100 bg-amber-50/45 p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">
+        <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
             Hallazgo
           </p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-800">
             {hallazgo.hallazgo || 'Hallazgo sin descripción registrada.'}
           </p>
         </div>
 
-        {hallazgo.evidencias?.length > 0 && (
-          <div>
-            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-              Evidencias
+        {evidencias.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+              Evidencias ({evidencias.length})
             </p>
             <div className="flex flex-wrap gap-2">
-              {hallazgo.evidencias.map((evidencia) => (
+              {evidencias.map((evidencia, idx) => (
                 <EvidenciaResultado
-                  key={evidencia.id}
+                  key={evidencia.id || idx}
                   evidencia={evidencia}
-                  onOpen={onOpenImage}
+                  index={idx}
+                  onOpen={handleOpenImage}
                 />
               ))}
             </div>
           </div>
         )}
       </CardBody>
+
+      <ImageViewer
+        open={isViewerOpen}
+        images={evidencias}
+        activeIndex={activeImageIndex}
+        onIndexChange={setActiveImageIndex}
+        onClose={() => setIsViewerOpen(false)}
+      />
     </Card>
   );
 }

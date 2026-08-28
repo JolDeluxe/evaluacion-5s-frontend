@@ -96,6 +96,7 @@ export const router = createBrowserRouter([
               { path: 'general', element: <ResultadosPage /> },
               { path: 'areas', element: <ResultadosPage /> },
               { path: 'areas/:areaId', element: <ResultadoAreaPage /> },
+              { path: 'areas/:areaId/periodos/:periodo', element: <ResultadoPeriodoPage /> },
               { path: 'areas/:areaId/periodo/:periodo', element: <ResultadoPeriodoPage /> },
               { path: ':anio/:mes', element: <ResultadosPage /> }
             ] 

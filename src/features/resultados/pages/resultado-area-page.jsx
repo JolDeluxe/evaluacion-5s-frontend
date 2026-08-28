@@ -1,36 +1,35 @@
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-
-import { Button } from '@/components/ui/button';
-import { useResultadosArea } from '@/features/resultados/hooks/use-resultados-area';
-import { ResumenArea } from '@/features/resultados/components/area/resumen-area';
-import { ResultadoPeriodoCard } from '@/features/resultados/components/area/resultado-periodo-card';
+import { useMemo } from 'react';
+import { useParams, useSearchParams } from 'react-router';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { useResultadoArea } from '@/features/resultados/hooks/use-resultado-area';
+import { ResultadoAreaDesktop } from '@/features/resultados/views/resultado-area-desktop';
+import { ResultadoAreaMobile } from '@/features/resultados/views/resultado-area-mobile';
 import { ResultadosError, ResultadosLoading } from '@/features/resultados/components/shared/resultados-states';
 import { SelectorMes } from '@/features/resultados/components/shared/selector-mes';
+import { ResultadoBackLink } from '@/features/resultados/components/shared/resultado-back-link';
 import { getCurrentMonthKey, normalizeMonthKey } from '@/features/resultados/utils/resultados-format';
 
 export function ResultadoAreaPage() {
   const { areaId } = useParams();
-  const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const [searchParams, setSearchParams] = useSearchParams();
   const mes = normalizeMonthKey(searchParams.get('mes'), getCurrentMonthKey());
-  const { loading, error, data } = useResultadosArea(areaId, { mes });
+  const { loading, error, data } = useResultadoArea(areaId, { mes });
+
+  const View = useMemo(() => (isDesktop ? ResultadoAreaDesktop : ResultadoAreaMobile), [isDesktop]);
 
   const handleMonthChange = (nextMonth) => {
     setSearchParams({ mes: normalizeMonthKey(nextMonth, mes) });
   };
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <Button
-          type="button"
-          variant="soft"
-          size="sm"
-          icon="arrow_back"
-          onClick={() => navigate(`/resultados/areas?mes=${mes}`)}
-        >
-          Áreas
-        </Button>
+    <section className="space-y-4">
+      <div className="relative flex w-full items-center justify-center md:justify-between">
+        <ResultadoBackLink
+          fallbackRoute={`/resultados/areas?mes=${mes}`}
+          defaultLabel="Volver a Áreas"
+          className="absolute left-0 md:static"
+        />
         <SelectorMes value={mes} onChange={handleMonthChange} />
       </div>
 
@@ -39,29 +38,7 @@ export function ResultadoAreaPage() {
       ) : error ? (
         <ResultadosError message={error} />
       ) : data ? (
-        <>
-          <ResumenArea data={data} />
-          <div className="grid gap-3 md:grid-cols-2">
-            {data.periodos.map((periodo) => (
-              <ResultadoPeriodoCard
-                key={periodo.periodo}
-                areaId={data.area.id}
-                mes={mes}
-                periodo={periodo}
-              />
-            ))}
-          </div>
-          <Button
-            as={Link}
-            to={`/resultados/areas?mes=${mes}`}
-            variant="outline"
-            size="sm"
-            icon="list"
-            className="md:hidden"
-          >
-            Volver a áreas
-          </Button>
-        </>
+        <View data={data} mes={mes} />
       ) : null}
     </section>
   );

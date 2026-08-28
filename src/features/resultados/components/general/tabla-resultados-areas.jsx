@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatPeriodLabel } from '@/features/resultados/utils/resultados-format';
 import { getResultadoHeatmapStyle } from '@/features/resultados/utils/resultado-colors';
+import { mapAreasConPosicion } from '@/features/resultados/utils/posicion-areas';
 import { formatPercentTrunc } from '@/utils/format';
 import { cn } from '@/utils/cn';
 
@@ -40,8 +41,8 @@ function PeriodoCell({ periodo }) {
   );
 }
 
-function ResultadoFinalCell({ value, mostrarResultado }) {
-  const hasValue = mostrarResultado && value !== null && value !== undefined && value !== '';
+function ResultadoFinalCell({ value }) {
+  const hasValue = value !== null && value !== undefined && value !== '';
 
   if (hasValue) {
     const style = getResultadoHeatmapStyle(value);
@@ -59,8 +60,100 @@ function ResultadoFinalCell({ value, mostrarResultado }) {
   );
 }
 
-export function TablaResultadosAreas({ areas = [], mes, estadoMes }) {
-  const mostrarResultado = Boolean(estadoMes?.mostrarResultado);
+export function TablaResultadosAreas({ areas = [], rango }) {
+  const areasConPosicion = mapAreasConPosicion(areas);
+  const tipoRango = rango?.tipo || 'mes';
+
+  const renderHeaders = () => {
+    if (tipoRango === 'trimestre') {
+      const meses = rango?.meses || [];
+      return (
+        <>
+          {meses.map((m) => (
+            <th key={m.clave} className="px-5 py-3 text-center">{m.etiqueta.split(' ')[0]}</th>
+          ))}
+          <th className="px-5 py-3 text-center">Resultado</th>
+        </>
+      );
+    }
+
+    if (tipoRango === 'semestre') {
+      const meses = rango?.meses || [];
+      return (
+        <>
+          {meses.map((m) => (
+            <th key={m.clave} className="px-4 py-3 text-center">{m.etiqueta.substring(0, 3)}</th>
+          ))}
+          <th className="px-5 py-3 text-center">Resultado</th>
+        </>
+      );
+    }
+
+    if (tipoRango === 'anio') {
+      return (
+        <>
+          <th className="px-5 py-3 text-center">Trimestre 1</th>
+          <th className="px-5 py-3 text-center">Trimestre 2</th>
+          <th className="px-5 py-3 text-center">Trimestre 3</th>
+          <th className="px-5 py-3 text-center">Trimestre 4</th>
+          <th className="px-5 py-3 text-center">Resultado anual</th>
+        </>
+      );
+    }
+
+    // mes por defecto
+    return (
+      <>
+        <th className="px-5 py-3 text-center">{formatPeriodLabel(1)}</th>
+        <th className="px-5 py-3 text-center">{formatPeriodLabel(2)}</th>
+        <th className="px-5 py-3 text-center">Resultado final</th>
+      </>
+    );
+  };
+
+  const renderRowCells = (item) => {
+    if (tipoRango === 'trimestre' || tipoRango === 'semestre') {
+      const mesesDetalle = item.mesesDetalle || [];
+      return (
+        <>
+          {mesesDetalle.map((m) => (
+            <td key={m.clave} className="px-4 py-3.5 text-center text-slate-800 font-bold">
+              {m.resultadoMensual !== null && m.resultadoMensual !== undefined
+                ? formatPercentTrunc(m.resultadoMensual)
+                : <span className="text-slate-400 font-semibold">—</span>}
+            </td>
+          ))}
+          <ResultadoFinalCell value={item.resultadoRango ?? item.resultadoMensual} />
+        </>
+      );
+    }
+
+    if (tipoRango === 'anio') {
+      const trimestresDetalle = item.trimestresDetalle || [];
+      return (
+        <>
+          {trimestresDetalle.map((t) => (
+            <td key={t.trimestre} className="px-5 py-3.5 text-center text-slate-800 font-bold">
+              {t.resultado !== null && t.resultado !== undefined
+                ? formatPercentTrunc(t.resultado)
+                : <span className="text-slate-400 font-semibold">—</span>}
+            </td>
+          ))}
+          <ResultadoFinalCell value={item.resultadoRango ?? item.resultadoMensual} />
+        </>
+      );
+    }
+
+    // mes por defecto
+    return (
+      <>
+        {(item.periodos || []).map((periodo) => (
+          <PeriodoCell key={periodo.periodo} periodo={periodo} />
+        ))}
+        <ResultadoFinalCell value={item.resultadoMensual} />
+      </>
+    );
+  };
 
   return (
     <Card className="overflow-hidden shadow-sm">
@@ -68,40 +161,24 @@ export function TablaResultadosAreas({ areas = [], mes, estadoMes }) {
         <table className="w-full min-w-[860px] text-left text-sm border-collapse">
           <thead className="sticky top-0 z-10 border-b border-app-border bg-slate-100/95 backdrop-blur text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
             <tr>
+              <th className="w-12 px-4 py-3 text-center">#</th>
               <th className="px-5 py-3">Área</th>
-              <th className="px-5 py-3 text-center">{formatPeriodLabel(1)}</th>
-              <th className="px-5 py-3 text-center">{formatPeriodLabel(2)}</th>
-              <th className="px-5 py-3 text-center">Resultado final</th>
-              <th className="px-5 py-3 text-right">Detalle</th>
+              {renderHeaders()}
             </tr>
           </thead>
           <tbody className="divide-y divide-app-border bg-white">
-            {areas.map((item) => (
+            {areasConPosicion.map((item) => (
               <tr key={item.area.id} className="transition hover:bg-slate-50/70">
+                <td className="w-12 px-4 py-3.5 text-center text-xs font-semibold text-slate-400">
+                  {item.posicion !== null ? item.posicion : ''}
+                </td>
                 <td className="px-5 py-3.5">
                   <p className="font-black uppercase text-slate-900">{item.area.nombre}</p>
                   <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
                     {item.area.tipo || 'DESCONOCIDO'}
                   </p>
                 </td>
-                {item.periodos.map((periodo) => (
-                  <PeriodoCell key={periodo.periodo} periodo={periodo} />
-                ))}
-                <ResultadoFinalCell
-                  value={item.resultadoMensual}
-                  mostrarResultado={mostrarResultado}
-                />
-                <td className="px-5 py-3.5 text-right">
-                  <Button
-                    as={Link}
-                    to={`/resultados/areas/${item.area.id}?mes=${mes}`}
-                    variant="outline"
-                    size="sm"
-                    icon="visibility"
-                  >
-                    Ver área
-                  </Button>
-                </td>
+                {renderRowCells(item)}
               </tr>
             ))}
           </tbody>

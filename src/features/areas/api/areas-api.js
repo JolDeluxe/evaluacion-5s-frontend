@@ -42,10 +42,17 @@ export const areasApi = {
     datos(await apiClient.patch(`/areas/${id}`, body, options)),
 
   /**
-   * Desactivar un area.
+   * Obtener impacto previo a desactivar un área.
    */
-  desactivar: async (id, options) =>
-    datos(await apiClient.post(`/areas/${id}/desactivar`, {}, options)),
+  obtenerImpactoDesactivacion: async (id, options) =>
+    datos(await apiClient.get(`/areas/${id}/desactivacion-impacto`, options)),
+
+  /**
+   * Desactivar un area con vigencia efectiva.
+   * body: { efectivaDesde: 'ESTE_MES' | 'PROXIMO_MES' }
+   */
+  desactivar: async (id, body = {}, options) =>
+    datos(await apiClient.post(`/areas/${id}/desactivar`, body, options)),
 
   /**
    * Eliminar la relacion usuario-area.

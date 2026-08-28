@@ -5,7 +5,7 @@ import { ROLES } from '@/config/navigation-config';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useResultadosGeneral } from '@/features/resultados/hooks/use-resultados-general';
-import { useResultadosAreas } from '@/features/resultados/hooks/use-resultados-areas';
+import { useListadoResultadosAreas } from '@/features/resultados/hooks/use-listado-resultados-areas';
 import { ResultadosDesktop } from '@/features/resultados/views/resultados-desktop';
 import { ResultadosMobile } from '@/features/resultados/views/resultados-mobile';
 import { ResultadosHeader } from '@/features/resultados/components/shared/resultados-header';
@@ -25,7 +25,12 @@ export function ResultadosPage() {
   const canViewGeneral = adminRoles.includes(user?.rol);
   const activeView = location.pathname.includes('/resultados/general') ? 'general' : 'areas';
   const fallbackMonth = getCurrentMonthKey();
+
+  const tipo = searchParams.get('tipo') || 'mes';
   const mes = normalizeMonthKey(searchParams.get('mes'), fallbackMonth);
+  const anioQuery = searchParams.get('anio');
+  const trimestreQuery = searchParams.get('trimestre');
+  const semestreQuery = searchParams.get('semestre');
 
   useEffect(() => {
     if (anio && mesRuta) {
@@ -34,12 +39,12 @@ export function ResultadosPage() {
       return;
     }
 
-    if (searchParams.get('mes') !== mes) {
+    if (activeView === 'areas' && searchParams.get('mes') !== mes) {
       const next = new URLSearchParams(searchParams);
       next.set('mes', mes);
       setSearchParams(next, { replace: true });
     }
-  }, [anio, canViewGeneral, mes, mesRuta, navigate, searchParams, setSearchParams]);
+  }, [anio, canViewGeneral, mes, mesRuta, navigate, searchParams, setSearchParams, activeView]);
 
   const targetRoute = canViewGeneral ? 'general' : 'areas';
   const redirectTo = location.pathname === '/resultados'
@@ -48,8 +53,15 @@ export function ResultadosPage() {
 
   const shouldLoadGeneral = activeView === 'general' && canViewGeneral && !redirectTo;
   const shouldLoadAreas = activeView !== 'general' && !redirectTo;
-  const generalState = useResultadosGeneral({ mes, enabled: shouldLoadGeneral });
-  const areasState = useResultadosAreas({ mes, enabled: shouldLoadAreas });
+  const generalState = useResultadosGeneral({
+    tipo,
+    mes,
+    anio: anioQuery,
+    trimestre: trimestreQuery,
+    semestre: semestreQuery,
+    enabled: shouldLoadGeneral,
+  });
+  const areasState = useListadoResultadosAreas({ mes, enabled: shouldLoadAreas });
   const state = activeView === 'general' && canViewGeneral ? generalState : areasState;
 
   const View = useMemo(() => (isDesktop ? ResultadosDesktop : ResultadosMobile), [isDesktop]);
@@ -57,6 +69,16 @@ export function ResultadosPage() {
   const handleMonthChange = (nextMonth) => {
     const next = normalizeMonthKey(nextMonth, mes);
     setSearchParams({ mes: next });
+  };
+
+  const handleRangoChange = (newParams) => {
+    const params = new URLSearchParams();
+    Object.entries(newParams).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        params.set(k, String(v));
+      }
+    });
+    setSearchParams(params);
   };
 
   if (redirectTo) {
@@ -70,6 +92,10 @@ export function ResultadosPage() {
         onMesChange={handleMonthChange}
         activeView={activeView}
         canViewGeneral={canViewGeneral}
+        rangoParams={{ tipo, mes, anio: anioQuery, trimestre: trimestreQuery, semestre: semestreQuery }}
+        onRangoChange={handleRangoChange}
+        searchParamsStr={searchParams.toString()}
+        data={state.data}
       />
 
       {state.loading ? (

@@ -1,10 +1,10 @@
 import { Card, CardBody } from '@/components/ui/card';
 import { ResultadoScore } from '@/features/resultados/components/shared/resultado-score';
 
-function WinnerBlock({ label, data, mostrarResultado, mensaje }) {
-  const winnerScore = data?.resultado;
+function PeorBlock({ label, data, mostrarResultado, mensaje }) {
+  const worstScore = data?.resultado;
   const areas = data?.areas ?? [];
-  const tieneGanador = Boolean(mostrarResultado && winnerScore !== null && winnerScore !== undefined && areas.length > 0);
+  const tienePeores = Boolean(mostrarResultado && worstScore !== null && worstScore !== undefined && areas.length > 0);
 
   return (
     <div className="flex-1 rounded-lg border border-app-border bg-white p-4">
@@ -14,9 +14,9 @@ function WinnerBlock({ label, data, mostrarResultado, mensaje }) {
 
       {!mostrarResultado ? (
         <div className="mt-2 text-xs font-semibold text-slate-500">
-          {mensaje || 'Ganadores disponibles al cierre del mes'}
+          {mensaje || 'Los resultados se definirán al cierre del mes'}
         </div>
-      ) : tieneGanador ? (
+      ) : tienePeores ? (
         <div className="mt-2 flex items-baseline justify-between gap-4">
           <div className="min-w-0 flex-1 space-y-1">
             {areas.map((area) => (
@@ -26,22 +26,22 @@ function WinnerBlock({ label, data, mostrarResultado, mensaje }) {
             ))}
           </div>
           <ResultadoScore
-            value={winnerScore}
+            value={worstScore}
             className="text-xl md:text-2xl font-black text-slate-900"
           />
         </div>
       ) : (
         <div className="mt-2 text-xs font-semibold text-slate-400">
-          Sin ganadores elegibles
+          Sin áreas evaluables
         </div>
       )}
     </div>
   );
 }
 
-export function GanadoresMes({ ganadoresPorTipo = {}, mostrarResultado = false, mensaje, titulo = 'Ganadores del mes' }) {
-  const adminData = ganadoresPorTipo?.administrativo;
-  const operData = ganadoresPorTipo?.operativo;
+export function PeoresDelMes({ peoresPorTipo = {}, mostrarResultado = false, mensaje, titulo = 'Peores del mes' }) {
+  const adminData = peoresPorTipo?.administrativo;
+  const operData = peoresPorTipo?.operativo;
 
   return (
     <Card className="border-app-border bg-white shadow-sm">
@@ -50,13 +50,13 @@ export function GanadoresMes({ ganadoresPorTipo = {}, mostrarResultado = false, 
           {titulo}
         </h3>
         <div className="flex flex-col gap-3 md:flex-row">
-          <WinnerBlock
+          <PeorBlock
             label="ADMINISTRATIVO"
             data={adminData}
             mostrarResultado={mostrarResultado}
             mensaje={mensaje}
           />
-          <WinnerBlock
+          <PeorBlock
             label="OPERATIVO"
             data={operData}
             mostrarResultado={mostrarResultado}
