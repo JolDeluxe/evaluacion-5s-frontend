@@ -82,11 +82,6 @@ export function ResultadoAreaRow({ item, mes }) {
       <td className="px-5 py-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-black uppercase text-slate-900">{item.area.nombre}</p>
-          {item.area.esPropia && (
-            <span className="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-amber-700">
-              A cargo
-            </span>
-          )}
         </div>
         <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{item.area.tipo}</p>
       </td>

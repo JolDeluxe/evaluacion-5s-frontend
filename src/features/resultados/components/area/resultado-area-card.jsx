@@ -71,11 +71,6 @@ export function ResultadoAreaCard({ item, mes, rango }) {
             {item.posicion !== null && item.posicion !== undefined ? `${String(item.posicion).padStart(2, '0')} · ` : ''}
             {item.area.nombre}
           </h2>
-          {item.area.esPropia && (
-            <span className="mt-1 inline-flex rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-amber-700">
-              A cargo
-            </span>
-          )}
         </div>
         <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
           {item.area.tipo || 'Área'}
