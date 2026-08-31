@@ -5,41 +5,42 @@ import { RequireAuth, RequireRole, RedirectIfAuthenticated } from '@/app/route-g
 import { AUDIT_EXECUTION_ROLES, AUDIT_VIEW_ROLES, BUSINESS_ADMIN_ROLES, ROLES, SYSTEM_ROLES } from '@/config/navigation-config';
 import { LoginPage } from '@/features/auth/pages/login-page';
 import { InicioPage } from '@/features/inicio/pages/inicio-page';
-import { MisAuditoriasPage } from '@/features/asignaciones/pages/mis-auditorias-page';
-import { HistorialAuditoriasPage } from '@/features/asignaciones/pages/historial-auditorias-page';
-import { AuditoriaDetallePage } from '@/features/auditorias/pages/auditoria-detalle-page';
-import { RealizarAuditoriaPage } from '@/features/auditorias/pages/realizar-auditoria-page';
-import { AdminPlaceholderPage } from '@/features/admin/pages/admin-placeholder-page';
-import { AsignacionesPage } from '@/features/admin/pages/asignaciones-page';
-import { AreasPage } from '@/features/areas/pages/areas-page';
-import { UsuariosPage } from '@/features/usuarios/pages/usuarios-page';
+import { MisAuditoriasPage } from '@/features/auditorias/por-realizar/pages/mis-auditorias-page';
+import { HistorialAuditoriasPage } from '@/features/auditorias/historial/pages/historial-auditorias-page';
+import { AuditoriaDetallePage } from '@/features/auditorias/ejecucion/pages/auditoria-detalle-page';
+import { RealizarAuditoriaPage } from '@/features/auditorias/ejecucion/pages/realizar-auditoria-page';
+import { AdministracionPlaceholderPage } from '@/features/administracion/pages/administracion-placeholder-page';
+import { AsignacionesPage } from '@/features/administracion/asignaciones/pages/asignaciones-page';
+import { AreasPage } from '@/features/administracion/areas/pages/areas-page';
+import { UsuariosPage } from '@/features/administracion/usuarios/pages/usuarios-page';
 import { ResultadosPage } from '@/features/resultados/pages/resultados-page';
 import { ResultadoAreaPage } from '@/features/resultados/pages/resultado-area-page';
 import { ResultadoPeriodoPage } from '@/features/resultados/pages/resultado-periodo-page';
 import { NotificacionesPage } from '@/features/notificaciones/pages/notificaciones-page';
 import { PerfilPage } from '@/features/perfil/pages/perfil-page';
-import { HistorialPage } from '@/features/historial/pages/historial-page';
-import { FormulariosPage } from '@/features/formularios/pages/formularios-page';
-import { FormularioDetailPage } from '@/features/formularios/pages/formulario-detail-page';
-import { FormularioEditorPage } from '@/features/formularios/pages/formulario-editor-page';
+import { FormulariosPage } from '@/features/administracion/formularios/pages/formularios-page';
+import { FormularioDetailPage } from '@/features/administracion/formularios/pages/formulario-detail-page';
+import { FormularioEditorPage } from '@/features/administracion/formularios/pages/formulario-editor-page';
 import { InvitadoPage } from '@/features/invitados/pages/invitado-page';
 import { InvitadoAuditoriaPage } from '@/features/invitados/pages/invitado-auditoria-page';
 import { InvitadoAccesoPage } from '@/features/invitados/pages/invitado-acceso-page';
 import { ForbiddenPage } from '@/features/errors/pages/forbidden-page';
 import { NotFoundPage } from '@/features/errors/pages/not-found-page';
 
+import { AdministracionLayoutPage } from '@/features/administracion/pages/administracion-layout-page';
+
 const adminChildren = [
-  { index: true, element: <AdminPlaceholderPage type="administracion" section="admin" /> },
+  { index: true, element: <Navigate to="/admin/asignaciones" replace /> },
   { path: 'asignaciones', element: <AsignacionesPage /> },
   { path: 'asignaciones/:anio/:mes', element: <AsignacionesPage /> },
   { path: 'asignaciones/mensual', element: <Navigate to="/admin/asignaciones" replace /> },
-  { path: 'ciclos', element: <AdminPlaceholderPage type="ciclos" section="admin" /> },
+  { path: 'ciclos', element: <Navigate to="/admin/asignaciones" replace /> },
   { path: 'formularios', element: <FormulariosPage /> },
   { path: 'formularios/:formularioId', element: <FormularioDetailPage /> },
   { path: 'formularios/:formularioId/editar', element: <FormularioEditorPage /> },
   { path: 'formularios/:formularioId/versiones/:versionId/editar', element: <FormularioEditorPage /> },
   { path: 'areas', element: <AreasPage /> },
-  { path: 'areas/:id', element: <AdminPlaceholderPage type="areaDetalle" section="admin" /> },
+  { path: 'areas/:id', element: <AdministracionPlaceholderPage type="areaDetalle" section="admin" /> },
   { path: 'usuarios', element: <UsuariosPage /> },
   { path: 'resultados', element: <Navigate to="/resultados" replace /> },
   { path: 'aprobaciones', element: <Navigate to="/admin" replace /> },
@@ -82,7 +83,7 @@ export const router = createBrowserRouter([
           },
           { path: '/auditorias/:id', element: <RequireRole roles={AUDIT_VIEW_ROLES} />, children: [{ index: true, element: <AuditoriaDetallePage /> }] },
           { path: '/auditorias/:id/realizar', element: <RequireRole roles={AUDIT_EXECUTION_ROLES} />, children: [{ index: true, element: <RealizarAuditoriaPage /> }] },
-          { path: '/historial', element: <HistorialPage /> },
+          { path: '/historial', element: <Navigate to="/mis-auditorias/historial" replace /> },
           {
             path: '/aprobaciones',
             element: <RequireRole roles={BUSINESS_ADMIN_ROLES} />,
@@ -106,16 +107,21 @@ export const router = createBrowserRouter([
           {
             path: '/admin',
             element: <RequireRole roles={[ROLES.SUPER_ADMIN, ROLES.ADMINISTRADOR]} />,
-            children: adminChildren,
+            children: [
+              {
+                element: <AdministracionLayoutPage />,
+                children: adminChildren,
+              },
+            ],
           },
           {
             path: '/sistema',
             element: <RequireRole roles={[ROLES.SUPER_ADMIN]} />,
             children: [
-              { index: true, element: <AdminPlaceholderPage type="sistema" section="system" /> },
-              { path: 'sesiones', element: <AdminPlaceholderPage type="sistemaSesiones" section="system" /> },
-              { path: 'entregas', element: <AdminPlaceholderPage type="sistemaEntregas" section="system" /> },
-              { path: 'registros', element: <AdminPlaceholderPage type="registros" section="system" /> },
+              { index: true, element: <AdministracionPlaceholderPage type="sistema" section="system" /> },
+              { path: 'sesiones', element: <AdministracionPlaceholderPage type="sistemaSesiones" section="system" /> },
+              { path: 'entregas', element: <AdministracionPlaceholderPage type="sistemaEntregas" section="system" /> },
+              { path: 'registros', element: <AdministracionPlaceholderPage type="registros" section="system" /> },
             ],
           },
         ],

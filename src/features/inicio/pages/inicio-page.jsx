@@ -6,7 +6,7 @@ import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { OfflinePendingBadge } from '@/components/ui/offline-pending-badge';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { asignacionesApi } from '@/features/asignaciones/api/asignaciones-api';
+import { asignacionesApi } from '@/features/auditorias/shared/api/asignaciones-api';
 
 export function InicioPage() {
   const { user } = useAuth();

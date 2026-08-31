@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { SelectorMes } from '@/features/resultados/components/shared/selector-mes';
 import { SelectorRangoResultados } from '@/features/resultados/components/general/selector-rango-resultados';
 import { ExportarResultadosButton } from '@/features/resultados/components/general/exportar-resultados-button';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import { cn } from '@/utils/cn';
 
 export function ResultadosHeader({
@@ -50,22 +51,7 @@ export function ResultadosHeader({
         )}
       </div>
 
-      <div className="flex gap-2 border-b border-app-border">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            to={tab.to}
-            className={cn(
-              'border-b-2 px-2 pb-3 text-sm font-black transition',
-              activeView === tab.id
-                ? 'border-marca-secundario text-marca-primario'
-                : 'border-transparent text-slate-500 hover:text-slate-800',
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
+      <SectionTabs tabs={tabs} />
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { notify } from '@/components/notification/adaptive-notify';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { auditoriasApi } from '@/features/auditorias/api/auditorias-api';
+import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-api';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',

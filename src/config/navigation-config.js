@@ -96,13 +96,6 @@ export const ADMIN_NAVIGATION = [
     allowedRoles: BUSINESS_ADMIN_ROLES,
   },
   {
-    id: 'admin-ciclos',
-    name: 'Ciclos',
-    icon: 'event_repeat',
-    route: '/admin/ciclos',
-    allowedRoles: BUSINESS_ADMIN_ROLES,
-  },
-  {
     id: 'admin-formularios',
     name: 'Formularios',
     icon: 'dynamic_form',
@@ -157,7 +150,6 @@ export const ROUTE_META = [
   { id: 'admin-aprobaciones-redirect', name: 'Administración', route: '/admin/aprobaciones', allowedRoles: BUSINESS_ADMIN_ROLES },
   { id: 'admin-notificaciones-redirect', name: 'Administración', route: '/admin/notificaciones', allowedRoles: BUSINESS_ADMIN_ROLES },
   { id: 'admin-registros-redirect', name: 'Registro técnico', route: '/admin/registros', allowedRoles: SYSTEM_ROLES },
-  { id: 'historial', name: 'Historial', route: '/historial', allowedRoles: ACCOUNT_ROLES },
   { id: 'aprobaciones-legacy', name: 'Administración', route: '/aprobaciones', allowedRoles: BUSINESS_ADMIN_ROLES },
   { id: 'auditoria-detalle', name: 'Detalle de auditoría', route: '/auditorias', allowedRoles: AUDIT_VIEW_ROLES },
 ];

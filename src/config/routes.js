@@ -3,7 +3,7 @@ import { generatePath } from 'react-router';
 export const ROUTES = {
   inicio: '/inicio',
   misAuditorias: '/mis-auditorias',
-  historial: '/historial',
+  historial: '/mis-auditorias/historial',
   notificaciones: '/notificaciones',
   perfil: '/perfil',
 

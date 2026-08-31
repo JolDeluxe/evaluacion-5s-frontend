@@ -4,7 +4,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import {
   waitForAuditSafeToReload,
-} from '@/features/auditorias/utils/auditoria-runtime-status';
+} from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
 
 const UPDATE_CHECK_INTERVAL_MS = 45 * 60 * 1000;
 const AUTOSAVE_SETTLE_MS = 800;
