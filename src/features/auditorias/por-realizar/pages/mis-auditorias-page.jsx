@@ -470,9 +470,9 @@ export function MisAuditoriasPage() {
                   <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-slate-600">
                     Terminaste todas tus
                     auditorías del{' '}
-                    {activeCiclo
+                    {activePeriodo
                       ? getPeriodLabel(
-                          activeCiclo,
+                          activePeriodo,
                         )
                       : 'periodo actual'}
                     .
