@@ -94,11 +94,15 @@ export function EditorFormulario({ formularioId }) {
       setSaving(true);
       setError(null);
 
-      // Preparar payload normalizando el orden consecutivo
-      const payload = {
+      // 1. Actualizar metadata del formulario (nombre, descripcion, activo)
+      await formulariosApi.actualizar(formularioId, {
         nombre: formMeta.nombre.trim(),
         descripcion: formMeta.descripcion.trim() || null,
         activo: formMeta.activo,
+      });
+
+      // 2. Guardar estructura (secciones y preguntas) en /formularios/:id/estructura
+      const estructuraPayload = {
         secciones: secciones.map((sec, secIdx) => ({
           claveEstable: sec.claveEstable,
           nombre: sec.nombre.trim(),
@@ -112,7 +116,7 @@ export function EditorFormulario({ formularioId }) {
         })),
       };
 
-      await formulariosApi.guardarFormulario(formularioId, payload);
+      await formulariosApi.guardarEstructura(formularioId, estructuraPayload);
       navigate(`/admin/formularios/${formularioId}`);
     } catch (err) {
       setError(err.message || 'Error al guardar cambios.');
@@ -321,28 +325,33 @@ export function EditorFormulario({ formularioId }) {
               {/* Preguntas */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Preguntas</span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Preguntas / Criterios</span>
+                    <p className="text-[11px] text-slate-400">
+                      Editar el texto de una pregunta existente corrige la redacción/ortografía conservando su historial. Para cambiar el criterio por otro completamente nuevo, elimina la pregunta y agrega una nueva.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => agregarPregunta(secIdx)}
-                    className="flex items-center gap-1 text-xs font-black text-marca-primario hover:underline"
+                    className="flex items-center gap-1 text-xs font-black text-marca-primario hover:underline shrink-0"
                   >
                     <Icon name="add" size="14px" />
-                    Agregar pregunta
+                    Nueva pregunta
                   </button>
                 </div>
 
                 <div className="space-y-2">
                   {seccion.preguntas.map((pregunta, preIdx) => (
                     <div key={pregunta.claveEstable} className="flex gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marca-primario/10 text-xs font-black text-marca-primario">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marca-primario/10 text-xs font-black text-marca-primario" title="Pregunta activa">
                         {preIdx + 1}
                       </span>
                       <input
                         type="text"
                         required
                         value={pregunta.texto}
-                        placeholder="Redactar criterio de evaluación..."
+                        placeholder="Redactar criterio de evaluación (corrección o ajuste de redacción)..."
                         onChange={(e) => cambiarTextoPregunta(secIdx, preIdx, e.target.value)}
                         className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
                       />
@@ -351,6 +360,7 @@ export function EditorFormulario({ formularioId }) {
                           type="button"
                           disabled={preIdx === 0}
                           onClick={() => moverPregunta(secIdx, preIdx, -1)}
+                          title="Subir orden"
                           className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
                         >
                           <Icon name="keyboard_arrow_up" size="16px" />
@@ -359,6 +369,7 @@ export function EditorFormulario({ formularioId }) {
                           type="button"
                           disabled={preIdx === seccion.preguntas.length - 1}
                           onClick={() => moverPregunta(secIdx, preIdx, 1)}
+                          title="Bajar orden"
                           className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
                         >
                           <Icon name="keyboard_arrow_down" size="16px" />
@@ -366,6 +377,7 @@ export function EditorFormulario({ formularioId }) {
                         <button
                           type="button"
                           onClick={() => eliminarPregunta(secIdx, preIdx)}
+                          title="Retirar criterio del formulario"
                           className="p-1 hover:bg-red-50 text-red-500 rounded"
                         >
                           <Icon name="delete" size="16px" />

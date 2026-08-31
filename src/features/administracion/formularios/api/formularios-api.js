@@ -14,6 +14,5 @@ export const formulariosApi = {
   obtenerRevision: async (revisionId, options) => datos(await apiClient.get(`/formularios/versiones/${revisionId}`, options)),
   actualizar: async (id, body, options) => datos(await apiClient.patch(`/formularios/${id}`, body, options)),
   crear: async (body, options) => datos(await apiClient.post('/formularios', body, options)),
-  guardarFormulario: async (id, body, options) => datos(await apiClient.put(`/formularios/${id}`, body, options)),
   guardarEstructura: async (formularioId, body, options) => datos(await apiClient.put(`/formularios/${formularioId}/estructura`, body, options)),
 };
