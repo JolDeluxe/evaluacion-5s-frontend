@@ -50,6 +50,7 @@ export function EditorFormulario({ formularioId }) {
             claveEstable: p.claveEstable ?? crearClaveEstable(),
             texto: p.texto,
             orden: pIdx,
+            requiereHallazgo: p.requiereHallazgo ?? true,
           })),
         }));
         setSecciones(mappedSecciones);
@@ -112,12 +113,14 @@ export function EditorFormulario({ formularioId }) {
             claveEstable: p.claveEstable,
             texto: p.texto.trim(),
             orden: pIdx,
+            requiereHallazgo: p.requiereHallazgo !== false,
           })),
         })),
       };
 
-      await formulariosApi.guardarEstructura(formularioId, estructuraPayload);
-      navigate(`/admin/formularios/${formularioId}`);
+      const resEstructura = await formulariosApi.guardarEstructura(formularioId, estructuraPayload);
+      const mensajeFeedback = resEstructura?.mensaje || 'Cambios guardados correctamente.';
+      navigate(`/admin/formularios/${formularioId}`, { state: { feedback: mensajeFeedback } });
     } catch (err) {
       setError(err.message || 'Error al guardar cambios.');
     } finally {
@@ -160,6 +163,7 @@ export function EditorFormulario({ formularioId }) {
       claveEstable: crearClaveEstable(),
       texto: '',
       orden: copia[secIdx].preguntas.length,
+      requiereHallazgo: true,
     });
     setSecciones(copia);
   };
@@ -184,6 +188,12 @@ export function EditorFormulario({ formularioId }) {
   const cambiarTextoPregunta = (secIdx, preIdx, valor) => {
     const copia = [...secciones];
     copia[secIdx].preguntas[preIdx].texto = valor;
+    setSecciones(copia);
+  };
+
+  const cambiarPregunta = (secIdx, preIdx, campo, valor) => {
+    const copia = [...secciones];
+    copia[secIdx].preguntas[preIdx][campo] = valor;
     setSecciones(copia);
   };
 
@@ -343,45 +353,74 @@ export function EditorFormulario({ formularioId }) {
 
                 <div className="space-y-2">
                   {seccion.preguntas.map((pregunta, preIdx) => (
-                    <div key={pregunta.claveEstable} className="flex gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marca-primario/10 text-xs font-black text-marca-primario" title="Pregunta activa">
-                        {preIdx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        required
-                        value={pregunta.texto}
-                        placeholder="Redactar criterio de evaluación (corrección o ajuste de redacción)..."
-                        onChange={(e) => cambiarTextoPregunta(secIdx, preIdx, e.target.value)}
-                        className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
-                      />
-                      <div className="flex gap-0.5 shrink-0">
-                        <button
-                          type="button"
-                          disabled={preIdx === 0}
-                          onClick={() => moverPregunta(secIdx, preIdx, -1)}
-                          title="Subir orden"
-                          className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
-                        >
-                          <Icon name="keyboard_arrow_up" size="16px" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={preIdx === seccion.preguntas.length - 1}
-                          onClick={() => moverPregunta(secIdx, preIdx, 1)}
-                          title="Bajar orden"
-                          className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
-                        >
-                          <Icon name="keyboard_arrow_down" size="16px" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => eliminarPregunta(secIdx, preIdx)}
-                          title="Retirar criterio del formulario"
-                          className="p-1 hover:bg-red-50 text-red-500 rounded"
-                        >
-                          <Icon name="delete" size="16px" />
-                        </button>
+                    <div key={pregunta.claveEstable} className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                      <div className="flex gap-2 items-center">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marca-primario/10 text-xs font-black text-marca-primario" title="Pregunta activa">
+                          {preIdx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          required
+                          value={pregunta.texto}
+                          placeholder="Redactar criterio de evaluación (corrección o ajuste de redacción)..."
+                          onChange={(e) => cambiarTextoPregunta(secIdx, preIdx, e.target.value)}
+                          className="flex-1 bg-transparent text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none"
+                        />
+                        <div className="flex gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            disabled={preIdx === 0}
+                            onClick={() => moverPregunta(secIdx, preIdx, -1)}
+                            title="Subir orden"
+                            className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
+                          >
+                            <Icon name="keyboard_arrow_up" size="16px" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={preIdx === seccion.preguntas.length - 1}
+                            onClick={() => moverPregunta(secIdx, preIdx, 1)}
+                            title="Bajar orden"
+                            className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 text-slate-500"
+                          >
+                            <Icon name="keyboard_arrow_down" size="16px" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => eliminarPregunta(secIdx, preIdx)}
+                            title="Retirar criterio del formulario"
+                            className="p-1 hover:bg-red-50 text-red-500 rounded"
+                          >
+                            <Icon name="delete" size="16px" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Control compacto de Hallazgo al responder NO */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/60 pt-2 text-xs">
+                        <span className="font-bold text-slate-600">Al responder NO:</span>
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                            <input
+                              type="radio"
+                              name={`req-hallazgo-${secIdx}-${preIdx}`}
+                              checked={pregunta.requiereHallazgo !== false}
+                              onChange={() => cambiarPregunta(secIdx, preIdx, 'requiereHallazgo', true)}
+                              className="text-marca-primario focus:ring-marca-primario/30"
+                            />
+                            Solicitar hallazgo <span className="text-[10px] text-slate-400">(foto opcional)</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                            <input
+                              type="radio"
+                              name={`req-hallazgo-${secIdx}-${preIdx}`}
+                              checked={pregunta.requiereHallazgo === false}
+                              onChange={() => cambiarPregunta(secIdx, preIdx, 'requiereHallazgo', false)}
+                              className="text-marca-primario focus:ring-marca-primario/30"
+                            />
+                            Solo registrar respuesta
+                          </label>
+                        </div>
                       </div>
                     </div>
                   ))}

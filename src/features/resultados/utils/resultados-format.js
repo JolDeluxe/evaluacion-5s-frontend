@@ -59,9 +59,9 @@ export function getEstadoMesVisual(estado) {
       dotClassName: 'bg-slate-500',
     },
     EN_GRACIA: {
-      label: 'En periodo de gracia',
-      className: 'border-amber-200 bg-amber-50 text-amber-700',
-      dotClassName: 'bg-amber-500',
+      label: 'En curso',
+      className: 'border-blue-200 bg-blue-50 text-blue-700',
+      dotClassName: 'bg-blue-500',
     },
     CONSOLIDADO: {
       label: 'Consolidado',

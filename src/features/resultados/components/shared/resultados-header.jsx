@@ -23,34 +23,41 @@ export function ResultadosHeader({
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">
-            Monitoreo
-          </p>
-          <h1 className="fuente-titulos text-3xl font-normal uppercase leading-none text-marca-primario">
-            Resultados 5S
-          </h1>
-        </div>
-
-        {activeView === 'general' ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <SelectorRangoResultados
-              tipo={rangoParams.tipo}
-              mes={rangoParams.mes || mes}
-              anio={rangoParams.anio}
-              trimestre={rangoParams.trimestre}
-              semestre={rangoParams.semestre}
-              onChange={onRangoChange}
-            />
-            <ExportarResultadosButton rangoParams={rangoParams} data={data} />
-          </div>
-        ) : (
-          <SelectorMes value={mes} onChange={onMesChange} />
-        )}
+    <div className="space-y-3">
+      {/* 1. Encabezado */}
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento leading-none">
+          Monitoreo
+        </p>
+        <h1 className="fuente-titulos text-2xl sm:text-3xl font-normal uppercase leading-tight text-marca-primario mt-0.5">
+          Resultados 5S
+        </h1>
       </div>
 
+      {activeView === 'general' ? (
+        <div className="space-y-2">
+          {/* Selector de Rango (Tabs de rango + Navegación por fecha) */}
+          <SelectorRangoResultados
+            tipo={rangoParams.tipo}
+            mes={rangoParams.mes || mes}
+            anio={rangoParams.anio}
+            trimestre={rangoParams.trimestre}
+            semestre={rangoParams.semestre}
+            onChange={onRangoChange}
+          />
+
+          {/* Fila exclusiva del botón PDF a la derecha en mobile / desktop */}
+          <div className="flex justify-end pt-0.5">
+            <ExportarResultadosButton rangoParams={rangoParams} data={data} />
+          </div>
+        </div>
+      ) : (
+        <div className="w-full sm:w-[260px]">
+          <SelectorMes value={mes} onChange={onMesChange} />
+        </div>
+      )}
+
+      {/* Tabs General / Áreas */}
       <SectionTabs tabs={tabs} />
     </div>
   );

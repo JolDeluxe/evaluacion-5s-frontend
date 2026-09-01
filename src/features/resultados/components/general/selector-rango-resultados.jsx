@@ -1,11 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { formatMonthLabel } from '@/features/resultados/utils/resultados-format';
+import { SelectorMesNavegacion } from '@/components/ui/selector-mes-navegacion';
 import { cn } from '@/utils/cn';
-
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
 
 export function SelectorRangoResultados({
   tipo = 'mes',
@@ -40,12 +35,7 @@ export function SelectorRangoResultados({
   };
 
   const handleShift = (offset) => {
-    if (tipo === 'mes') {
-      const [y, m] = (mes || `${new Date().getFullYear()}-01`).split('-').map(Number);
-      const dt = new Date(y, m - 1 + offset, 1);
-      const nextClave = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-      onChange({ tipo: 'mes', mes: nextClave });
-    } else if (tipo === 'trimestre') {
+    if (tipo === 'trimestre') {
       let nextTri = triNum + offset;
       let nextAnio = anioNum;
       if (nextTri > 4) {
@@ -72,34 +62,6 @@ export function SelectorRangoResultados({
     }
   };
 
-  const renderEtiquetaRango = () => {
-    if (tipo === 'mes') {
-      return (
-        <label className="min-w-0">
-          <span className="sr-only">Mes</span>
-          <input
-            type="month"
-            value={mes}
-            onChange={(e) => onChange({ tipo: 'mes', mes: e.target.value })}
-            className="h-9 rounded-lg border border-app-border bg-white px-3 text-xs md:text-sm font-black text-slate-800 shadow-sm outline-none transition focus:border-marca-secundario focus:ring-2 focus:ring-marca-secundario/20"
-            aria-label={formatMonthLabel(mes)}
-          />
-        </label>
-      );
-    }
-
-    let text = '';
-    if (tipo === 'trimestre') text = `Trimestre ${triNum} · ${anioNum}`;
-    else if (tipo === 'semestre') text = `Semestre ${semNum} · ${anioNum}`;
-    else if (tipo === 'anio') text = `Año ${anioNum}`;
-
-    return (
-      <span className="h-9 inline-flex items-center rounded-lg border border-app-border bg-white px-3 text-xs md:text-sm font-black text-slate-800 shadow-sm">
-        {text}
-      </span>
-    );
-  };
-
   const tipos = [
     { id: 'mes', labelMobile: 'Mes', labelDesktop: 'Mes' },
     { id: 'trimestre', labelMobile: 'Trim.', labelDesktop: 'Trimestre' },
@@ -107,10 +69,15 @@ export function SelectorRangoResultados({
     { id: 'anio', labelMobile: 'Año', labelDesktop: 'Año' },
   ];
 
+  let textRangoNonMes = '';
+  if (tipo === 'trimestre') textRangoNonMes = `Trimestre ${triNum} · ${anioNum}`;
+  else if (tipo === 'semestre') textRangoNonMes = `Semestre ${semNum} · ${anioNum}`;
+  else if (tipo === 'anio') textRangoNonMes = `Año ${anioNum}`;
+
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center w-full sm:w-auto">
       {/* Botones de Alcance/Tipo */}
-      <div className="inline-flex rounded-lg border border-app-border bg-slate-100/80 p-0.5 shadow-sm">
+      <div className="grid grid-cols-4 sm:flex rounded-xl border border-slate-200 bg-slate-100/80 p-0.5 shadow-sm w-full sm:w-auto">
         {tipos.map((t) => {
           const isActive = tipo === t.id;
           return (
@@ -119,7 +86,7 @@ export function SelectorRangoResultados({
               type="button"
               onClick={() => handleTipoChange(t.id)}
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-black transition',
+                'rounded-lg py-1 px-1 sm:px-2.5 text-center text-xs font-black transition',
                 isActive
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800',
@@ -132,30 +99,43 @@ export function SelectorRangoResultados({
         })}
       </div>
 
-      {/* Flechas y etiqueta de rango */}
-      <div className="flex items-center gap-1.5 justify-end">
-        <Button
-          type="button"
-          variant="icon"
-          size="icon"
-          icon="chevron_left"
-          onClick={() => handleShift(-1)}
-          aria-label="Periodo anterior"
-          className="h-9 w-9"
-        />
+      {/* Control temporal */}
+      {tipo === 'mes' ? (
+        <div className="w-full sm:w-[260px]">
+          <SelectorMesNavegacion
+            monthKey={mes}
+            onChange={({ monthKey }) => onChange({ tipo: 'mes', mes: monthKey })}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 w-full sm:w-[260px]">
+          <Button
+            type="button"
+            variant="icon"
+            size="icon"
+            icon="chevron_left"
+            onClick={() => handleShift(-1)}
+            aria-label="Periodo anterior"
+            className="h-9 w-9 shrink-0"
+          />
 
-        {renderEtiquetaRango()}
+          <div className="min-w-0 text-center flex items-center justify-center">
+            <span className="h-9 w-full inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-xs md:text-sm font-black text-slate-800 shadow-sm">
+              {textRangoNonMes}
+            </span>
+          </div>
 
-        <Button
-          type="button"
-          variant="icon"
-          size="icon"
-          icon="chevron_right"
-          onClick={() => handleShift(1)}
-          aria-label="Periodo siguiente"
-          className="h-9 w-9"
-        />
-      </div>
+          <Button
+            type="button"
+            variant="icon"
+            size="icon"
+            icon="chevron_right"
+            onClick={() => handleShift(1)}
+            aria-label="Periodo siguiente"
+            className="h-9 w-9 shrink-0"
+          />
+        </div>
+      )}
     </div>
   );
 }

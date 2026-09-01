@@ -106,7 +106,7 @@ export function TablaResultadosAreas({ areas = [], rango }) {
       <>
         <th className="px-5 py-3 text-center">{formatPeriodLabel(1)}</th>
         <th className="px-5 py-3 text-center">{formatPeriodLabel(2)}</th>
-        <th className="px-5 py-3 text-center">Resultado final</th>
+        <th className="px-5 py-3 text-center">Resultado</th>
       </>
     );
   };

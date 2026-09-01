@@ -14,38 +14,38 @@ export function EstadoMesCard({ data }) {
 
   return (
     <Card className="border-app-border bg-white shadow-sm">
-      <CardBody className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 md:p-5">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black uppercase text-slate-950 md:text-2xl">
-              {tituloHeader}
-            </h2>
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold',
-                visual.className,
-              )}
-            >
-              <span className={cn('h-1.5 w-1.5 rounded-full', visual.dotClassName)} />
-              {estado.etiqueta || visual.label}
-            </span>
+      <CardBody className="p-3.5 sm:p-4 md:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base sm:text-xl font-black uppercase text-slate-950 truncate">
+                {tituloHeader}
+              </h2>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold',
+                  visual.className,
+                )}
+              >
+                <span className={cn('h-1.5 w-1.5 rounded-full', visual.dotClassName)} />
+                {estado.etiqueta || visual.label}
+              </span>
+            </div>
+            {subTituloHeader && (
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                {subTituloHeader}
+              </p>
+            )}
           </div>
-          {subTituloHeader && (
-            <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-              {subTituloHeader}
-            </p>
-          )}
-        </div>
 
-        <div className="flex items-baseline gap-3 rounded-lg border border-app-border bg-white px-5 py-3 text-right sm:self-center">
-          <div>
-            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-              Resultado general
+          <div className="shrink-0 text-right">
+            <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+              Resultado
             </span>
             <ResultadoScore
               value={mostrarResultado ? resultado : null}
               empty="—"
-              className="text-2xl md:text-3xl font-black"
+              className="text-xl sm:text-2xl md:text-3xl font-black"
             />
           </div>
         </div>

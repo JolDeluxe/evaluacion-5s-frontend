@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
-import { Input } from '@/components/form/input';
 import { Label } from '@/components/form/label';
 import { SelectAuditor } from '@/features/administracion/asignaciones/components/select-auditor';
+import { ReabrirAsignacionModal } from '@/features/administracion/asignaciones/components/reabrir-asignacion-modal';
 import {
   buildGuardarAsignacionMensualPayload,
   MESES,
+  periodoDetalleTexto,
+  periodoTexto,
 } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
 export function EditarAsignacionModal({
@@ -21,30 +23,28 @@ export function EditarAsignacionModal({
 }) {
   const [form, setForm] = useState(() => ({
     auditorMensualId: fila.auditorMensual?.id ?? '',
-    p1UsaMensual: fila.periodos.p1?.usaAuditorMensual !== false,
-    p2UsaMensual: fila.periodos.p2?.usaAuditorMensual !== false,
-    p1AuditorId: fila.periodos.p1?.auditorEfectivo?.id ?? '',
-    p2AuditorId: fila.periodos.p2?.auditorEfectivo?.id ?? '',
-    p1Motivo: fila.periodos.p1?.motivoExcepcion ?? '',
-    p2Motivo: fila.periodos.p2?.motivoExcepcion ?? '',
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [reabriendoPeriodo, setReabriendoPeriodo] = useState(null);
 
   const setField = (key, value) => setForm((actual) => ({ ...actual, [key]: value }));
-  const p1Bloqueada = fila.periodos.p1?.bloqueada;
-  const p2Bloqueada = fila.periodos.p2?.bloqueada;
 
-  const reabrirPeriodo = async (periodo) => {
-    const motivo = window.prompt('Motivo de la reapertura');
-    if (!motivo?.trim()) return;
+  const auditorSeleccionado = auditores.find((a) => a.id === Number(form.auditorMensualId)) ?? null;
+
+  const handleConfirmReabrir = async ({ motivo, auditorMensualId }) => {
+    if (!reabriendoPeriodo?.periodo?.asignacionId) return;
 
     setSaving(true);
     setError('');
 
     try {
-      await onReabrirAsignacion(periodo.asignacionId, { motivo });
+      await onReabrirAsignacion(reabriendoPeriodo.periodo.asignacionId, {
+        motivo,
+        auditorMensualId,
+      });
       onSaved();
+      onClose();
     } catch (err) {
       setError(err?.message || 'No se pudo reabrir el periodo.');
     } finally {
@@ -76,94 +76,105 @@ export function EditarAsignacionModal({
     }
   };
 
-  const renderPeriodo = (key, label, periodo, bloqueada) => (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-black text-slate-950">{label}</p>
-          {!periodo?.programada && <p className="text-xs font-bold text-slate-500">No programada para esta área.</p>}
-          {bloqueada && <p className="text-xs font-bold text-red-600">{periodo.realizada ? 'Realizada · bloqueada' : 'Vencida · bloqueada'}</p>}
+  const renderPeriodo = (label, periodo) => {
+    const detalleAuditor = periodoDetalleTexto(periodo, fila.auditorMensual);
+    const esCompletada = periodo?.estadoAuditoria === 'COMPLETADA';
+    const esVencida = periodo?.vencida;
+
+    return (
+      <div className="rounded-xl border border-app-border bg-slate-50/70 p-3.5 space-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-slate-900">{label}</span>
+              <span
+                className={`inline-flex items-center gap-1 text-xs font-bold ${
+                  esCompletada
+                    ? 'text-emerald-700'
+                    : esVencida
+                      ? 'text-rose-600 font-extrabold'
+                      : 'text-slate-600'
+                }`}
+              >
+                <span>{esCompletada ? '✓' : esVencida ? '!' : '•'}</span>
+                <span>{periodoTexto(periodo, fila.auditorMensual?.nombre)}</span>
+              </span>
+            </div>
+            {detalleAuditor && <p className="text-xs font-semibold text-slate-400 mt-0.5">{detalleAuditor}</p>}
+          </div>
+
+          {periodo?.vencida && periodo.asignacionId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon="lock_open"
+              isLoading={saving}
+              onClick={() => setReabriendoPeriodo({ nombre: label, periodo })}
+            >
+              Reabrir periodo
+            </Button>
+          )}
         </div>
-
-        {periodo?.vencida && periodo.asignacionId && (
-          <Button type="button" variant="outline" size="sm" icon="lock_open" isLoading={saving} onClick={() => reabrirPeriodo(periodo)}>
-            Reabrir
-          </Button>
-        )}
-
-        {periodo?.programada && (
-          <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-            <input
-              type="checkbox"
-              checked={form[`${key}UsaMensual`]}
-              disabled={bloqueada}
-              onChange={(event) => setField(`${key}UsaMensual`, event.target.checked)}
-            />
-            Usar auditor mensual
-          </label>
-        )}
       </div>
-
-      {periodo?.programada && !form[`${key}UsaMensual`] && (
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div>
-            <Label>Auditor {label}</Label>
-            <SelectAuditor
-              value={form[`${key}AuditorId`]}
-              onChange={(value) => setField(`${key}AuditorId`, value)}
-              auditores={auditores}
-              responsablesIds={fila.area.responsablesIds}
-              disabled={bloqueada}
-            />
-          </div>
-
-          <div>
-            <Label>Motivo</Label>
-            <Input value={form[`${key}Motivo`]} onChange={(event) => setField(`${key}Motivo`, event.target.value)} disabled={bloqueada} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
-    <Modal isOpen onClose={onClose} className="max-w-3xl">
-      <ModalHeader onClose={onClose}>
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-marca-acento">{MESES[mes - 1]} {anio}</p>
-          <h2 className="text-xl font-black text-slate-950">{fila.area.nombre}</h2>
-        </div>
-      </ModalHeader>
+    <>
+      <Modal isOpen onClose={onClose} className="max-w-xl">
+        <ModalHeader onClose={onClose}>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-marca-acento">{MESES[mes - 1]} {anio}</p>
+            <h2 className="text-xl font-black text-slate-950 uppercase">{fila.area.nombre}</h2>
+          </div>
+        </ModalHeader>
 
-      <form onSubmit={guardar}>
-        <ModalBody>
-          <div className="space-y-4">
-            {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</div>}
+        <form onSubmit={guardar}>
+          <ModalBody className="space-y-4">
+            {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div>}
 
-            <div>
-              <Label>Auditor del mes</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-black uppercase tracking-wider text-slate-500">Auditor del mes</Label>
               <SelectAuditor
                 value={form.auditorMensualId}
                 onChange={(value) => setField('auditorMensualId', value)}
                 auditores={auditores}
                 responsablesIds={fila.area.responsablesIds}
               />
-              <p className="mt-1 text-xs font-bold text-slate-500">Este auditor realizará P1 y P2 de forma predeterminada.</p>
+              <p className="text-xs font-medium text-slate-500">Este auditor realizará P1 y P2 de forma predeterminada.</p>
             </div>
 
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Excepciones por periodo</p>
-              {renderPeriodo('p1', 'P1', fila.periodos.p1, p1Bloqueada)}
-              {renderPeriodo('p2', 'P2', fila.periodos.p2, p2Bloqueada)}
+            <div className="space-y-2.5 pt-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Estado del mes</p>
+              {renderPeriodo('Primer periodo (P1)', fila.periodos.p1)}
+              {renderPeriodo('Segundo periodo (P2)', fila.periodos.p2)}
             </div>
-          </div>
-        </ModalBody>
+          </ModalBody>
 
-        <ModalFooter>
-          <Button type="button" variant="cancelar" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" variant="guardar" isLoading={saving}>Guardar</Button>
-        </ModalFooter>
-      </form>
-    </Modal>
+          <ModalFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="default" isLoading={saving}>
+              Guardar cambios
+            </Button>
+          </ModalFooter>
+        </form>
+      </Modal>
+
+      {reabriendoPeriodo && (
+        <ReabrirAsignacionModal
+          fila={fila}
+          periodoNombre={reabriendoPeriodo.nombre}
+          periodo={reabriendoPeriodo.periodo}
+          auditorSeleccionado={auditorSeleccionado}
+          anio={anio}
+          mes={mes}
+          onClose={() => setReabriendoPeriodo(null)}
+          onConfirm={handleConfirmReabrir}
+        />
+      )}
+    </>
   );
 }

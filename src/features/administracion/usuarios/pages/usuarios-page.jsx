@@ -11,6 +11,7 @@ import { Select } from '@/components/form/select';
 import { usuariosApi } from '@/features/administracion/usuarios/api/usuarios-api';
 import { areasApi } from '@/features/administracion/areas/api/areas-api';
 import { AreaMultiSelect } from '@/features/administracion/usuarios/components/area-multi-select';
+import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
 
@@ -18,29 +19,20 @@ import { cn } from '@/utils/cn';
 // Helpers visuales
 // ---------------------------------------------------------------------------
 
-function RolBadge({ rol }) {
+function EstadoUsuarioIndicator({ activo, rol }) {
   const isSuper = rol === 'SUPER_ADMIN';
   const isAdmin = rol === 'ADMINISTRADOR';
-  return (
-    <span className={cn(
-      'inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-wide',
-      isSuper ? 'bg-red-50 text-red-700 border border-red-150' :
-      isAdmin ? 'bg-amber-50 text-amber-700' : 'bg-indigo-50 text-indigo-700',
-    )}>
-      {isSuper ? 'Super Admin' : isAdmin ? 'Administrador' : 'Auditor'}
-    </span>
-  );
-}
+  const rolLabel = isSuper ? 'Super Admin' : isAdmin ? 'Administrador' : 'Auditor';
 
-function EstadoBadge({ activo }) {
   return (
-    <span className={cn(
-      'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold',
-      activo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500',
-    )}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', activo ? 'bg-emerald-500' : 'bg-slate-400')} />
-      {activo ? 'Activo' : 'Inactivo'}
-    </span>
+    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+      <span>{rolLabel}</span>
+      <span>·</span>
+      <span className={cn('inline-flex items-center gap-1 font-bold', activo ? 'text-emerald-700' : 'text-slate-500')}>
+        <span className={cn('h-1.5 w-1.5 rounded-full', activo ? 'bg-emerald-500' : 'bg-slate-400')} />
+        {activo ? 'Activo' : 'Inactivo'}
+      </span>
+    </div>
   );
 }
 
@@ -72,54 +64,68 @@ function UsuarioCard({ usuario, onVerDetalle, onEditar, onToggleEstado }) {
   const isSuper = usuario.rol === 'SUPER_ADMIN';
 
   return (
-    <div
-      className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm hover:bg-slate-50 transition"
-    >
-      <div className="flex items-start justify-between gap-2 cursor-pointer" onClick={() => onVerDetalle(usuario)}>
-        <div className="min-w-0">
-          <p className="text-sm font-black text-slate-900 leading-snug truncate">{usuario.nombre}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
+      <div className="flex items-start justify-between gap-2" onClick={() => onVerDetalle(usuario)}>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{usuario.nombre}</h2>
           <p className="text-xs font-medium text-slate-400">@{usuario.nombreUsuario}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <EstadoBadge activo={usuario.activo} />
-          <RolBadge rol={usuario.rol} />
+          <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} />
         </div>
       </div>
-      <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2 text-xs" onClick={() => onVerDetalle(usuario)}>
-        <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Áreas bajo su responsabilidad</span>
-        {responsables.length === 0 ? (
-          <span className="font-semibold text-slate-400 block">—</span>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {responsables.map((ua) => (
-              <span
-                key={ua.area.id}
-                className="inline-block bg-slate-100 border border-slate-200 text-slate-800 text-[9px] font-bold px-1.5 py-0.2 rounded"
-              >
-                {ua.area.nombre}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      {!isSuper && (
-        <div className="mt-2 flex justify-end gap-2 border-t border-slate-100 pt-2">
-          <button
-            onClick={() => onEditar(usuario)}
-            className="p-1 text-amber-500 hover:bg-slate-100 rounded-lg"
-            title="Editar usuario"
-          >
-            <Icon name="edit" size="18px" />
-          </button>
-          <button
-            onClick={() => onToggleEstado(usuario)}
-            className={cn("p-1 rounded-lg hover:bg-slate-100", usuario.activo ? "text-red-500" : "text-emerald-500")}
-            title={usuario.activo ? "Desactivar" : "Reactivar"}
-          >
-            <Icon name={usuario.activo ? "person_remove" : "person_add"} size="18px" />
-          </button>
+
+      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+        <div className="min-w-0 flex-1" onClick={() => onVerDetalle(usuario)}>
+          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Áreas bajo su responsabilidad</span>
+          {responsables.length === 0 ? (
+            <span className="text-xs font-semibold text-slate-400 block mt-0.5">—</span>
+          ) : (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {responsables.map((ua) => (
+                <span key={ua.area.id} className="inline-block bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {ua.area.nombre}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="flex items-center gap-1 shrink-0 pt-3">
+          <Button
+            type="button"
+            onClick={() => onVerDetalle(usuario)}
+            variant="ghost"
+            size="icon"
+            icon="visibility"
+            className="h-8 w-8 text-slate-500 hover:bg-slate-100 rounded-lg"
+            title="Ver detalle"
+            aria-label="Ver detalle"
+          />
+          {!isSuper && (
+            <>
+              <Button
+                type="button"
+                onClick={() => onEditar(usuario)}
+                variant="ghost"
+                size="icon"
+                icon="edit"
+                className="h-8 w-8 text-amber-500 hover:bg-slate-100 rounded-lg"
+                title="Editar usuario"
+                aria-label="Editar usuario"
+              />
+              <Button
+                type="button"
+                onClick={() => onToggleEstado(usuario)}
+                variant="ghost"
+                size="icon"
+                icon={usuario.activo ? "person_remove" : "person_add"}
+                className={cn("h-8 w-8 hover:bg-slate-100 rounded-lg", usuario.activo ? "text-red-500" : "text-emerald-500")}
+                title={usuario.activo ? "Desactivar" : "Reactivar"}
+                aria-label={usuario.activo ? "Desactivar" : "Reactivar"}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -137,36 +143,18 @@ function UsuarioDetalleModal({ usuario, onClose }) {
       <ModalHeader title="Detalle de Usuario" onClose={onClose}>
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">
-            Detalle de usuario
+            @{usuario.nombreUsuario}
           </p>
           <h2 className="mt-0.5 text-xl font-black text-slate-950 leading-tight">{usuario.nombre}</h2>
-          <p className="mt-1 font-mono text-xs text-slate-400">@{usuario.nombreUsuario}</p>
         </div>
       </ModalHeader>
       <ModalBody>
-        <div className="space-y-4 font-sans">
-          <div className="flex items-center gap-3">
-            <EstadoBadge activo={usuario.activo} />
-            <RolBadge rol={usuario.rol} />
-          </div>
+        <div className="space-y-4">
+          <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} />
 
-          <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-100 py-3 text-sm">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Correo</p>
-              <p className="font-semibold text-slate-700 truncate">{usuario.correo ?? '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contraseña Temporal</p>
-              <p className="font-semibold text-slate-700">
-                {usuario.debeCambiarContrasena ? 'Cambio requerido' : 'Normal'}
-              </p>
-            </div>
-          </div>
-
-          {/* Áreas vinculadas */}
           <div>
             <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 mb-2">
-              Áreas bajo su responsabilidad ({areas.length})
+              Áreas bajo su responsabilidad
             </p>
             {areas.length === 0 ? (
               <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-3 text-center">
@@ -199,9 +187,9 @@ function UsuarioDetalleModal({ usuario, onClose }) {
 // ---------------------------------------------------------------------------
 
 const ROLES_OPTIONS = [
-  { value: '', label: 'Todos los roles' },
-  { value: 'SUPER_ADMIN', label: 'Super Admin' },
-  { value: 'ADMINISTRADOR', label: 'Administrador' },
+  { value: '', label: 'Todos' },
+  { value: 'SUPER_ADMIN', label: 'Super' },
+  { value: 'ADMINISTRADOR', label: 'Admin' },
   { value: 'AUDITOR', label: 'Auditor' },
 ];
 
@@ -212,29 +200,33 @@ const ESTADOS = [
 ];
 
 const RESPONSABILIDAD_OPTS = [
-  { value: '', label: 'Cualquier responsabilidad' },
-  { value: 'con', label: 'Con áreas a cargo' },
-  { value: 'sin', label: 'Sin áreas a cargo' },
+  { value: '', label: 'Todos' },
+  { value: 'con', label: 'Con áreas' },
+  { value: 'sin', label: 'Sin áreas' },
 ];
 
-function FilterChips({ value, options, onChange }) {
+function FilterGridGroup({ title, value, options, onChange, gridCols = 'grid-cols-3' }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className={cn(
-            'rounded-full px-3 py-1 text-xs font-bold transition-colors',
-            value === opt.value
-              ? 'bg-navigation-active text-white shadow-sm'
-              : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50',
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
+    <div className="space-y-1.5">
+      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">{title}</span>
+      <div className={cn('grid gap-1 rounded-lg border border-slate-200 bg-slate-100/80 p-0.5', gridCols)}>
+        {options.map((opt) => {
+          const isActive = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                'rounded-md py-1 px-1 text-center text-xs font-black transition truncate',
+                isActive ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800',
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -271,21 +263,15 @@ function buildColumns(onVerDetalle, onEditar, onToggleEstado) {
       ),
     },
     {
-      header: 'Rol',
+      header: 'Rol y Estado',
       accessorKey: 'rol',
-      headerClassName: 'w-[140px]',
-      cell: (row) => <RolBadge rol={row.rol} />,
+      headerClassName: 'w-[180px]',
+      cell: (row) => <EstadoUsuarioIndicator activo={row.activo} rol={row.rol} />,
     },
     {
       header: 'Áreas bajo su responsabilidad',
       accessorKey: 'responsable',
       cell: (row) => <ResponsableAreasCell areasUsuario={row.areasUsuario} />,
-    },
-    {
-      header: 'Estado',
-      accessorKey: 'activo',
-      headerClassName: 'w-[110px]',
-      cell: (row) => <EstadoBadge activo={row.activo} />,
     },
     {
       header: '',
@@ -332,6 +318,20 @@ export function UsuariosPage() {
 
   const [usuarioDetalle, setUsuarioDetalle] = useState(null);
   const [editingUsuario, setEditingUsuario] = useState(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const activeFiltersCount = [
+    params.rol !== '',
+    params.estado !== 'activo',
+    params.responsabilidad !== '',
+  ].filter(Boolean).length;
+
+  const limpiarFiltros = () => {
+    setParam('rol', '');
+    setParam('estado', 'activo');
+    setParam('responsabilidad', '');
+    setSearch('q', '');
+  };
   const [isCreating, setIsCreating] = useState(false);
   const [allAreas, setAllAreas] = useState([]);
 
@@ -557,36 +557,53 @@ export function UsuariosPage() {
   const labelEstado = params.activo === 'true' ? ' activos' : params.activo === 'false' ? ' inactivos' : '';
 
   return (
-    <section className="space-y-5">
-      {/* Cabecera y Contadores */}
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <div className="rounded-lg bg-slate-100 border border-slate-200 px-3 py-1.5 text-center shadow-inner">
-          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Total</span>
-          <span className="text-lg font-black text-slate-700">{stats.total}</span>
-        </div>
-        <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-center shadow-inner">
-          <span className="block text-[10px] font-black uppercase tracking-wider text-indigo-400">Auditores</span>
-          <span className="text-lg font-black text-indigo-700">{stats.auditores}</span>
-        </div>
-        <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-1.5 text-center shadow-inner">
-          <span className="block text-[10px] font-black uppercase tracking-wider text-amber-400">Admins</span>
-          <span className="text-lg font-black text-amber-700">{stats.admins}</span>
-        </div>
-        <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-1.5 text-center shadow-inner">
-          <span className="block text-[10px] font-black uppercase tracking-wider text-red-400">Super</span>
-          <span className="text-lg font-black text-red-700">{stats.supers}</span>
+    <section className="space-y-4 pb-16">
+      {/* Encabezado */}
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento leading-none">
+          ADMINISTRACIÓN
+        </p>
+        <h1 className="fuente-titulos text-2xl sm:text-3xl font-normal uppercase leading-tight text-marca-primario mt-0.5">
+          Usuarios
+        </h1>
+      </div>
+
+      {/* Navegación compartida (Mobile local) */}
+      <div className="md:hidden">
+        <AdministracionNav />
+      </div>
+
+      {/* Resumen en 1 sola barra de 4 columnas */}
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
+        <div className="grid grid-cols-4 divide-x divide-slate-100 text-center">
+          <div className="px-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Total</span>
+            <span className="text-base sm:text-xl font-black text-slate-900">{stats.total}</span>
+          </div>
+          <div className="px-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-indigo-500">Audit.</span>
+            <span className="text-base sm:text-xl font-black text-indigo-700">{stats.auditores}</span>
+          </div>
+          <div className="px-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-amber-500">Admins</span>
+            <span className="text-base sm:text-xl font-black text-amber-700">{stats.admins}</span>
+          </div>
+          <div className="px-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-rose-500">Super</span>
+            <span className="text-base sm:text-xl font-black text-rose-700">{stats.supers}</span>
+          </div>
         </div>
       </div>
 
-      {/* Acciones e Indicadores */}
+      {/* Acción Nuevo usuario */}
       <div className="flex justify-end">
-        <Button variant="outline" icon="add" onClick={startCreate}>
+        <Button variant="outline" icon="add" onClick={startCreate} className="h-9 text-xs font-black">
           Nuevo usuario
         </Button>
       </div>
 
-      {/* Filtros */}
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm space-y-3">
+      {/* Filtros Mobile (Búsqueda + Botón Filtros Modal) */}
+      <div className="md:hidden space-y-2">
         <div className="relative">
           <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
             <Icon name="search" size="18px" />
@@ -596,24 +613,74 @@ export function UsuariosPage() {
             placeholder="Buscar por nombre, username o área a cargo…"
             value={params.q}
             onChange={(e) => handleFiltro('q', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30"
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30 h-9"
           />
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 shrink-0">Rol</span>
-            <FilterChips value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 shrink-0">Estado</span>
-            <FilterChips value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 shrink-0">Responsabilidad</span>
-            <FilterChips value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} />
-          </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            icon="tune"
+            iconSize="16px"
+            onClick={() => setShowMobileFilters(true)}
+            className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
+          >
+            Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+          </Button>
+
+          {(activeFiltersCount > 0 || params.q) && (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+            >
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Filtros Desktop */}
+      <div className="hidden md:block rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
+        <div className="relative">
+          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+            <Icon name="search" size="18px" />
+          </span>
+          <input
+            type="text"
+            placeholder="Buscar por nombre, username o área a cargo…"
+            value={params.q}
+            onChange={(e) => handleFiltro('q', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30 h-9"
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-4" />
+          <FilterGridGroup title="ESTADO" value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} gridCols="grid-cols-3" />
+          <FilterGridGroup title="RESPONSABILIDAD" value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} gridCols="grid-cols-3" />
+        </div>
+      </div>
+
+      {/* Modal de Filtros Mobile */}
+      <Modal isOpen={showMobileFilters} onClose={() => setShowMobileFilters(false)} className="max-w-md">
+        <ModalHeader title="Filtros de Usuarios" onClose={() => setShowMobileFilters(false)} />
+        <ModalBody>
+          <div className="space-y-4">
+            <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-4" />
+            <FilterGridGroup title="ESTADO" value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} gridCols="grid-cols-3" />
+            <FilterGridGroup title="RESPONSABILIDAD" value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} gridCols="grid-cols-3" />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="cancelar" size="sm" onClick={limpiarFiltros}>
+            Limpiar
+          </Button>
+          <Button variant="guardar" size="sm" onClick={() => setShowMobileFilters(false)}>
+            Aplicar
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Loading */}
       {state.status === 'loading' && <Spinner />}

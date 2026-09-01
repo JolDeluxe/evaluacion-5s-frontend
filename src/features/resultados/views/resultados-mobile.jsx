@@ -25,7 +25,7 @@ export function ResultadosMobile({ vista, data, mes }) {
   const titulos = titulosMap[tipoRango] || titulosMap.mes;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-16">
       {vista === 'general' ? (
         <>
           {/* 1. RESULTADO GENERAL */}

@@ -11,6 +11,7 @@ import { Input } from '@/components/form/input';
 import { Select } from '@/components/form/select';
 import { areasApi } from '@/features/administracion/areas/api/areas-api';
 import { usuariosApi } from '@/features/administracion/usuarios/api/usuarios-api';
+import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
 
@@ -18,21 +19,17 @@ import { cn } from '@/utils/cn';
 // Helpers visuales
 // ---------------------------------------------------------------------------
 
-function TipoBadge({ tipo }) {
-  const isOp = tipo === 'OPERATIVA';
+function EstadoAreaIndicator({ activo, tipo }) {
+  const tipoLabel = tipo === 'OPERATIVA' ? 'Operativa' : 'Administrativa';
   return (
-    <Badge variant={isOp ? 'info' : 'warning'} className="rounded-md py-0.5 text-[11px] uppercase tracking-wide shadow-none">
-      {isOp ? 'Operativa' : 'Administrativa'}
-    </Badge>
-  );
-}
-
-function EstadoBadge({ activo }) {
-  return (
-    <Badge variant={activo ? 'success' : 'neutral'} className="gap-1 rounded-md py-0.5 text-[11px] shadow-none">
-      <span className={cn('h-1.5 w-1.5 rounded-full', activo ? 'bg-emerald-500' : 'bg-slate-400')} />
-      {activo ? 'Activa' : 'Inactiva'}
-    </Badge>
+    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+      <span>{tipoLabel}</span>
+      <span>·</span>
+      <span className={cn('inline-flex items-center gap-1 font-bold', activo ? 'text-emerald-700' : 'text-slate-500')}>
+        <span className={cn('h-1.5 w-1.5 rounded-full', activo ? 'bg-emerald-500' : 'bg-slate-400')} />
+        {activo ? 'Activa' : 'Inactiva'}
+      </span>
+    </div>
   );
 }
 
@@ -41,22 +38,19 @@ function ResponsablesList({ usuariosArea }) {
 
   if (responsables.length === 0) {
     return (
-      <Badge variant="danger" className="rounded-md py-0.5 text-[11px] shadow-none">
-        Sin responsables
-      </Badge>
+      <span className="text-xs font-bold text-rose-600">Sin responsables</span>
     );
   }
 
   return (
     <div className="flex flex-wrap gap-1 max-w-[280px]">
       {responsables.map((ua) => (
-        <Badge
+        <span
           key={ua.usuario.id}
-          variant="neutral"
-          className="text-[11px] shadow-none"
+          className="inline-block bg-slate-100 border border-slate-200 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-full"
         >
           {ua.usuario.nombre}
-        </Badge>
+        </span>
       ))}
     </div>
   );
@@ -69,56 +63,61 @@ function ResponsablesList({ usuariosArea }) {
 function AreaCard({ area, onVerDetalle, onEditar, onToggleEstado }) {
   const responsables = area.usuariosArea ?? [];
   return (
-    <div
-      className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm hover:bg-slate-50 transition"
-    >
+    <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
       <div className="flex items-start justify-between gap-2" onClick={() => onVerDetalle(area)}>
-        <div className="min-w-0">
-          <p className="text-sm font-black text-slate-900 leading-snug line-clamp-2">{area.nombre}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <EstadoBadge activo={area.activo} />
-          <TipoBadge tipo={area.tipo} />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{area.nombre}</h2>
+          <EstadoAreaIndicator activo={area.activo} tipo={area.tipo} />
         </div>
       </div>
-      <div className="mt-2 flex flex-col gap-1 border-t border-slate-100 pt-2">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Responsables</span>
-        <div className="flex items-center justify-between">
-          <div className="min-w-0" onClick={() => onVerDetalle(area)}>
-            {responsables.length === 0 ? (
-              <span className="text-xs font-bold text-red-500">Sin responsables</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {responsables.map((ua) => (
-                  <span key={ua.usuario.id} className="inline-block bg-slate-100 border border-slate-200 text-slate-800 text-[9px] font-bold px-1.5 py-0.2 rounded">
-                    {ua.usuario.nombre}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Button
-              type="button"
-              onClick={() => onEditar(area)}
-              variant="ghost"
-              size="icon"
-              icon="edit"
-              className="h-8 w-8 text-amber-500 hover:translate-y-0 hover:shadow-none"
-              title="Editar área"
-              aria-label="Editar área"
-            />
-            <Button
-              type="button"
-              onClick={() => onToggleEstado(area)}
-              variant="ghost"
-              size="icon"
-              icon={area.activo ? "block" : "check_circle"}
-              className={cn("h-8 w-8 hover:translate-y-0 hover:shadow-none", area.activo ? "text-red-500" : "text-emerald-500")}
-              title={area.activo ? "Desactivar área" : "Reactivar área"}
-              aria-label={area.activo ? "Desactivar área" : "Reactivar área"}
-            />
-          </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+        <div className="min-w-0 flex-1" onClick={() => onVerDetalle(area)}>
+          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Responsables</span>
+          {responsables.length === 0 ? (
+            <span className="text-xs font-bold text-rose-600 block mt-0.5">Sin responsables</span>
+          ) : (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {responsables.map((ua) => (
+                <span key={ua.usuario.id} className="inline-block bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {ua.usuario.nombre}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 pt-3">
+          <Button
+            type="button"
+            onClick={() => onVerDetalle(area)}
+            variant="ghost"
+            size="icon"
+            icon="visibility"
+            className="h-8 w-8 text-slate-500 hover:bg-slate-100 rounded-lg"
+            title="Ver detalle"
+            aria-label="Ver detalle"
+          />
+          <Button
+            type="button"
+            onClick={() => onEditar(area)}
+            variant="ghost"
+            size="icon"
+            icon="edit"
+            className="h-8 w-8 text-amber-500 hover:bg-slate-100 rounded-lg"
+            title="Editar área"
+            aria-label="Editar área"
+          />
+          <Button
+            type="button"
+            onClick={() => onToggleEstado(area)}
+            variant="ghost"
+            size="icon"
+            icon={area.activo ? "block" : "check_circle"}
+            className={cn("h-8 w-8 hover:bg-slate-100 rounded-lg", area.activo ? "text-red-500" : "text-emerald-500")}
+            title={area.activo ? "Desactivar área" : "Reactivar área"}
+            aria-label={area.activo ? "Desactivar área" : "Reactivar área"}
+          />
         </div>
       </div>
     </div>
@@ -145,10 +144,7 @@ function AreaDetalleModal({ area, onClose }) {
       </ModalHeader>
       <ModalBody>
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <EstadoBadge activo={area.activo} />
-            <TipoBadge tipo={area.tipo} />
-          </div>
+          <EstadoAreaIndicator activo={area.activo} tipo={area.tipo} />
 
           <div>
             <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 mb-2">
@@ -186,7 +182,7 @@ function AreaDetalleModal({ area, onClose }) {
 // ---------------------------------------------------------------------------
 
 const TIPOS = [
-  { value: '', label: 'Todos los tipos' },
+  { value: '', label: 'Todos' },
   { value: 'ADMINISTRATIVA', label: 'Administrativa' },
   { value: 'OPERATIVA', label: 'Operativa' },
 ];
@@ -198,27 +194,33 @@ const ESTADOS = [
 ];
 
 const RESPONSABLE_OPTS = [
-  { value: '', label: 'Con o sin responsable' },
+  { value: '', label: 'Todos' },
   { value: 'false', label: 'Con responsable' },
   { value: 'true', label: 'Sin responsable' },
 ];
 
-function FilterChips({ value, options, onChange }) {
+function FilterGridGroup({ title, value, options, onChange }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map((opt) => (
-        <Button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          variant="filtro_todos"
-          size="sm"
-          isActive={value === opt.value}
-          className="h-7 rounded-full px-3"
-        >
-          {opt.label}
-        </Button>
-      ))}
+    <div className="space-y-1.5">
+      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">{title}</span>
+      <div className="grid grid-cols-3 gap-1 rounded-lg border border-slate-200 bg-slate-100/80 p-0.5">
+        {options.map((opt) => {
+          const isActive = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                'rounded-md py-1 px-1 text-center text-xs font-black transition truncate',
+                isActive ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800',
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -240,19 +242,13 @@ function buildColumns(onVerDetalle, onEditar, onToggleEstado) {
       header: 'Tipo',
       accessorKey: 'tipo',
       headerClassName: 'w-[140px]',
-      cell: (row) => <TipoBadge tipo={row.tipo} />,
+      cell: (row) => <EstadoAreaIndicator activo={row.activo} tipo={row.tipo} />,
     },
     {
       header: 'Responsables',
       accessorKey: 'responsables',
       headerClassName: 'w-[300px]',
       cell: (row) => <ResponsablesList usuariosArea={row.usuariosArea} />,
-    },
-    {
-      header: 'Estado',
-      accessorKey: 'activo',
-      headerClassName: 'w-[100px]',
-      cell: (row) => <EstadoBadge activo={row.activo} />,
     },
     {
       header: '',
@@ -330,8 +326,22 @@ export function AreasPage() {
     auditorMensualId: '',
   });
 
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState(null);
+
+  const activeFiltersCount = [
+    params.tipo !== '',
+    params.activo !== 'true',
+    params.sinResponsable !== '',
+  ].filter(Boolean).length;
+
+  const limpiarFiltros = () => {
+    setParam('tipo', '');
+    setParam('activo', 'true');
+    setParam('sinResponsable', '');
+    setSearch('q', '');
+  };
 
   const [isMobile, setIsMobile] = useState(false);
   const debounceRef = useRef(null);
@@ -581,23 +591,40 @@ export function AreasPage() {
   const auditoresElegiblesFormulario = auditores.filter((usuario) => !responsablesSet.has(String(usuario.id)));
 
   return (
-    <section className="space-y-5">
-      {/* Cabecera */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {state.status === 'ready' && (
-          <p className="text-sm font-bold text-slate-500">
-            {state.total} {state.total === 1 ? 'área' : 'áreas'}{labelEstado}
-          </p>
-        )}
-        <div className="ml-auto">
-          <Button variant="outline" icon="add" onClick={startCreate}>
+    <section className="space-y-4 pb-16">
+      {/* Encabezado */}
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento leading-none">
+          ADMINISTRACIÓN
+        </p>
+        <h1 className="fuente-titulos text-2xl sm:text-3xl font-normal uppercase leading-tight text-marca-primario mt-0.5">
+          Áreas
+        </h1>
+      </div>
+
+      {/* Navegación compartida (Mobile local) */}
+      <div className="md:hidden">
+        <AdministracionNav />
+      </div>
+
+      {/* Resumen compacto y Acción */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div>
+          {state.status === 'ready' && (
+            <p className="text-xs sm:text-sm font-black text-slate-800">
+              {state.total} {state.total === 1 ? 'área' : 'áreas'}{labelEstado}
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end">
+          <Button variant="outline" icon="add" onClick={startCreate} className="h-9 text-xs font-black">
             Nueva área
           </Button>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm space-y-3">
+      {/* Filtros Mobile (Búsqueda + Botón Filtros Modal) */}
+      <div className="md:hidden space-y-2">
         <div className="relative">
           <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
             <Icon name="search" size="18px" />
@@ -607,24 +634,74 @@ export function AreasPage() {
             placeholder="Buscar por nombre o responsable..."
             value={params.q}
             onChange={(e) => handleFiltro('q', e.target.value)}
-            className="bg-slate-50 pl-9"
+            className="bg-white pl-9 h-9 text-xs"
           />
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 shrink-0">Tipo</span>
-            <FilterChips value={params.tipo} options={TIPOS} onChange={(v) => handleFiltro('tipo', v)} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 shrink-0">Estado</span>
-            <FilterChips value={params.activo} options={ESTADOS} onChange={(v) => handleFiltro('activo', v)} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 shrink-0">Responsable</span>
-            <FilterChips value={params.sinResponsable} options={RESPONSABLE_OPTS} onChange={(v) => handleFiltro('sinResponsable', v)} />
-          </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            icon="tune"
+            iconSize="16px"
+            onClick={() => setShowMobileFilters(true)}
+            className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
+          >
+            Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+          </Button>
+
+          {(activeFiltersCount > 0 || params.q) && (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+            >
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Filtros Desktop */}
+      <div className="hidden md:block rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
+        <div className="relative">
+          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+            <Icon name="search" size="18px" />
+          </span>
+          <Input
+            type="text"
+            placeholder="Buscar por nombre o responsable..."
+            value={params.q}
+            onChange={(e) => handleFiltro('q', e.target.value)}
+            className="bg-slate-50 pl-9 h-9 text-xs"
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <FilterGridGroup title="TIPO" value={params.tipo} options={TIPOS} onChange={(v) => handleFiltro('tipo', v)} />
+          <FilterGridGroup title="ESTADO" value={params.activo} options={ESTADOS} onChange={(v) => handleFiltro('activo', v)} />
+          <FilterGridGroup title="RESPONSABLE" value={params.sinResponsable} options={RESPONSABLE_OPTS} onChange={(v) => handleFiltro('sinResponsable', v)} />
+        </div>
+      </div>
+
+      {/* Modal de Filtros Mobile */}
+      <Modal isOpen={showMobileFilters} onClose={() => setShowMobileFilters(false)} className="max-w-md">
+        <ModalHeader title="Filtros de Áreas" onClose={() => setShowMobileFilters(false)} />
+        <ModalBody>
+          <div className="space-y-4">
+            <FilterGridGroup title="TIPO" value={params.tipo} options={TIPOS} onChange={(v) => handleFiltro('tipo', v)} />
+            <FilterGridGroup title="ESTADO" value={params.activo} options={ESTADOS} onChange={(v) => handleFiltro('activo', v)} />
+            <FilterGridGroup title="RESPONSABLE" value={params.sinResponsable} options={RESPONSABLE_OPTS} onChange={(v) => handleFiltro('sinResponsable', v)} />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="cancelar" size="sm" onClick={limpiarFiltros}>
+            Limpiar
+          </Button>
+          <Button variant="guardar" size="sm" onClick={() => setShowMobileFilters(false)}>
+            Aplicar
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Loading */}
       {state.status === 'loading' && <Spinner />}
@@ -656,7 +733,7 @@ export function AreasPage() {
               </div>
 
               {/* Mobile */}
-              <div className="md:hidden space-y-3">
+              <div className="md:hidden space-y-2.5">
                 {state.areas.map((area) => (
                   <AreaCard
                     key={area.id}

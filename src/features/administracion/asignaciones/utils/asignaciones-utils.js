@@ -27,7 +27,24 @@ export const URL_DEFAULTS_ASIGNACIONES = {
 
 export function periodoTexto(periodo, fallback) {
   if (!periodo?.programada) return 'No programada';
-  return periodo.auditorEfectivo?.nombre ?? fallback ?? 'Sin auditor';
+
+  const ahora = new Date();
+  if (periodo.reabiertaHasta && new Date(periodo.reabiertaHasta) > ahora) {
+    const fecha = new Date(periodo.reabiertaHasta).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+    return `Reabierta (${fecha})`;
+  }
+
+  if (periodo.realizada) return 'Realizada';
+  if (periodo.vencida || periodo.estadoAuditoria === 'NO_REALIZADA') return 'Vencida';
+  if (periodo.estadoAuditoria === 'ATRASADA_EN_GRACIA') return 'Atrasada';
+  if (periodo.estadoAsignacion === 'CANCELADA') return 'Cancelada';
+  return periodo.auditorEfectivo?.nombre ? 'Pendiente' : (fallback ? 'Pendiente' : 'Sin auditor');
+}
+
+export function periodoDetalleTexto(periodo, auditorMensual) {
+  if (!periodo?.programada || !periodo.auditorEfectivo) return '';
+  if (!auditorMensual || periodo.auditorEfectivo.id === auditorMensual.id) return '';
+  return `Auditor: ${periodo.auditorEfectivo.nombre}`;
 }
 
 export function getPeriodoAnterior(anio, mes) {
@@ -53,18 +70,6 @@ export function buildGuardarAsignacionMensualPayload({ anio, mes, form }) {
     anio,
     mes,
     auditorMensualId: Number(form.auditorMensualId),
-    periodos: {
-      p1: {
-        usaAuditorMensual: form.p1UsaMensual,
-        auditorId: form.p1UsaMensual ? null : Number(form.p1AuditorId),
-        motivo: form.p1Motivo || null,
-      },
-      p2: {
-        usaAuditorMensual: form.p2UsaMensual,
-        auditorId: form.p2UsaMensual ? null : Number(form.p2AuditorId),
-        motivo: form.p2Motivo || null,
-      },
-    },
   };
 }
 

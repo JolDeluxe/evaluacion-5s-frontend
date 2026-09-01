@@ -275,7 +275,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
 
     criterios.forEach((criterio) => {
       const respuesta = respuestas[criterio.id] ?? crearRespuestaInicial(criterio);
-      const aplicadas = evaluarReglas(reglas, respuesta);
+      const aplicadas = evaluarReglas(reglas, respuesta, criterio);
       let errorCrit = null;
 
       if (!respuesta.opcionFormularioIds?.length) {
@@ -509,7 +509,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
             <div className="space-y-4">
               {seccion.criterios.map((criterio) => {
                 const respuesta = respuestas[criterio.id] ?? crearRespuestaInicial(criterio);
-                const reglasAplicadas = evaluarReglas(reglas, respuesta);
+                const reglasAplicadas = evaluarReglas(reglas, respuesta, criterio);
                 return (
                   <CompactCriterio5S
                     key={criterio.id}

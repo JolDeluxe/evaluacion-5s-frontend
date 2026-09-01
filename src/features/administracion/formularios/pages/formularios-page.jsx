@@ -13,6 +13,8 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/utils/cn';
 import { useUrlState } from '@/hooks/use-url-state';
 
+import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
+
 const ALCANCE_OPTS = [
   { value: '', label: 'Todos los alcances' },
   { value: 'ADMINISTRATIVO', label: 'Administrativo' },
@@ -104,7 +106,22 @@ export function FormulariosPage() {
   };
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-4 pb-16">
+      {/* Encabezado */}
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento leading-none">
+          ADMINISTRACIÓN
+        </p>
+        <h1 className="fuente-titulos text-2xl sm:text-3xl font-normal uppercase leading-tight text-marca-primario mt-0.5">
+          Formularios
+        </h1>
+      </div>
+
+      {/* Navegación compartida (Mobile local) */}
+      <div className="md:hidden">
+        <AdministracionNav />
+      </div>
+
       {/* Botón Acción */}
       <div className="flex justify-end">
         <Button variant="outline" icon="add" onClick={() => { setActionError(null); setCreating(true); }}>

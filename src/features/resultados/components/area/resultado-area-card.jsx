@@ -61,39 +61,40 @@ export function ResultadoAreaCard({ item, mes, rango }) {
     <Card
       variant="glass"
       className={cn(
-        'shadow-[0_10px_28px_rgba(15,23,42,0.06)] border-app-border bg-white',
-        item.area.esPropia && 'border-amber-200/70 bg-amber-50/30',
+        'shadow-[0_4px_16px_rgba(15,23,42,0.04)] border-app-border bg-white overflow-hidden',
+        item.area.esPropia && 'border-amber-200/80 bg-amber-50/20',
       )}
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-3 bg-white/45 p-4 border-b border-app-border">
-        <div className="min-w-0">
-          <h2 className="truncate text-base font-black uppercase text-slate-900">
+      <div className="flex items-start justify-between gap-2.5 p-3.5 sm:p-4 bg-slate-50/50 border-b border-app-border">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 leading-none">
+            {item.area.tipo || 'Área'}
+          </p>
+          <h2 className="mt-1 break-words text-sm sm:text-base font-black uppercase text-slate-900 leading-tight">
             {item.posicion !== null && item.posicion !== undefined ? `${String(item.posicion).padStart(2, '0')} · ` : ''}
             {item.area.nombre}
           </h2>
         </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-          {item.area.tipo || 'Área'}
-        </p>
-      </CardHeader>
+      </div>
 
-      <CardBody className="p-4 space-y-3">
+      <CardBody className="p-3 sm:p-4 space-y-2.5">
         {tipoRango === 'mes' && (item.periodos || []).map((periodo) => (
           <div
             key={periodo.periodo}
-            className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5"
+            className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-3 py-2 text-xs border border-slate-100"
           >
-            <div>
-              <p className="text-xs font-black uppercase text-slate-900">
+            <div className="min-w-0 flex-1">
+              <span className="font-black uppercase text-slate-800">
                 {formatPeriodLabel(periodo.periodo)}
-              </p>
+              </span>
               {periodo.completado && (
-                <p className="mt-0.5 text-[10px] font-semibold text-slate-400">
+                <span className="ml-2 text-[10px] font-medium text-slate-400">
                   {periodo.hallazgos} hallazgos
-                </p>
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-2 shrink-0">
               <EstadoPeriodoTexto periodo={periodo} />
               <Button
                 as={Link}
@@ -107,15 +108,16 @@ export function ResultadoAreaCard({ item, mes, rango }) {
                 icon="open_in_new"
                 disabled={!periodo.completado}
                 aria-label={`Ver ${formatPeriodLabel(periodo.periodo)}`}
+                className="h-7 w-7 p-0"
               />
             </div>
           </div>
         ))}
 
         {(tipoRango === 'trimestre' || tipoRango === 'semestre') && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {(item.mesesDetalle || []).map((m) => (
-              <div key={m.clave} className="rounded-lg bg-slate-50 p-2 text-center">
+              <div key={m.clave} className="rounded-lg bg-slate-50 p-2 text-center border border-slate-100">
                 <p className="text-[10px] font-black uppercase text-slate-400">{m.abrev}</p>
                 <p className="mt-0.5 text-xs font-black text-slate-900">
                   {m.resultadoMensual !== null && m.resultadoMensual !== undefined
@@ -130,7 +132,7 @@ export function ResultadoAreaCard({ item, mes, rango }) {
         {tipoRango === 'anio' && (
           <div className="grid grid-cols-4 gap-1.5">
             {(item.trimestresDetalle || []).map((t) => (
-              <div key={t.trimestre} className="rounded-lg bg-slate-50 p-2 text-center">
+              <div key={t.trimestre} className="rounded-lg bg-slate-50 p-2 text-center border border-slate-100">
                 <p className="text-[10px] font-black uppercase text-slate-400">T{t.trimestre}</p>
                 <p className="mt-0.5 text-xs font-black text-slate-900">
                   {t.resultado !== null && t.resultado !== undefined
@@ -142,10 +144,10 @@ export function ResultadoAreaCard({ item, mes, rango }) {
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2">
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+        <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-100">
+          <span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
             {tipoRango === 'mes' ? 'Resultado mensual' : 'Resultado'}
-          </p>
+          </span>
           <ResultadoMensualTag value={item.resultadoRango ?? item.resultadoMensual} />
         </div>
       </CardBody>

@@ -176,18 +176,24 @@ export const Button = forwardRef(({
       {...props}
     >
       {isLoading ? (
-        <Icon
-          name="progress_activity"
-          className="animate-spin shrink-0"
-          size={resolvedIconSize}
-          opsz={20}
-          wght={500}
-        />
+        <span className="flex items-center justify-center leading-none shrink-0">
+          <Icon
+            name="progress_activity"
+            className="animate-spin"
+            size={resolvedIconSize}
+            opsz={20}
+            wght={500}
+          />
+        </span>
       ) : (
-        icon && <Icon name={icon} size={resolvedIconSize} opsz={20} wght={500} className="shrink-0" />
+        icon && (
+          <span className="flex items-center justify-center leading-none shrink-0">
+            <Icon name={icon} size={resolvedIconSize} opsz={20} wght={500} />
+          </span>
+        )
       )}
       {size !== 'icon' && (children || isLoading) && (
-        <span className="truncate">{isLoading ? 'Cargando...' : children}</span>
+        <span className="flex items-center leading-none truncate">{isLoading ? 'Cargando...' : children}</span>
       )}
     </Component>
   );

@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { obtenerResumenEstructura } from '@/features/administracion/formularios/helpers/estructura-formulario-helpers';
 
+function formatearFecha(fecha) {
+  if (!fecha) return 'Sin fecha';
+  return new Date(fecha).toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export function FormularioCard({ formulario }) {
   const resumen = obtenerResumenEstructura(formulario.actual);
 
@@ -13,30 +22,26 @@ export function FormularioCard({ formulario }) {
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-marca-acento">{formulario.alcance}</p>
             <h2 className="mt-1 text-xl font-black leading-tight text-slate-950">{formulario.nombre}</h2>
-            {formulario.descripcion && <p className="mt-2 line-clamp-2 text-sm font-semibold text-slate-600">{formulario.descripcion}</p>}
+            {formulario.descripcion && <p className="mt-1.5 line-clamp-2 text-xs font-semibold text-slate-600">{formulario.descripcion}</p>}
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase ${formulario.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
             {formulario.activo ? 'ACTIVO' : 'INACTIVO'}
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 rounded-3xl bg-slate-50/80 p-3 text-center">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50/90 p-3 text-center border border-slate-100">
           <div>
-            <p className="text-xs font-black uppercase text-slate-500">Preguntas</p>
-            <p className="text-lg font-black text-slate-950">{resumen.totalPreguntas}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estructura</p>
+            <p className="text-sm font-black text-slate-900">{resumen.totalPreguntas} preguntas · {resumen.totalSecciones} secciones</p>
           </div>
           <div>
-            <p className="text-xs font-black uppercase text-slate-500">Secciones</p>
-            <p className="text-lg font-black text-slate-950">{resumen.totalSecciones}</p>
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase text-slate-500">Tipo</p>
-            <p className="text-lg font-black text-slate-950">{formulario.alcance}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actualizado</p>
+            <p className="text-sm font-black text-slate-900">{formatearFecha(formulario.actual?.actualizadoEn || formulario.actualizadoEn)}</p>
           </div>
         </div>
 
         <Button as={Link} to={`/admin/formularios/${formulario.id}`} className="w-full" icon="arrow_forward">
-          Abrir
+          Ver detalles
         </Button>
       </CardBody>
     </Card>
