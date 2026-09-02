@@ -31,8 +31,8 @@ export default defineConfig({
     tailwindcss(),
 
     VitePWA({
-      registerType: 'prompt',
-      injectRegister: false,
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
 
       manifest: {
         name: 'Encuestas de 5S',
@@ -58,6 +58,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         clientsClaim: true,
+        skipWaiting: true,
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallbackDenylist: [/^\/api\//],
