@@ -14,6 +14,7 @@ import { cn } from '@/utils/cn';
 import { useUrlState } from '@/hooks/use-url-state';
 
 import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
+import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
 
 const ALCANCE_OPTS = [
   { value: '', label: 'Todos los alcances' },
@@ -70,8 +71,9 @@ export function FormulariosPage() {
       if (filtrosActuales.estado === 'activo') query.activo = true;
       else if (filtrosActuales.estado === 'inactivo') query.activo = false;
 
-      const response = await formulariosApi.listar(query);
-      setState({ status: 'ready', formularios: response?.datos ?? [], error: null });
+      const { datos } = await obtenerCatalogoCompleto(formulariosApi.listar, query, 100);
+
+      setState({ status: 'ready', formularios: datos, error: null });
     } catch (error) {
       setState({ status: 'error', formularios: [], error: error?.message || 'No se pudieron cargar formularios.' });
     }

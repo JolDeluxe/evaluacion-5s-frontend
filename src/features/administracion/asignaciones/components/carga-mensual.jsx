@@ -1,78 +1,76 @@
-import { useState } from 'react';
 import { Card, CardBody } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CargaMensualModal } from '@/features/administracion/asignaciones/components/carga-mensual-modal';
+import { cn } from '@/utils/cn';
 
-export function CargaMensual({ auditores, anio, mes }) {
-  const [showModal, setShowModal] = useState(false);
-
+export function CargaMensual({ auditores }) {
   if (!auditores.length) return null;
 
-  const conCarga = auditores
-    .filter((a) => a.areasAsignadas > 0)
-    .sort((a, b) => b.areasAsignadas - a.areasAsignadas || a.nombre.localeCompare(b.nombre, 'es-MX'));
+  const ordenados = [...auditores].sort((a, b) => (
+    b.areasAsignadas - a.areasAsignadas || a.nombre.localeCompare(b.nombre, 'es-MX')
+  ));
 
-  const sinCarga = auditores.filter((a) => a.areasAsignadas === 0);
-
-  const totalConCarga = conCarga.length;
-  const totalSinCarga = sinCarga.length;
-
-  const top5 = conCarga.slice(0, 5);
-  const tieneMas = auditores.length > 5;
-
-  const textoConCarga = `${totalConCarga} ${totalConCarga === 1 ? 'con asignaciones' : 'con asignaciones'}`;
-  const textoSinCarga = `${totalSinCarga} sin asignaciones`;
+  const totalConCarga = auditores.filter((a) => a.areasAsignadas > 0).length;
+  const totalSinCarga = auditores.filter((a) => a.areasAsignadas === 0).length;
 
   return (
-    <>
-      <Card className="overflow-hidden border-app-border bg-white shadow-sm">
-        <CardBody className="p-4">
-          {/* Encabezado */}
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Carga del mes</p>
-            <p className="text-xs font-semibold text-slate-500">
-              <span className="font-bold text-slate-700">{textoConCarga}</span>
-              {totalSinCarga > 0 && <span className="ml-1 text-slate-400">· {textoSinCarga}</span>}
-            </p>
+    <Card className="overflow-hidden border-app-border bg-white shadow-sm">
+      <CardBody className="p-3.5 sm:p-4">
+        {/* Header simple */}
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+            Carga de Auditoría ({auditores.length})
+          </p>
+          <div className="flex items-center gap-3 text-xs font-black">
+            <span className="text-emerald-700">{totalConCarga} asignados</span>
+            <span className="text-amber-600">{totalSinCarga} sin asignación</span>
           </div>
+        </div>
 
-          {/* Top 5 Auditores */}
-          {top5.length > 0 ? (
-            <div className="divide-y divide-app-border rounded-xl border border-app-border bg-slate-50/50">
-              {top5.map((auditor) => (
-                <div key={auditor.id} className="flex items-center justify-between px-3.5 py-2.5 transition hover:bg-white">
-                  <p className="truncate text-xs md:text-sm font-bold text-slate-900" title={auditor.nombre}>
+        {/* Grid de todos los auditores */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+          {ordenados.map((auditor) => {
+            const initial = auditor.nombre ? auditor.nombre.charAt(0).toUpperCase() : 'U';
+            const tieneCarga = auditor.areasAsignadas > 0;
+
+            return (
+              <div
+                key={auditor.id}
+                className={cn(
+                  'flex items-center justify-between gap-2.5 rounded-xl border px-3 py-2 transition-all',
+                  tieneCarga
+                    ? 'border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 hover:shadow-sm'
+                    : 'border-amber-200/60 bg-amber-50/40 hover:bg-amber-50/80',
+                )}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className={cn(
+                      'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black',
+                      tieneCarga
+                        ? 'bg-marca-secundario/15 text-marca-secundario'
+                        : 'bg-amber-100 text-amber-700',
+                    )}
+                  >
+                    {initial}
+                  </span>
+                  <p className="truncate text-xs font-black text-slate-800" title={auditor.nombre}>
                     {auditor.nombre}
                   </p>
-                  <span className="ml-3 shrink-0 rounded-md bg-marca-secundario/10 px-2.5 py-0.5 text-xs font-bold text-marca-secundario">
+                </div>
+
+                {tieneCarga ? (
+                  <span className="shrink-0 rounded-lg bg-marca-secundario/10 px-2 py-0.5 text-[11px] font-black text-marca-secundario">
                     {auditor.areasAsignadas} {auditor.areasAsignadas === 1 ? 'área' : 'áreas'}
                   </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="p-3 text-center text-xs font-semibold text-slate-500">Ningún auditor tiene áreas asignadas este mes.</p>
-          )}
-
-          {/* Ver todos */}
-          {tieneMas && (
-            <div className="mt-3 flex justify-end">
-              <Button type="button" variant="ghost" size="sm" icon="groups" onClick={() => setShowModal(true)}>
-                Ver todos los auditores ({auditores.length})
-              </Button>
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
-      {showModal && (
-        <CargaMensualModal
-          auditores={auditores}
-          anio={anio}
-          mes={mes}
-          onClose={() => setShowModal(false)}
-        />
-      )}
-    </>
+                ) : (
+                  <span className="shrink-0 rounded-lg bg-amber-100/80 px-2 py-0.5 text-[11px] font-black text-amber-700">
+                    Sin asignación
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardBody>
+    </Card>
   );
 }

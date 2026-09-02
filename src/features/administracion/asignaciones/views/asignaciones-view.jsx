@@ -63,15 +63,17 @@ function ResumenAsignaciones({ resumen, onOpenAutoasignar }) {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="default"
-        icon="auto_fix_high"
-        onClick={onOpenAutoasignar}
-        className="w-full md:w-auto shadow-sm text-xs font-black h-9"
-      >
-        Autoasignar pendientes
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="default"
+          icon="auto_fix_high"
+          onClick={onOpenAutoasignar}
+          className="w-full md:w-auto shadow-sm text-xs font-black h-9"
+        >
+          Autoasignar pendientes
+        </Button>
+      </div>
     </div>
   );
 }

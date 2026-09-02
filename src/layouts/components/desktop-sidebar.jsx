@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router';
 import { getAdminNavigationByRole, getNavigationByRole, getSystemNavigationByRole } from '@/config/navigation-config';
 import { Button } from '@/components/ui/button';
@@ -9,20 +10,49 @@ import { useUIStore } from '@/stores/ui-store';
 
 export function DesktopSidebar() {
   const { user } = useAuth();
-  const { sidebarExpanded, toggleSidebar } = useUIStore();
+  const { sidebarExpanded, setSidebarExpanded, toggleSidebar } = useUIStore();
   const location = useLocation();
+  const sidebarRef = useRef(null);
   const items = getNavigationByRole(user?.rol, 'desktop');
+
   const getChildren = (item) => {
     if (item.id === 'admin') return getAdminNavigationByRole(user?.rol);
     if (item.id === 'sistema') return getSystemNavigationByRole(user?.rol);
     return [];
   };
 
+  // Clic fuera para contraer
+  useEffect(() => {
+    if (!sidebarExpanded) return undefined;
+
+    const handleClickOutside = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setSidebarExpanded(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [sidebarExpanded, setSidebarExpanded]);
+
+  // Clic dentro para expandir (si no es un link de navegación)
+  const handleSidebarClick = (event) => {
+    if (sidebarExpanded) return;
+    if (event.target.closest('a') || event.target.closest('button')) return;
+    setSidebarExpanded(true);
+  };
+
   return (
-    <aside className={cn(
-      'relative flex h-full shrink-0 flex-col bg-marca-secundario text-white transition-[width] duration-300 ease-in-out',
-      sidebarExpanded ? 'w-72' : 'w-20',
-    )}>
+    <aside
+      ref={sidebarRef}
+      onClick={handleSidebarClick}
+      className={cn(
+        'relative flex h-full shrink-0 flex-col bg-marca-secundario text-white transition-[width] duration-300 ease-in-out',
+        sidebarExpanded ? 'w-72' : 'w-20 cursor-pointer',
+      )}
+    >
       <div className="sidebar-header relative flex h-20 shrink-0 items-center justify-center border-b border-marca-primario/20 py-6">
         <div className="flex h-full w-full items-center justify-center px-4">
           {sidebarExpanded ? (

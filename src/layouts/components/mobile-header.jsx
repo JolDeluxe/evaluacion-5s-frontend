@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
-export function MobileHeader({ onOpenMenu }) {
+export function MobileHeader({ isMenuOpen, onToggleMenu }) {
   const location = useLocation();
   const { user } = useAuth();
   const title = getRouteTitle(location.pathname);
@@ -15,12 +15,14 @@ export function MobileHeader({ onOpenMenu }) {
       <div className="flex items-center justify-between gap-3">
         <Button
           type="button"
-          onClick={onOpenMenu}
+          onClick={onToggleMenu}
           variant="icon"
           size="icon"
-          icon="menu"
-          className="h-10 w-10 shrink-0 rounded-xl border-white/50 bg-white/40 text-marca-primario shadow-sm hover:bg-white/60"
-          aria-label="Abrir navegación"
+          icon={isMenuOpen ? 'close' : 'menu'}
+          className="h-10 w-10 shrink-0 rounded-xl border-white/50 bg-white/40 text-marca-primario shadow-sm hover:bg-white/60 transition-transform duration-200 active:scale-95"
+          aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir navegación'}
+          aria-expanded={isMenuOpen}
+          aria-controls="mobile-sidebar"
         />
         <Link to="/inicio" className="absolute left-1/2 min-w-0 -translate-x-1/2 text-center">
           <img src="/img/01_Cuadra.webp" alt="Cuadra" className="mx-auto h-8 w-auto object-contain drop-shadow-sm" />

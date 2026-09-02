@@ -14,6 +14,7 @@ import { AreaMultiSelect } from '@/features/administracion/usuarios/components/a
 import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
+import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
 
 // ---------------------------------------------------------------------------
 // Helpers visuales
@@ -369,10 +370,10 @@ export function UsuariosPage() {
 
   const cargarStats = useCallback(async () => {
     try {
-      const response = await usuariosApi.listar({ limite: 100 });
-      const lista = response?.datos ?? [];
+      const { datos: lista, meta } = await obtenerCatalogoCompleto(usuariosApi.listar, {}, 100);
+      const totalReal = meta.total ?? lista.length;
       setStats({
-        total: lista.length,
+        total: totalReal,
         admins: lista.filter((u) => u.rol === 'ADMINISTRADOR').length,
         auditores: lista.filter((u) => u.rol === 'AUDITOR').length,
         supers: lista.filter((u) => u.rol === 'SUPER_ADMIN').length,
@@ -384,8 +385,8 @@ export function UsuariosPage() {
 
   const cargarAreas = useCallback(async () => {
     try {
-      const response = await areasApi.listar({ limite: 100, activo: true });
-      setAllAreas([...(response?.datos ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')));
+      const { datos } = await obtenerCatalogoCompleto(areasApi.listar, { activo: true }, 100);
+      setAllAreas(datos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')));
     } catch {
       // Ignorar errores
     }
@@ -394,25 +395,20 @@ export function UsuariosPage() {
   const cargar = useCallback(async (currentParams) => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
     try {
-      const p = parsePageParam(currentParams.pagina);
-      const query = { pagina: p, limite: LIMITE };
-      
+      const query = {};
+
       if (currentParams.q) query.busqueda = currentParams.q;
       if (currentParams.rol) query.rol = currentParams.rol.toUpperCase();
-      
       if (currentParams.estado === 'activo') query.activo = true;
       else if (currentParams.estado === 'inactivo') query.activo = false;
-      
       if (currentParams.responsabilidad) query.responsabilidad = currentParams.responsabilidad;
-      
-      const response = await usuariosApi.listar(query);
-      const datos = response?.datos ?? [];
-      const paginacion = response?.paginacion ?? {};
+
+      const { datos } = await obtenerCatalogoCompleto(usuariosApi.listar, query, 100);
+
       setState({
         status: 'ready',
         usuarios: datos,
-        total: paginacion.total ?? datos.length,
-        totalPaginas: paginacion.totalPaginas ?? 1,
+        total: datos.length,
         error: null,
       });
     } catch (error) {
@@ -425,7 +421,7 @@ export function UsuariosPage() {
     debounceRef.current = setTimeout(() => cargar(params), 300);
     return () => clearTimeout(debounceRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.q, params.rol, params.estado, params.responsabilidad, params.pagina, cargar]);
+  }, [params.q, params.rol, params.estado, params.responsabilidad, cargar]);
 
   useEffect(() => {
     cargarStats();
@@ -728,27 +724,6 @@ export function UsuariosPage() {
                   onToggleEstado={(u) => toggleEstado(u)}
                 />
               ))}
-            </div>
-          )}
-          {state.totalPaginas > 1 && (
-            <div className="flex items-center justify-between gap-2 pt-2">
-              <button
-                type="button"
-                disabled={pagina <= 1}
-                onClick={() => handlePagina(pagina - 1)}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-40"
-              >
-                Anterior
-              </button>
-              <span className="text-xs text-slate-500">{pagina} / {state.totalPaginas}</span>
-              <button
-                type="button"
-                disabled={pagina >= state.totalPaginas}
-                onClick={() => handlePagina(pagina + 1)}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-40"
-              >
-                Siguiente
-              </button>
             </div>
           )}
         </>

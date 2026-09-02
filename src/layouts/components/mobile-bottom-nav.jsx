@@ -3,7 +3,7 @@ import { getNavigationByRole } from '@/config/navigation-config';
 import { GlassBottomNav, GlassBottomNavItem } from '@/components/ui/liquid-glass-mobile';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
-export function MobileBottomNav({ onOpenMore }) {
+export function MobileBottomNav({ isMenuOpen, onOpenMore }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -11,7 +11,7 @@ export function MobileBottomNav({ onOpenMore }) {
   const moreItems = getNavigationByRole(user?.rol, 'mobile-more').filter((item) => !item.isDivider);
   const showMore = moreItems.length > 0;
   const items = showMore ? bottomItems.slice(0, 3) : bottomItems.slice(0, 5);
-  const isMoreActive = moreItems.some((item) => (
+  const isMoreActive = isMenuOpen || moreItems.some((item) => (
     location.pathname === item.route || location.pathname.startsWith(`${item.route}/`)
   ));
 

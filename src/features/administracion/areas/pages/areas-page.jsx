@@ -14,6 +14,7 @@ import { usuariosApi } from '@/features/administracion/usuarios/api/usuarios-api
 import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
+import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
 
 // ---------------------------------------------------------------------------
 // Helpers visuales
@@ -357,20 +358,19 @@ export function AreasPage() {
   const cargar = useCallback(async (currentParams) => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
     try {
-      const p = parsePageParam(currentParams.pagina);
-      const query = { pagina: p, limite: LIMITE };
+      const query = {};
       if (currentParams.q) query.busqueda = currentParams.q;
       if (currentParams.tipo) query.tipo = currentParams.tipo;
       if (currentParams.activo !== '') query.activo = currentParams.activo;
       if (currentParams.sinResponsable !== '') query.sinResponsable = currentParams.sinResponsable;
-      const response = await areasApi.listar(query);
-      const datos = response?.datos ?? [];
-      const paginacion = response?.paginacion ?? {};
+
+      const { datos } = await obtenerCatalogoCompleto(areasApi.listar, query, 100);
+      datos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-MX'));
+
       setState({
         status: 'ready',
         areas: datos,
-        total: paginacion.total ?? datos.length,
-        totalPaginas: paginacion.totalPaginas ?? 1,
+        total: datos.length,
         error: null,
       });
     } catch (error) {
@@ -396,7 +396,7 @@ export function AreasPage() {
     debounceRef.current = setTimeout(() => cargar(params), 300);
     return () => clearTimeout(debounceRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.q, params.tipo, params.activo, params.sinResponsable, params.pagina, cargar]);
+  }, [params.q, params.tipo, params.activo, params.sinResponsable, cargar]);
 
   const handleFiltro = (key, value) => {
     if (key === 'busqueda') {
@@ -405,8 +405,6 @@ export function AreasPage() {
       setParam(key, value);
     }
   };
-
-  const handlePagina = (p) => setParam('pagina', String(p), { resetPage: false });
 
   const startCreate = () => {
     setForm({
@@ -744,33 +742,6 @@ export function AreasPage() {
                   />
                 ))}
               </div>
-
-              {/* Paginación */}
-              {state.totalPaginas > 1 && (
-                <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 rounded-xl sm:px-6">
-                  <p className="text-xs text-slate-500">
-                    Página {pagina} de {state.totalPaginas}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={pagina <= 1}
-                      onClick={() => handlePagina(pagina - 1)}
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={pagina >= state.totalPaginas}
-                      onClick={() => handlePagina(pagina + 1)}
-                    >
-                      Siguiente
-                    </Button>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </>
