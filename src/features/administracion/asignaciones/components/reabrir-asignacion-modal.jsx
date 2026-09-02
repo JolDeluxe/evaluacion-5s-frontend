@@ -18,10 +18,12 @@ export function ReabrirAsignacionModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const auditorReal = auditorSeleccionado || fila?.auditorMensual;
+
   const handleConfirm = async (event) => {
     event.preventDefault();
-    if (!auditorSeleccionado) {
-      setError('Selecciona primero un auditor para reabrir este periodo.');
+    if (!auditorReal) {
+      setError('Este área necesita tener un auditor mensual asignado.');
       return;
     }
     if (!motivo.trim()) {
@@ -35,7 +37,7 @@ export function ReabrirAsignacionModal({
     try {
       await onConfirm({
         motivo: motivo.trim(),
-        auditorMensualId: auditorSeleccionado.id,
+        auditorMensualId: auditorReal.id,
       });
       onClose();
     } catch (err) {
@@ -72,15 +74,13 @@ export function ReabrirAsignacionModal({
           </div>
 
           <div>
-            <Label>Auditor que realizará la auditoría</Label>
+            <Label>Auditor del mes</Label>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-black text-slate-900">
-              {auditorSeleccionado ? auditorSeleccionado.nombre : 'Sin auditor seleccionado'}
+              {auditorReal ? auditorReal.nombre : 'Sin auditor del mes'}
             </div>
-            {!auditorSeleccionado && (
-              <p className="mt-1 text-xs font-bold text-red-600">
-                Selecciona primero un auditor en la ventana anterior.
-              </p>
-            )}
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              Este periodo se habilitará para el auditor asignado al mes.
+            </p>
           </div>
 
           <div>

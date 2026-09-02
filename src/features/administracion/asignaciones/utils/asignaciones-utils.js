@@ -30,8 +30,7 @@ export function periodoTexto(periodo, fallback) {
 
   const ahora = new Date();
   if (periodo.reabiertaHasta && new Date(periodo.reabiertaHasta) > ahora) {
-    const fecha = new Date(periodo.reabiertaHasta).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
-    return `Reabierta (${fecha})`;
+    return 'Reabierta';
   }
 
   if (periodo.realizada) return 'Realizada';

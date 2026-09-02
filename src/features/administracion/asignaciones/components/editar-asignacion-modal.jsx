@@ -144,7 +144,7 @@ export function EditarAsignacionModal({
                 auditores={auditores}
                 responsablesIds={fila.area.responsablesIds}
               />
-              <p className="text-xs font-medium text-slate-500">Este auditor realizará P1 y P2 de forma predeterminada.</p>
+              <p className="text-xs font-medium text-slate-500">Los periodos no realizados de este mes pasarán al nuevo auditor automáticamente.</p>
             </div>
 
             <div className="space-y-2.5 pt-2">
