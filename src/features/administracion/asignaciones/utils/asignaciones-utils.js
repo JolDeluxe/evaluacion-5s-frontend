@@ -72,7 +72,3 @@ export function buildGuardarAsignacionMensualPayload({ anio, mes, form }) {
     auditorMensualId: Number(form.auditorMensualId),
   };
 }
-
-export function getAutoasignacionMensaje(result) {
-  return `${result.autoasignacion.asignadas} áreas asignadas. ${result.autoasignacion.sinCandidato} sin candidato.`;
-}

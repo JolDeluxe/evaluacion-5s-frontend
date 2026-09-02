@@ -4,7 +4,6 @@ import { parseMonthParam, parseYearParam, useUrlState } from '@/hooks/use-url-st
 import { asignacionesApi } from '@/features/administracion/asignaciones/api/asignaciones-api';
 import {
   buildAsignacionesMensualQuery,
-  getAutoasignacionMensaje,
   URL_DEFAULTS_ASIGNACIONES,
 } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
@@ -26,7 +25,6 @@ export function useAsignaciones() {
 
   const [state, setState] = useState({ status: 'loading', data: null, error: null });
   const [editing, setEditing] = useState(null);
-  const [autoLoading, setAutoLoading] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const debounceRef = useRef(null);
 
@@ -63,21 +61,6 @@ export function useAsignaciones() {
     navigate(`/admin/asignaciones/${nuevoAnio}/${nuevoMes}${location.search}`);
   }, [location.search, navigate]);
 
-  const autoasignar = useCallback(async () => {
-    setAutoLoading(true);
-    setMensaje('');
-
-    try {
-      const result = await asignacionesApi.autoasignar({ anio, mes });
-      setMensaje(getAutoasignacionMensaje(result));
-      setState({ status: 'ready', data: result.vista, error: null });
-    } catch (error) {
-      setMensaje(error?.message || 'No se pudo autoasignar.');
-    } finally {
-      setAutoLoading(false);
-    }
-  }, [anio, mes]);
-
   const guardarAsignacionMensual = useCallback((areaId, payload) => {
     return asignacionesApi.guardarMensual(areaId, payload);
   }, []);
@@ -105,10 +88,8 @@ export function useAsignaciones() {
     data: state.data,
     editing,
     setEditing,
-    autoLoading,
     mensaje,
     handlePeriodo,
-    autoasignar,
     guardarAsignacionMensual,
     reabrirAsignacion,
     cerrarEdicion,

@@ -27,6 +27,9 @@ export const usuariosApi = {
   actualizar: async (id, body, options) =>
     datos(await apiClient.patch(`/usuarios/${id}`, body, options)),
 
+  impactoAuditoria: async (id, options) =>
+    datos(await apiClient.get(`/usuarios/${id}/impacto-auditoria`, options)),
+
   desactivar: async (id, options) =>
     datos(await apiClient.post(`/usuarios/${id}/desactivar`, {}, options)),
 

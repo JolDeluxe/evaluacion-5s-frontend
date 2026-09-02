@@ -12,10 +12,8 @@ export function AsignacionesPage() {
       state={asignaciones.state}
       data={asignaciones.data}
       editing={asignaciones.editing}
-      autoLoading={asignaciones.autoLoading}
       mensaje={asignaciones.mensaje}
       onPeriodoChange={asignaciones.handlePeriodo}
-      onAutoasignar={asignaciones.autoasignar}
       onSetParam={asignaciones.setParam}
       onSetSearch={asignaciones.setSearch}
       onEdit={asignaciones.setEditing}

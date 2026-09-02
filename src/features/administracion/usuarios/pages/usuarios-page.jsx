@@ -487,7 +487,14 @@ export function UsuariosPage() {
       let usuarioId;
       if (editingUsuario) {
         usuarioId = editingUsuario.id;
-        await usuariosApi.actualizar(usuarioId, payload);
+        const pierdeCapacidad = ['AUDITOR', 'ADMINISTRADOR'].includes(editingUsuario.rol)
+          && !['AUDITOR', 'ADMINISTRADOR'].includes(payload.rol);
+        if (pierdeCapacidad) {
+          const impacto = await usuariosApi.impactoAuditoria(usuarioId);
+          if (impacto.reasignables > 0 && !window.confirm(`Este cambio conservará ${impacto.completadas} completadas, mantendrá ${impacto.vencidas} cerradas y dejará ${impacto.reasignables} pendientes para reasignación. ¿Continuar?`)) return;
+        }
+        const resultado = await usuariosApi.actualizar(usuarioId, payload);
+        if (resultado.impacto?.reasignables > 0) window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
       } else {
         if (!form.contrasena) {
           throw new Error('La contraseña es obligatoria para nuevos usuarios.');
@@ -529,11 +536,23 @@ export function UsuariosPage() {
   const toggleEstado = async (usuario) => {
     const isActivo = usuario.activo;
     const actionMsg = isActivo ? 'desactivar' : 'reactivar';
-    if (!window.confirm(`¿Estás seguro de que deseas ${actionMsg} a ${usuario.nombre}?`)) return;
+    let impacto = null;
+    if (isActivo && (usuario.rol === 'AUDITOR' || usuario.rol === 'ADMINISTRADOR')) {
+      try {
+        impacto = await usuariosApi.impactoAuditoria(usuario.id);
+      } catch {
+        // La confirmación sigue disponible si el resumen no puede cargarse.
+      }
+    }
+    const resumenImpacto = impacto
+      ? `\n\nImpacto: ${impacto.completadas} completadas se conservan, ${impacto.reasignables} pendientes quedarán para reasignación y ${impacto.vencidas} vencidas se conservan.`
+      : '';
+    if (!window.confirm(`¿Estás seguro de que deseas ${actionMsg} a ${usuario.nombre}?${resumenImpacto}`)) return;
 
     try {
       if (isActivo) {
-        await usuariosApi.desactivar(usuario.id);
+        const resultado = await usuariosApi.desactivar(usuario.id);
+        if (resultado.impacto?.reasignables > 0) window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
       } else {
         await usuariosApi.reactivar(usuario.id);
       }

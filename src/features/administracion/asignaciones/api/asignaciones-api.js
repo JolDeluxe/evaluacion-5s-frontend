@@ -14,7 +14,7 @@ const queryString = (query = {}) => {
 export const asignacionesApi = {
   mensual: async (query, options) => datos(await apiClient.get(`/asignaciones/mensual${queryString(query)}`, options)),
   carga: async (query, options) => datos(await apiClient.get(`/asignaciones/mensual/carga${queryString(query)}`, options)),
+  pendientes: async (options) => datos(await apiClient.get('/asignaciones/pendientes', options)),
   guardarMensual: async (areaId, body, options) => datos(await apiClient.put(`/asignaciones/mensual/${areaId}`, body, options)),
-  autoasignar: async (body, options) => datos(await apiClient.post('/asignaciones/mensual/autoasignar', body, options)),
   reabrir: async (id, body, options) => datos(await apiClient.post(`/asignaciones/${id}/reabrir`, body, options)),
 };

@@ -18,6 +18,7 @@ export function AutoasignacionModal({
   const [sinCandidato, setSinCandidato] = useState([]);
   const [auditoresDisponibles, setAuditoresDisponibles] = useState(auditores || []);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resultadoConfirmacion, setResultadoConfirmacion] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -72,11 +73,13 @@ export function AutoasignacionModal({
     setErrorMsg('');
 
     try {
-      await apiClient.post('/asignaciones/mensual/autoasignar/confirmar', {
+      const res = await apiClient.post('/asignaciones/mensual/autoasignar/confirmar', {
         anio,
         mes,
         asignaciones: validAsignaciones,
       });
+      const data = res?.datos ?? res;
+      setResultadoConfirmacion(data.confirmacion ?? null);
       setStatus('done');
       onConfirmed();
     } catch (err) {
@@ -132,8 +135,9 @@ export function AutoasignacionModal({
             </div>
             <h3 className="text-base font-black text-slate-900">¡Asignaciones aplicadas con éxito!</h3>
             <p className="text-xs font-semibold text-slate-600">
-              Se han registrado {asignadasCount} {asignadasCount === 1 ? 'área asignada' : 'áreas asignadas'}.
+              Se han registrado {resultadoConfirmacion?.guardadas ?? asignadasCount} {(resultadoConfirmacion?.guardadas ?? asignadasCount) === 1 ? 'área asignada' : 'áreas asignadas'}.
             </p>
+            {resultadoConfirmacion?.omitidas > 0 && <p className="text-xs font-bold text-amber-700">{resultadoConfirmacion.omitidas} asignaciones ya habían sido atendidas por otro administrador y no fueron modificadas.</p>}
           </div>
         )}
 
