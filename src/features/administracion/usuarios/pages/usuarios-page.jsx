@@ -9,8 +9,10 @@ import { Label } from '@/components/form/label';
 import { Input } from '@/components/form/input';
 import { Select } from '@/components/form/select';
 import { usuariosApi } from '@/features/administracion/usuarios/api/usuarios-api';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import { areasApi } from '@/features/administracion/areas/api/areas-api';
 import { AreaMultiSelect } from '@/features/administracion/usuarios/components/area-multi-select';
+import { ImpactoUsuarioModal } from '@/features/administracion/usuarios/components/impacto-usuario-modal';
 import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
@@ -307,6 +309,7 @@ const LIMITE = 25;
 const URL_DEFAULTS = { q: '', rol: '', estado: 'activo', responsabilidad: '', pagina: '1' };
 
 export function UsuariosPage() {
+  const { user: currentUser } = useAuth();
   const [state, setState] = useState({
     status: 'loading',
     usuarios: [],
@@ -348,6 +351,10 @@ export function UsuariosPage() {
 
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [impactContext, setImpactContext] = useState(null);
+  const [impactSaving, setImpactSaving] = useState(false);
+  const [impactError, setImpactError] = useState('');
+  const [pageActionError, setPageActionError] = useState('');
 
   const [isMobile, setIsMobile] = useState(false);
   const debounceRef = useRef(null);
@@ -491,10 +498,18 @@ export function UsuariosPage() {
           && !['AUDITOR', 'ADMINISTRADOR'].includes(payload.rol);
         if (pierdeCapacidad) {
           const impacto = await usuariosApi.impactoAuditoria(usuarioId);
-          if (impacto.reasignables > 0 && !window.confirm(`Este cambio conservará ${impacto.completadas} completadas, mantendrá ${impacto.vencidas} cerradas y dejará ${impacto.reasignables} pendientes para reasignación. ¿Continuar?`)) return;
+          setImpactError('');
+          setImpactContext({
+            modo: 'rol',
+            impacto,
+            usuario: editingUsuario,
+            payload,
+            areasAnteriores: (editingUsuario.areasUsuario ?? []).map((ua) => String(ua.area.id)),
+            areasNuevas: form.areasResponsablesIds,
+          });
+          return;
         }
-        const resultado = await usuariosApi.actualizar(usuarioId, payload);
-        if (resultado.impacto?.reasignables > 0) window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+        await usuariosApi.actualizar(usuarioId, payload);
       } else {
         if (!form.contrasena) {
           throw new Error('La contraseña es obligatoria para nuevos usuarios.');
@@ -504,7 +519,6 @@ export function UsuariosPage() {
         usuarioId = res.usuario.id;
       }
 
-      // Procesar asignación de áreas bajo su responsabilidad (UsuarioArea)
       const prevResponsables = editingUsuario
         ? (editingUsuario.areasUsuario ?? []).map((ua) => String(ua.area.id))
         : [];
@@ -513,9 +527,12 @@ export function UsuariosPage() {
       const toRemove = prevResponsables.filter((id) => !form.areasResponsablesIds.includes(id));
 
       for (const areaId of toAdd) {
-        await areasApi.guardarUsuarioArea(Number(areaId), {
+        const resultadoArea = await areasApi.guardarUsuarioArea(Number(areaId), {
           usuarioId,
         });
+        if (resultadoArea.impacto?.liberadas > 0) {
+          window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+        }
       }
 
       for (const areaId of toRemove) {
@@ -535,31 +552,78 @@ export function UsuariosPage() {
 
   const toggleEstado = async (usuario) => {
     const isActivo = usuario.activo;
-    const actionMsg = isActivo ? 'desactivar' : 'reactivar';
-    let impacto = null;
-    if (isActivo && (usuario.rol === 'AUDITOR' || usuario.rol === 'ADMINISTRADOR')) {
+    setPageActionError('');
+    if (isActivo) {
       try {
-        impacto = await usuariosApi.impactoAuditoria(usuario.id);
-      } catch {
-        // La confirmación sigue disponible si el resumen no puede cargarse.
+        const impacto = await usuariosApi.impactoAuditoria(usuario.id);
+        setImpactError('');
+        setImpactContext({ modo: 'desactivar', impacto, usuario });
+      } catch (err) {
+        setPageActionError(err.message || 'No se pudo preparar la baja del usuario.');
       }
+      return;
     }
-    const resumenImpacto = impacto
-      ? `\n\nImpacto: ${impacto.completadas} completadas se conservan, ${impacto.reasignables} pendientes quedarán para reasignación y ${impacto.vencidas} vencidas se conservan.`
-      : '';
-    if (!window.confirm(`¿Estás seguro de que deseas ${actionMsg} a ${usuario.nombre}?${resumenImpacto}`)) return;
-
     try {
-      if (isActivo) {
-        const resultado = await usuariosApi.desactivar(usuario.id);
-        if (resultado.impacto?.reasignables > 0) window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
-      } else {
-        await usuariosApi.reactivar(usuario.id);
-      }
+      await usuariosApi.reactivar(usuario.id);
       cargar(params);
       cargarStats();
     } catch (err) {
-      alert(err.message || `No se pudo ${actionMsg} el usuario.`);
+      setPageActionError(err.message || 'No se pudo reactivar el usuario.');
+    }
+  };
+
+  const sincronizarAreasUsuario = async (usuarioId, anteriores, nuevas) => {
+    const toAdd = nuevas.filter((id) => !anteriores.includes(id));
+    const toRemove = anteriores.filter((id) => !nuevas.includes(id));
+    for (const areaId of toAdd) {
+      const resultadoArea = await areasApi.guardarUsuarioArea(Number(areaId), { usuarioId });
+      if (resultadoArea.impacto?.liberadas > 0) {
+        window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+      }
+    }
+    for (const areaId of toRemove) {
+      await areasApi.eliminarUsuarioArea(Number(areaId), usuarioId);
+    }
+  };
+
+  const confirmarImpacto = async (decisiones) => {
+    setImpactSaving(true);
+    setImpactError('');
+    try {
+      if (impactContext.modo === 'desactivar') {
+        const resultado = await usuariosApi.desactivar(impactContext.usuario.id, {
+          usuarioActualizadoEn: impactContext.impacto.usuario.actualizadoEn,
+          responsabilidades: decisiones.responsabilidades,
+          auditorias: decisiones.auditorias,
+        });
+        if (resultado.impacto?.reasignadas > 0 || resultado.impacto?.pendientes > 0) {
+          window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+        }
+      } else {
+        const resultado = await usuariosApi.actualizar(impactContext.usuario.id, {
+          ...impactContext.payload,
+          resolucionesAuditorias: {
+            usuarioActualizadoEn: impactContext.impacto.usuario.actualizadoEn,
+            auditorias: decisiones.auditorias,
+          },
+        });
+        await sincronizarAreasUsuario(
+          impactContext.usuario.id,
+          impactContext.areasAnteriores,
+          impactContext.areasNuevas,
+        );
+        if (resultado.impacto?.reasignadas > 0 || resultado.impacto?.pendientes > 0) {
+          window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+        }
+        setEditingUsuario(null);
+      }
+      setImpactContext(null);
+      cargar(params);
+      cargarStats();
+    } catch (err) {
+      setImpactError(err.message || 'El impacto cambió y no se aplicó ninguna modificación.');
+    } finally {
+      setImpactSaving(false);
     }
   };
 
@@ -582,6 +646,12 @@ export function UsuariosPage() {
           Usuarios
         </h1>
       </div>
+
+      {pageActionError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {pageActionError}
+        </div>
+      )}
 
       {/* Navegación compartida (Mobile local) */}
       <div className="md:hidden">
@@ -753,9 +823,22 @@ export function UsuariosPage() {
         <UsuarioDetalleModal usuario={usuarioDetalle} onClose={() => setUsuarioDetalle(null)} />
       )}
 
+      {impactContext && (
+        <ImpactoUsuarioModal
+          impacto={impactContext.impacto}
+          modo={impactContext.modo}
+          saving={impactSaving}
+          error={impactError}
+          onClose={() => {
+            if (!impactSaving) setImpactContext(null);
+          }}
+          onConfirm={confirmarImpacto}
+        />
+      )}
+
       {/* Modal de Crear / Editar */}
       <Modal
-        isOpen={isCreating || !!editingUsuario}
+        isOpen={(isCreating || !!editingUsuario) && !impactContext}
         onClose={() => { setIsCreating(false); setEditingUsuario(null); }}
         className="max-w-xl"
       >
@@ -832,6 +915,7 @@ export function UsuariosPage() {
                 >
                   <option value="AUDITOR">Auditor</option>
                   <option value="ADMINISTRADOR">Administrador</option>
+                  {currentUser?.rol === 'SUPER_ADMIN' && <option value="SUPER_ADMIN">Super Admin</option>}
                 </Select>
               </div>
 

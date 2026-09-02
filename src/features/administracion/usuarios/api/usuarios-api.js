@@ -30,8 +30,8 @@ export const usuariosApi = {
   impactoAuditoria: async (id, options) =>
     datos(await apiClient.get(`/usuarios/${id}/impacto-auditoria`, options)),
 
-  desactivar: async (id, options) =>
-    datos(await apiClient.post(`/usuarios/${id}/desactivar`, {}, options)),
+  desactivar: async (id, body, options) =>
+    datos(await apiClient.post(`/usuarios/${id}/desactivar`, body, options)),
 
   reactivar: async (id, options) =>
     datos(await apiClient.post(`/usuarios/${id}/reactivar`, {}, options)),

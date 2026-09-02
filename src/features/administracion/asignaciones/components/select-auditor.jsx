@@ -1,6 +1,6 @@
 import { Select } from '@/components/form/select';
 
-export function SelectAuditor({ value, onChange, auditores, responsablesIds = [], disabled = false }) {
+export function SelectAuditor({ value, onChange, auditores, responsablesIds = [], disabled = false, auditorLabelFn }) {
   return (
     <Select value={value ? String(value) : ''} onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)} disabled={disabled}>
       <option value="">Selecciona auditor</option>
@@ -8,7 +8,7 @@ export function SelectAuditor({ value, onChange, auditores, responsablesIds = []
         .filter((auditor) => !responsablesIds.includes(auditor.id))
         .map((auditor) => (
           <option key={auditor.id} value={auditor.id}>
-            {auditor.nombre}
+            {auditorLabelFn ? auditorLabelFn(auditor) : auditor.nombre}
           </option>
         ))}
     </Select>

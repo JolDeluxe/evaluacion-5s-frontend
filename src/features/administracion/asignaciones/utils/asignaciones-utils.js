@@ -43,8 +43,9 @@ export function periodoTexto(periodo, fallback) {
 
 export function periodoDetalleTexto(periodo, auditorMensual) {
   if (!periodo?.programada || !periodo.auditorEfectivo) return '';
-  if (!auditorMensual || periodo.auditorEfectivo.id === auditorMensual.id) return '';
-  return `Auditor: ${periodo.auditorEfectivo.nombre}`;
+  if (!auditorMensual) return `Auditor: ${periodo.auditorEfectivo.nombre}`;
+  if (periodo.auditorEfectivo.id === auditorMensual.id) return '';
+  return `Auditor anterior: ${periodo.auditorEfectivo.nombre}`;
 }
 
 export function getPeriodoAnterior(anio, mes) {

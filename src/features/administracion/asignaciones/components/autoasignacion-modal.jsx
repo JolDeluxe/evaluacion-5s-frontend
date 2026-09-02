@@ -17,6 +17,8 @@ export function AutoasignacionModal({
   const [propuestas, setPropuestas] = useState([]);
   const [sinCandidato, setSinCandidato] = useState([]);
   const [auditoresDisponibles, setAuditoresDisponibles] = useState(auditores || []);
+  const [resumen, setResumen] = useState(null);
+  const [areasPendientes, setAreasPendientes] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [resultadoConfirmacion, setResultadoConfirmacion] = useState(null);
 
@@ -33,6 +35,8 @@ export function AutoasignacionModal({
         const data = res?.datos ?? res;
         setPropuestas(data.propuestas || []);
         setSinCandidato(data.sinCandidato || []);
+        setResumen(data.resumen || null);
+        setAreasPendientes(data.areasPendientes || 0);
         if (data.auditoresDisponibles?.length) setAuditoresDisponibles(data.auditoresDisponibles);
         setStatus('review');
       } catch (err) {
@@ -91,6 +95,37 @@ export function AutoasignacionModal({
   const asignadasCount = propuestas.filter((p) => p.auditor?.id).length;
   const sinAuditorCount = propuestas.filter((p) => !p.auditor?.id).length;
 
+  // Mapa de áreas propuestas por auditor en el estado local actual del modal
+  const propuestasContador = new Map();
+  propuestas.forEach((item) => {
+    if (item.auditor?.id) {
+      propuestasContador.set(item.auditor.id, (propuestasContador.get(item.auditor.id) || 0) + 1);
+    }
+  });
+
+  // Cálculo en vivo de la carga total final de cada auditor disponible (existentes + propuestas locales)
+  const auditoresConCargaVivo = auditoresDisponibles.map((auditor) => {
+    const baseExistente = auditor.areasAsignadas ?? 0;
+    const agregadasPropuesta = propuestasContador.get(auditor.id) || 0;
+    const cargaFinal = baseExistente + agregadasPropuesta;
+    return {
+      ...auditor,
+      cargaFinal,
+      agregadasPropuesta,
+    };
+  });
+
+  // Métricas del resumen superior
+  const auditoresUtilizados = auditoresConCargaVivo.filter((a) => a.cargaFinal > 0);
+  const cargasFinalesList = auditoresUtilizados.map((a) => a.cargaFinal);
+  const minCarga = cargasFinalesList.length ? Math.min(...cargasFinalesList) : 0;
+  const maxCarga = cargasFinalesList.length ? Math.max(...cargasFinalesList) : 0;
+  const auditorLabelFn = (auditor) => {
+    const info = auditoresConCargaVivo.find((a) => a.id === auditor.id);
+    const total = info ? info.cargaFinal : (auditor.areasAsignadas ?? 0);
+    return `${auditor.nombre} · ${total} ${total === 1 ? 'área' : 'áreas'}`;
+  };
+
   return (
     <Modal isOpen onClose={status === 'generating' || status === 'submitting' ? () => {} : onClose} className="max-w-3xl">
       <ModalHeader onClose={status === 'generating' || status === 'submitting' ? null : onClose}>
@@ -144,12 +179,29 @@ export function AutoasignacionModal({
         {/* Review state */}
         {status === 'review' && (
           <>
-            <div className="rounded-xl border border-app-border bg-slate-50/70 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
-              <span className="text-slate-700">
-                Propuesta: <strong className="text-emerald-700 font-bold">{asignadasCount} áreas listas para asignar</strong>
-              </span>
-              {sinAuditorCount > 0 && (
-                <span className="text-amber-700 font-bold">{sinAuditorCount} sin candidato</span>
+            <div className="rounded-xl border border-app-border bg-slate-50/70 p-3.5 space-y-2.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 font-semibold">
+                <span className="text-slate-700">
+                  Propuesta: <strong className="text-emerald-700 font-bold">{asignadasCount} {asignadasCount === 1 ? 'área lista' : 'áreas listas'} para asignar</strong>
+                </span>
+                {sinAuditorCount > 0 && (
+                  <span className="text-amber-700 font-bold">{sinAuditorCount} sin candidato</span>
+                )}
+              </div>
+
+              {auditoresUtilizados.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-slate-200/60">
+                  {auditoresUtilizados.map((auditor) => (
+                    <span
+                      key={auditor.id}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700 shadow-xs"
+                    >
+                      <span className="truncate max-w-[140px] sm:max-w-[180px]">{auditor.nombre}</span>
+                      <span className="text-slate-400">·</span>
+                      <span className="text-emerald-700 font-black">{auditor.cargaFinal}</span>
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -194,6 +246,7 @@ export function AutoasignacionModal({
                           onChange={(val) => handleAuditorChange(item.area.id, val)}
                           auditores={auditoresDisponibles}
                           responsablesIds={item.area.responsablesIds}
+                          auditorLabelFn={auditorLabelFn}
                         />
                       </div>
                     </div>
@@ -201,9 +254,20 @@ export function AutoasignacionModal({
                 </div>
               </div>
             ) : (
-              <p className="py-6 text-center text-xs font-semibold text-slate-500">
-                Todas las áreas activas ya cuentan con auditor asignado.
-              </p>
+              <div className="py-6 text-center">
+                <p className="text-sm font-bold text-slate-700">
+                  {resumen?.areas === 0
+                    ? 'No existen áreas programadas para este mes.'
+                    : areasPendientes === 0
+                      ? 'Todas las áreas programadas para este mes ya cuentan con un auditor válido.'
+                      : 'Hay áreas pendientes, pero no se encontró un auditor elegible.'}
+                </p>
+                {areasPendientes > 0 && (
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    Revisa los candidatos disponibles y asigna estas áreas manualmente.
+                  </p>
+                )}
+              </div>
             )}
           </>
         )}

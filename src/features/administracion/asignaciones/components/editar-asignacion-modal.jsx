@@ -33,15 +33,17 @@ export function EditarAsignacionModal({
   const auditorSeleccionado = auditores.find((a) => a.id === Number(form.auditorMensualId)) ?? null;
 
   const handleConfirmReabrir = async ({ motivo, auditorMensualId }) => {
-    if (!reabriendoPeriodo?.periodo?.asignacionId) return;
+    if (!reabriendoPeriodo?.periodo) return;
 
     setSaving(true);
     setError('');
 
     try {
-      await onReabrirAsignacion(reabriendoPeriodo.periodo.asignacionId, {
+      const targetId = reabriendoPeriodo.periodo.asignacionId || 0;
+      await onReabrirAsignacion(targetId, {
         motivo,
         auditorMensualId,
+        objetivoAuditoriaId: reabriendoPeriodo.periodo.objetivoAuditoriaId,
       });
       onSaved();
       onClose();
@@ -103,7 +105,7 @@ export function EditarAsignacionModal({
             {detalleAuditor && <p className="text-xs font-semibold text-slate-400 mt-0.5">{detalleAuditor}</p>}
           </div>
 
-          {periodo?.vencida && periodo.asignacionId && (
+          {periodo?.vencida && (
             <Button
               type="button"
               variant="outline"
