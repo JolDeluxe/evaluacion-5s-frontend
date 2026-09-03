@@ -502,7 +502,7 @@ export function AreasPage() {
     if (!area.activo) {
       const responsabilidadesCount = (area.usuariosArea ?? []).length;
       if (responsabilidadesCount === 0) {
-        alert('No se puede reactivar esta área porque no tiene ningún responsable asignado. Modifícala primero.');
+        setActionError('No se puede reactivar esta área porque no tiene ningún responsable asignado. Modifícala primero.');
         return;
       }
       setReactivationForm({ inicioProgramaAuditoria: 'PROXIMO_MES', auditorMensualId: '' });

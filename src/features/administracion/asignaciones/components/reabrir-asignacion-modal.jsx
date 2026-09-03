@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { Label } from '@/components/form/label';
+import { SelectAuditor } from '@/features/administracion/asignaciones/components/select-auditor';
 import { MESES } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
 export function ReabrirAsignacionModal({
@@ -9,21 +10,27 @@ export function ReabrirAsignacionModal({
   periodoNombre,
   periodo,
   auditorSeleccionado,
+  auditores = [],
   anio,
   mes,
   onClose,
   onConfirm,
 }) {
+  const auditorReal = fila?.auditorMensual ?? null;
+  const requiereSeleccionAuditor = !auditorReal;
+  const [auditorFormId, setAuditorFormId] = useState(() => (
+    auditorReal ? String(auditorReal.id) : auditorSeleccionado ? String(auditorSeleccionado.id) : ''
+  ));
   const [motivo, setMotivo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const auditorReal = auditorSeleccionado || fila?.auditorMensual;
-
   const handleConfirm = async (event) => {
     event.preventDefault();
-    if (!auditorReal) {
-      setError('Este área necesita tener un auditor mensual asignado.');
+    const finalAuditorId = requiereSeleccionAuditor ? Number(auditorFormId) : auditorReal?.id;
+
+    if (!finalAuditorId) {
+      setError('Selecciona un auditor para el área.');
       return;
     }
     if (!motivo.trim()) {
@@ -37,7 +44,8 @@ export function ReabrirAsignacionModal({
     try {
       await onConfirm({
         motivo: motivo.trim(),
-        auditorMensualId: auditorReal.id,
+        auditorMensualId: finalAuditorId,
+        expectedAuditorId: auditorReal ? auditorReal.id : null,
       });
       onClose();
     } catch (err) {
@@ -54,7 +62,9 @@ export function ReabrirAsignacionModal({
           <p className="text-xs font-black uppercase tracking-[0.2em] text-marca-acento">
             {fila.area.nombre} · {MESES[mes - 1]} {anio}
           </p>
-          <h2 className="text-xl font-black text-slate-950">Reabrir {periodoNombre}</h2>
+          <h2 className="text-xl font-black text-slate-950">
+            {requiereSeleccionAuditor ? 'Asignar auditor para reabrir periodo' : `Reabrir ${periodoNombre}`}
+          </h2>
         </div>
       </ModalHeader>
 
@@ -66,20 +76,35 @@ export function ReabrirAsignacionModal({
             </div>
           )}
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900">
-            <p className="font-black uppercase tracking-wider text-amber-800">Atención</p>
-            <p className="mt-1 font-semibold leading-relaxed">
-              Este periodo se encuentra vencido. Al reabrirlo se otorgarán días de gracia hábiles para que el auditor pueda realizar la auditoría.
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 space-y-1">
+            <p className="font-bold text-slate-900">
+              {requiereSeleccionAuditor ? 'Asignación requerida' : 'Reapertura de periodo'}
+            </p>
+            <p className="font-medium text-slate-600">
+              {requiereSeleccionAuditor
+                ? `Este mes no tiene un auditor asignado. Selecciona quién será el auditor de ${fila.area.nombre} para ${MESES[mes - 1]} de ${anio}. Al confirmar, el periodo ${periodoNombre} se reabrirá para ese auditor.`
+                : 'Se otorgarán días de gracia hábiles para que el auditor pueda realizar la auditoría de este periodo.'}
             </p>
           </div>
 
           <div>
             <Label>Auditor del mes</Label>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-black text-slate-900">
-              {auditorReal ? auditorReal.nombre : 'Sin auditor del mes'}
-            </div>
+            {requiereSeleccionAuditor ? (
+              <SelectAuditor
+                value={auditorFormId}
+                onChange={setAuditorFormId}
+                auditores={auditores}
+                responsablesIds={fila.area.responsablesIds}
+              />
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-black text-slate-900">
+                {auditorReal.nombre}
+              </div>
+            )}
             <p className="mt-1 text-xs font-medium text-slate-500">
-              Este periodo se habilitará para el auditor asignado al mes.
+              {requiereSeleccionAuditor
+                ? 'El auditor seleccionado será asignado al área para este mes.'
+                : 'Este periodo se habilitará para el auditor del mes.'}
             </p>
           </div>
 
@@ -105,9 +130,9 @@ export function ReabrirAsignacionModal({
             type="submit"
             variant="guardar"
             isLoading={submitting}
-            disabled={!auditorSeleccionado || !motivo.trim()}
+            disabled={(requiereSeleccionAuditor && !auditorFormId) || !motivo.trim()}
           >
-            Confirmar reapertura
+            {requiereSeleccionAuditor ? 'Asignar y reabrir' : 'Confirmar reapertura'}
           </Button>
         </ModalFooter>
       </form>

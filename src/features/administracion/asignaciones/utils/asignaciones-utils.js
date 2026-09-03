@@ -65,10 +65,11 @@ export function buildAsignacionesMensualQuery(anio, mes, params) {
   };
 }
 
-export function buildGuardarAsignacionMensualPayload({ anio, mes, form }) {
+export function buildGuardarAsignacionMensualPayload({ anio, mes, form, expectedAuditorId }) {
   return {
     anio,
     mes,
     auditorMensualId: Number(form.auditorMensualId),
+    expectedAuditorId: expectedAuditorId != null ? Number(expectedAuditorId) : null,
   };
 }

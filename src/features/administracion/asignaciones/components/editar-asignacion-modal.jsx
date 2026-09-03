@@ -32,7 +32,7 @@ export function EditarAsignacionModal({
 
   const auditorSeleccionado = auditores.find((a) => a.id === Number(form.auditorMensualId)) ?? null;
 
-  const handleConfirmReabrir = async ({ motivo, auditorMensualId }) => {
+  const handleConfirmReabrir = async ({ motivo, auditorMensualId, expectedAuditorId }) => {
     if (!reabriendoPeriodo?.periodo) return;
 
     setSaving(true);
@@ -43,6 +43,7 @@ export function EditarAsignacionModal({
       await onReabrirAsignacion(targetId, {
         motivo,
         auditorMensualId,
+        expectedAuditorId,
         objetivoAuditoriaId: reabriendoPeriodo.periodo.objetivoAuditoriaId,
       });
       onSaved();
@@ -68,7 +69,7 @@ export function EditarAsignacionModal({
     try {
       await onSaveAsignacion(
         fila.area.id,
-        buildGuardarAsignacionMensualPayload({ anio, mes, form }),
+        buildGuardarAsignacionMensualPayload({ anio, mes, form, expectedAuditorId: fila.auditorMensual?.id }),
       );
       onSaved();
     } catch (err) {
@@ -171,6 +172,7 @@ export function EditarAsignacionModal({
           periodoNombre={reabriendoPeriodo.nombre}
           periodo={reabriendoPeriodo.periodo}
           auditorSeleccionado={auditorSeleccionado}
+          auditores={auditores}
           anio={anio}
           mes={mes}
           onClose={() => setReabriendoPeriodo(null)}
