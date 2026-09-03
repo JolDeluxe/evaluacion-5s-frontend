@@ -56,7 +56,11 @@ const fechaCorta = (fechaStr) => {
 
 // ─── Period Cell Component ────────────────────────────────────────────────────
 
-function EstadoAuditoriaHistorial({ asig }) {
+function EstadoAuditoriaHistorial({ asig, align = 'center' }) {
+  const isStart = align === 'start';
+  const containerClass = isStart ? 'flex flex-col items-start text-left gap-0.5' : 'flex flex-col items-center text-center gap-0.5';
+  const realizadaRowClass = isStart ? 'flex flex-wrap items-center justify-start gap-2' : 'flex flex-wrap items-center justify-center gap-2';
+
   if (!asig) {
     return <span className="text-xs font-bold text-slate-300">—</span>;
   }
@@ -71,8 +75,8 @@ function EstadoAuditoriaHistorial({ asig }) {
     const realizadoPor = envio?.enlaceInvitadoId ? 'Invitado' : null;
 
     return (
-      <div className="flex flex-col items-center gap-0.5">
-        <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className={containerClass}>
+        <div className={realizadaRowClass}>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs font-bold text-emerald-700">
             <span>✓</span>
             <span>Realizada</span>
@@ -96,7 +100,7 @@ function EstadoAuditoriaHistorial({ asig }) {
     const iniciaFmt = objetivoAuditoria?.iniciaEn ? fechaCorta(objetivoAuditoria.iniciaEn) : null;
     const terminaFmt = objetivoAuditoria?.terminaEn ? fechaCorta(objetivoAuditoria.terminaEn) : null;
     return (
-      <div className="flex flex-col items-center gap-0.5">
+      <div className={containerClass}>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-500">
           <span>○</span>
           <span>Aún no inicia</span>
@@ -113,7 +117,7 @@ function EstadoAuditoriaHistorial({ asig }) {
   if (status === 'PENDIENTE') {
     const esUltimoDia = texto === 'ÚLTIMO DÍA PARA REALIZAR';
     return (
-      <div className="flex flex-col items-center gap-0.5">
+      <div className={containerClass}>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
             esUltimoDia
@@ -131,7 +135,7 @@ function EstadoAuditoriaHistorial({ asig }) {
   if (status === 'REABIERTA') {
     const esUltimoDia = texto === 'ÚLTIMO DÍA PARA REALIZAR';
     return (
-      <div className="flex flex-col items-center gap-0.5">
+      <div className={containerClass}>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">
           <span>↻</span>
           <span>{esUltimoDia ? 'Último día' : 'Reabierta · vencida'}</span>
@@ -143,7 +147,7 @@ function EstadoAuditoriaHistorial({ asig }) {
   if (status === 'VENCIDA') {
     const esUltimoDia = texto === 'ÚLTIMO DÍA PARA REALIZAR';
     return (
-      <div className="flex flex-col items-center gap-0.5">
+      <div className={containerClass}>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">
           <span>!</span>
           <span>{esUltimoDia ? 'Último día' : 'Atrasada'}</span>
@@ -154,7 +158,7 @@ function EstadoAuditoriaHistorial({ asig }) {
 
   if (status === 'CERRADA' || !infoPeriodo?.realizable) {
     return (
-      <div className="flex flex-col items-center gap-0.5">
+      <div className={containerClass}>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50/70 px-2.5 py-1 text-xs font-bold text-rose-700">
           <span>✕</span>
           <span>No realizada</span>
@@ -167,7 +171,7 @@ function EstadoAuditoriaHistorial({ asig }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-0.5">
+    <div className={containerClass}>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
         <span>•</span>
         <span>{texto}</span>
@@ -402,13 +406,13 @@ export function HistorialAuditoriasPage() {
                 <div className="space-y-3 p-4 md:hidden border-b border-slate-100 last:border-0">
                   <h3 className="text-sm font-black uppercase text-slate-900">{nombre}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">1er Periodo</p>
-                      <EstadoAuditoriaHistorial asig={p1} />
+                      <EstadoAuditoriaHistorial asig={p1} align="start" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">2do Periodo</p>
-                      <EstadoAuditoriaHistorial asig={p2} />
+                      <EstadoAuditoriaHistorial asig={p2} align="start" />
                     </div>
                   </div>
                 </div>
