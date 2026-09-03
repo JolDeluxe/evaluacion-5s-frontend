@@ -24,13 +24,16 @@ export function ResultadoAreaPage() {
 
   return (
     <section className="space-y-4">
-      <div className="relative flex w-full items-center justify-center md:justify-between">
-        <ResultadoBackLink
-          fallbackRoute={`/resultados/areas?mes=${mes}`}
-          defaultLabel="Volver a Áreas"
-          className="absolute left-0 md:static"
-        />
-        <SelectorMes value={mes} onChange={handleMonthChange} />
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
+        <div>
+          <ResultadoBackLink
+            fallbackRoute={`/resultados/areas?mes=${mes}`}
+            defaultLabel="Volver a Áreas"
+          />
+        </div>
+        <div className="w-full md:w-auto">
+          <SelectorMes value={mes} onChange={handleMonthChange} />
+        </div>
       </div>
 
       {loading ? (
