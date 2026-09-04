@@ -135,13 +135,94 @@ function MobileRequired({
   );
 }
 
+function BloqueoPeriodoAnteriorState({ periodoAnteriorData, onBack, onNavigateAnterior }) {
+  const { areaNombre, mesEtiqueta, periodo, asignacionId, totalPendientes = 1, pendientes = [], periodoAnterior } = periodoAnteriorData || {};
+  const etiqueta = periodoAnterior?.etiqueta || mesEtiqueta || 'Periodo anterior';
+  const numPeriodo = periodoAnterior?.periodo || periodo || 1;
+  const periodoTexto = numPeriodo === 1 ? '1er Periodo' : numPeriodo === 2 ? '2do Periodo' : `Periodo ${numPeriodo}`;
+
+  const listaPendientes = pendientes.length > 0
+    ? pendientes
+    : (areaNombre ? [{ asignacionId, areaNombre, estado: 'PENDIENTE' }] : []);
+
+  return (
+    <section className="flex min-h-dvh items-center justify-center bg-app-surface p-6">
+      <Card className="w-full max-w-lg border-white/80 bg-white/80 shadow-2xl shadow-slate-950/8 backdrop-blur-2xl">
+        <CardBody className="space-y-6 p-6 sm:p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100/80 text-amber-600 border border-amber-200/60 shadow-sm">
+            <Icon name="lock" size="xl" />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">
+              AUDITORÍAS PENDIENTES DEL PERIODO ANTERIOR
+            </p>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-950">
+              Primero termina tus auditorías del periodo anterior
+            </h1>
+            <p className="text-xs sm:text-sm font-semibold leading-relaxed text-slate-600">
+              {totalPendientes === 1
+                ? 'Tienes 1 auditoría pendiente del periodo anterior que debes terminar antes de iniciar las del periodo actual.'
+                : `Tienes ${totalPendientes} auditorías pendientes del periodo anterior (${etiqueta} · ${periodoTexto}) que debes terminar antes de iniciar las del periodo actual.`}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 text-left space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200/60 pb-2">
+              {etiqueta} · {periodoTexto} ({totalPendientes} pendiente{totalPendientes !== 1 ? 's' : ''})
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {listaPendientes.map((item, idx) => (
+                <div key={item.asignacionId || idx} className="flex items-center justify-between gap-2 py-1.5 border-b border-slate-100 last:border-0">
+                  <span className="text-xs font-black uppercase text-slate-900 truncate">
+                    {item.areaNombre}
+                  </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                    item.estado === 'ATRASADA'
+                      ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                      : 'bg-amber-100 text-amber-700 border border-amber-200'
+                  }`}>
+                    {item.estado === 'ATRASADA' ? 'ATRASADA' : 'PENDIENTE'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              icon="arrow_back"
+              onClick={onBack}
+            >
+              Ir a mis auditorías
+            </Button>
+            {asignacionId && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full sm:w-auto text-slate-600"
+                icon="arrow_forward"
+                onClick={() => onNavigateAnterior(asignacionId)}
+              >
+                Ir a la auditoría pendiente
+              </Button>
+            )}
+          </div>
+        </CardBody>
+      </Card>
+    </section>
+  );
+}
+
 function ErrorState({ error, onRetry, onBack }) {
   return (
     <section className="flex min-h-dvh items-center justify-center bg-app-surface p-6">
       <Card className="w-full max-w-lg border-white/70 bg-white/80 shadow-2xl shadow-slate-950/8 backdrop-blur-2xl">
         <CardBody className="space-y-4 p-6 text-center">
           <Icon name="error" size="xl" className="mx-auto text-red-600" />
-          <h1 className="text-2xl font-black text-slate-950">No se pudo cargar la auditoria</h1>
+          <h1 className="text-2xl font-black text-slate-950">No se pudo cargar la auditoría</h1>
           <p className="text-sm font-semibold leading-6 text-slate-600">{error}</p>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="ghost" icon="arrow_back" onClick={onBack}>Volver</Button>
@@ -160,10 +241,10 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
   const auth = useAuth();
   const { user } = auth;
   const token = tokenProp ?? params.token;
-  const [state, setState] = useState({ status: 'loading', contexto: null, error: null });
+  const [state, setState] = useState({ status: 'loading', contexto: null, error: null, periodoAnteriorData: null });
 
   const cargar = useCallback(async () => {
-    setState((actual) => ({ ...actual, status: 'loading', error: null }));
+    setState((actual) => ({ ...actual, status: 'loading', error: null, periodoAnteriorData: null }));
     try {
       const datos = modo === 'invitado'
         ? await auditoriasApi.obtenerContextoInvitado(token)
@@ -172,14 +253,36 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
         status: 'ready',
         contexto: normalizarContextoAuditoria(datos, modo),
         error: null,
+        periodoAnteriorData: null,
       });
     } catch (error) {
+      if (error?.codigo === 'PERIODO_ANTERIOR_PENDIENTE' || error?.codigo === 'AUDITORIAS_PERIODO_ANTERIOR_PENDIENTES') {
+        const errData = error.data?.error || {};
+        const periodoAnteriorInfo = errData.periodoAnterior || errData;
+        const totalPendientes = errData.totalPendientes || (Array.isArray(errData.pendientes) ? errData.pendientes.length : 1);
+        const pendientes = errData.pendientes || [];
+
+        setState({
+          status: 'bloqueado_periodo_anterior',
+          contexto: null,
+          error: error.message,
+          periodoAnteriorData: {
+            ...periodoAnteriorInfo,
+            totalPendientes,
+            pendientes,
+            asignacionId: errData.asignacionId || periodoAnteriorInfo.asignacionId || pendientes[0]?.asignacionId || null,
+          },
+        });
+        return;
+      }
+
       setState({
         status: 'error',
         contexto: null,
         error: error?.isNetworkError
-          ? 'No hay conexion con el servidor. Revisa la red y reintenta.'
-          : error?.message || 'La auditoria no esta disponible.',
+          ? 'No hay conexión con el servidor. Revisa la red y reintenta.'
+          : error?.message || 'La auditoría no está disponible.',
+        periodoAnterior: null,
       });
     }
   }, [modo, params.id, token]);
@@ -199,6 +302,16 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
       <main className="flex min-h-dvh items-center justify-center bg-app-surface">
         <Spinner label="Cargando auditoria..." />
       </main>
+    );
+  }
+
+  if (state.status === 'bloqueado_periodo_anterior') {
+    return (
+      <BloqueoPeriodoAnteriorState
+        periodoAnteriorData={state.periodoAnteriorData}
+        onBack={() => navigate(modo === 'invitado' ? '/invitado' : '/mis-auditorias')}
+        onNavigateAnterior={(asigId) => navigate(`/auditorias/${asigId}/realizar`)}
+      />
     );
   }
 

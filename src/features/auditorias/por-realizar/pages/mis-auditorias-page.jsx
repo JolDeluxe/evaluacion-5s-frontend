@@ -376,15 +376,51 @@ export function MisAuditoriasPage() {
                         }`}
                       >
                         <div className="p-4">
-                          <h3 className="text-base font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
+                              <p className="mt-0.5 text-xs font-semibold text-slate-500">Vence: {formatearFechaCorta(asig.venceEn)}</p>
+                            </div>
+
+                            {borrador && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
+                                <Icon name="edit_note" size="12px" />
+                                {borrador.respondidas} de {borrador.total}
+                              </span>
+                            )}
+                          </div>
+
                           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${enCurso ? 'text-amber-600' : 'text-slate-500'}`}>
-                              <span className={`h-1.5 w-1.5 rounded-full ${enCurso ? 'bg-amber-500' : 'bg-slate-400'}`} />
-                              {enCurso ? 'En curso' : 'Pendiente'}
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                              asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : 'text-slate-500'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${
+                                asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : 'bg-slate-400'
+                              }`} />
+                              {asig.bloqueoPeriodoAnterior
+                                ? 'Bloqueada por periodo anterior'
+                                : enCurso
+                                ? 'En curso'
+                                : 'Pendiente'}
                             </span>
                           </div>
 
-                          {ind && (
+                          {asig.bloqueoPeriodoAnterior ? (
+                            <div className="mt-2.5 rounded-xl border border-amber-200/70 bg-amber-50/60 p-2.5 text-xs text-amber-900 font-semibold flex items-center justify-between gap-2">
+                              <span className="flex items-center gap-1.5">
+                                <Icon name="lock" size="14px" className="text-amber-600 shrink-0" />
+                                <span>Primero termina {asig.bloqueoPeriodoAnterior.periodo === 1 ? 'P1' : 'P2'} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
+                              </span>
+                              {asig.bloqueoPeriodoAnterior.asignacionId && (
+                                <Link
+                                  to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
+                                  className="inline-flex items-center gap-1 text-[11px] font-black text-amber-800 underline hover:text-amber-950 shrink-0"
+                                >
+                                  Ir a P{asig.bloqueoPeriodoAnterior.periodo}
+                                </Link>
+                              )}
+                            </div>
+                          ) : ind && (
                             <div className="mt-3">
                               <span
                                 className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${
@@ -413,17 +449,37 @@ export function MisAuditoriasPage() {
                               Compartir
                             </button>
 
-                            <Link
-                              to={`/auditorias/${asig.id}/realizar`}
-                              className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
-                                enCurso
-                                  ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
-                                  : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
-                              }`}
-                            >
-                              {enCurso ? 'Continuar' : 'Iniciar'}
-                              <Icon name="arrow_forward" size="14px" />
-                            </Link>
+                            {asig.bloqueoPeriodoAnterior ? (
+                              asig.bloqueoPeriodoAnterior.asignacionId ? (
+                                <Link
+                                  to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
+                                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3.5 text-xs font-black text-amber-800 backdrop-blur-md transition hover:bg-amber-100/80"
+                                >
+                                  Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}
+                                  <Icon name="arrow_forward" size="14px" />
+                                </Link>
+                              ) : (
+                                <Link
+                                  to={`/auditorias/${asig.id}/realizar`}
+                                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-xs font-black text-slate-600 backdrop-blur-md"
+                                >
+                                  Pendiente anterior
+                                  <Icon name="lock" size="14px" />
+                                </Link>
+                              )
+                            ) : (
+                              <Link
+                                to={`/auditorias/${asig.id}/realizar`}
+                                className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
+                                  enCurso
+                                    ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                                    : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                                }`}
+                              >
+                                {enCurso ? 'Continuar' : 'Iniciar'}
+                                <Icon name="arrow_forward" size="14px" />
+                              </Link>
+                            )}
                           </div>
                         )}
                       </div>
@@ -433,7 +489,7 @@ export function MisAuditoriasPage() {
 
                 {/* VISTA DESKTOP */}
                 <div className="hidden overflow-hidden rounded-2xl border border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl md:block">
-                  <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_212px] items-center gap-5 border-b border-slate-100/90 bg-white/45 px-6 py-3">
+                  <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-100/90 bg-white/45 px-6 py-3">
                     <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Área</span>
                     <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Disponibilidad</span>
                     <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Vence</span>
@@ -450,22 +506,35 @@ export function MisAuditoriasPage() {
                       return (
                         <div
                           key={asig.id}
-                          className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_212px] items-center gap-5 px-6 py-4 transition-colors ${
-                            enCurso ? 'bg-amber-50/10 hover:bg-amber-50/30' : 'hover:bg-slate-50/70'
+                          className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
+                            asig.bloqueoPeriodoAnterior ? 'bg-slate-50/40' : enCurso ? 'bg-amber-50/10 hover:bg-amber-50/30' : 'hover:bg-slate-50/70'
                           }`}
                         >
                           <div className="min-w-0">
                             <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
                             <div className="mt-1 flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${enCurso ? 'text-amber-600' : 'text-slate-500'}`}>
-                                <span className={`h-1.5 w-1.5 rounded-full ${enCurso ? 'bg-amber-500' : 'bg-slate-400'}`} />
-                                {enCurso ? 'En curso' : 'Pendiente'}
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                                asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : 'text-slate-500'
+                              }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${
+                                  asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : 'bg-slate-400'
+                                }`} />
+                                {asig.bloqueoPeriodoAnterior
+                                  ? 'Bloqueada por periodo anterior'
+                                  : enCurso
+                                  ? 'En curso'
+                                  : 'Pendiente'}
                               </span>
                             </div>
                           </div>
 
                           <div className="min-w-0">
-                            {ind && (
+                            {asig.bloqueoPeriodoAnterior ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-3 py-1 text-xs font-black uppercase text-amber-800 tracking-wide">
+                                <Icon name="lock" size="13px" className="shrink-0 text-amber-600" />
+                                <span className="truncate">Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
+                              </span>
+                            ) : ind && (
                               <span
                                 className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${
                                   ind.color === 'rojo'
@@ -486,27 +555,48 @@ export function MisAuditoriasPage() {
                           </div>
 
                           {canExecuteAudit ? (
-                            <div className="grid grid-cols-[88px_112px] items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => setAsignacionCompartir(asig)}
-                                className="inline-flex h-8 w-[88px] items-center justify-center gap-1.5 rounded-lg px-1.5 text-[11px] font-bold text-slate-400 hover:bg-white/60 hover:text-slate-600"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/60 hover:text-slate-600"
+                                title="Compartir"
                               >
-                                <Icon name="share" size="13px" />
-                                Compartir
+                                <Icon name="share" size="15px" />
                               </button>
 
-                              <Link
-                                to={`/auditorias/${asig.id}/realizar`}
-                                className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
-                                  enCurso
-                                    ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
-                                    : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
-                                }`}
-                              >
-                                {enCurso ? 'Continuar' : 'Iniciar'}
-                                <Icon name="arrow_forward" size="14px" />
-                              </Link>
+                              {asig.bloqueoPeriodoAnterior ? (
+                                asig.bloqueoPeriodoAnterior.asignacionId ? (
+                                  <Link
+                                    to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
+                                    className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 text-xs font-black text-amber-800 backdrop-blur-md transition hover:bg-amber-100/80"
+                                    title={`Primero termina P${asig.bloqueoPeriodoAnterior.periodo} de ${asig.bloqueoPeriodoAnterior.mesEtiqueta}`}
+                                  >
+                                    Primero termina P{asig.bloqueoPeriodoAnterior.periodo}
+                                    <Icon name="arrow_forward" size="14px" />
+                                  </Link>
+                                ) : (
+                                  <Link
+                                    to={`/auditorias/${asig.id}/realizar`}
+                                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3 text-xs font-black text-slate-600 backdrop-blur-md"
+                                  >
+                                    Bloqueada
+                                    <Icon name="lock" size="14px" />
+                                  </Link>
+                                )
+                              ) : (
+                                <Link
+                                  to={`/auditorias/${asig.id}/realizar`}
+                                  className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
+                                    enCurso
+                                      ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                                      : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                                  }`}
+                                >
+                                  {enCurso ? 'Continuar' : 'Iniciar'}
+                                  <Icon name="arrow_forward" size="14px" />
+                                </Link>
+                              )}
                             </div>
                           ) : (
                             <div />
