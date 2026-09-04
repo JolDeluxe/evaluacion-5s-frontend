@@ -112,16 +112,14 @@ export function CompactCriterio5S({
             onChange={onChangeHallazgo}
             error={errores?.hallazgo}
           />
-          {Boolean(reglasAplicadas?.exigeEvidencia) && (
-            <EvidenciaField
-              evidencias={respuesta?.evidencias ?? []}
-              onChange={onChangeEvidencias}
-              modo={modo}
-              token={token}
-              preview={preview}
-              error={errores?.evidencia}
-            />
-          )}
+          <EvidenciaField
+            evidencias={respuesta?.evidencias ?? []}
+            onChange={onChangeEvidencias}
+            modo={modo}
+            token={token}
+            preview={preview}
+            error={errores?.evidencia}
+          />
         </div>
       )}
     </article>
