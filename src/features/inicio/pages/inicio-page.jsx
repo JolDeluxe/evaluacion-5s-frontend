@@ -48,10 +48,11 @@ export function InicioPage() {
         <ResultadoGlobalCard resultadoGlobal={data.resultadoGlobal} />
       )}
 
-      {/* 3. Auditorías del Mes (Métricas) */}
-      {data?.resumen && (
+      {/* 3. Auditorías del Mes (Métricas por Periodo) */}
+      {(data?.periodosResumen || data?.resumen) && (
         <ResumenTarjetasMes
-          resumen={data.resumen}
+          periodosResumen={data?.periodosResumen}
+          resumen={data?.resumen}
           esAdmin={esAdmin}
           etiquetaMesControl={data.etiquetaMesControl}
         />
