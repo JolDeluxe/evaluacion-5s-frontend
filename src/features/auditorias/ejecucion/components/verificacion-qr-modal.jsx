@@ -191,28 +191,29 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
             </div>
           )}
 
-          {modoEscaneo ? (
-            <div className="space-y-3">
-              <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-indigo-300 bg-slate-950 p-1 text-white shadow-inner">
-                <div id="reader-qr-area" className="w-full min-h-[260px] rounded-xl overflow-hidden bg-black flex items-center justify-center">
-                  {cargandoCamara && (
-                    <div className="flex flex-col items-center gap-2 p-6 text-slate-300">
-                      <Icon name="sync" className="animate-spin text-indigo-400" size="28px" />
-                      <span className="text-xs font-semibold">Solicitando acceso a la cámara...</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <p className="text-center text-xs font-semibold text-slate-500">
-                Apunta la cámara al código QR del área.
-              </p>
-              <div className="flex justify-center pt-1">
-                <Button variant="cancelar" size="sm" onClick={handleCancelarEscaneo} type="button">
-                  Cancelar escaneo
-                </Button>
+          {/* El contenedor DOM del lector QR se mantiene permanentemente montado para evitar que html5-qrcode rompa el árbol de React al limpiar/manipular nodos del DOM */}
+          <div className={`space-y-3 ${modoEscaneo ? 'block' : 'hidden'}`}>
+            <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-indigo-300 bg-slate-950 p-1 text-white shadow-inner">
+              <div id="reader-qr-area" className="w-full min-h-[260px] rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                {cargandoCamara && (
+                  <div className="flex flex-col items-center gap-2 p-6 text-slate-300">
+                    <Icon name="sync" className="animate-spin text-indigo-400" size="28px" />
+                    <span className="text-xs font-semibold">Solicitando acceso a la cámara...</span>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
+            <p className="text-center text-xs font-semibold text-slate-500">
+              Apunta la cámara al código QR del área.
+            </p>
+            <div className="flex justify-center pt-1">
+              <Button variant="cancelar" size="sm" onClick={handleCancelarEscaneo} type="button">
+                Cancelar escaneo
+              </Button>
+            </div>
+          </div>
+
+          {!modoEscaneo && (
             <form onSubmit={handleFormSubmit} className="space-y-4">
               <div className="flex flex-col gap-2">
                 <Button
