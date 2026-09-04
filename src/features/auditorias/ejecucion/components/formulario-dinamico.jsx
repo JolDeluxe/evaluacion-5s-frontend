@@ -264,9 +264,11 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   };
 
   const seleccionarOpcion = (criterioId, opcion) => {
+    const cumple = opcion.valor === 'SI' || Number(opcion.valorPuntaje ?? 0) > 0;
     actualizarRespuesta(criterioId, {
       opcionFormularioIds: [opcion.id],
-      cumple: opcion.valor === 'SI' || Number(opcion.valorPuntaje ?? 0) > 0,
+      cumple,
+      ...(cumple ? { hallazgo: null, evidencias: [] } : {}),
     });
   };
 
