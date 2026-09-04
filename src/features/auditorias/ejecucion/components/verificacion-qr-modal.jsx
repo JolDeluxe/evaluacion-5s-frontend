@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { BrowserQRCodeReader } from '@zxing/browser';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/form/input';
@@ -8,50 +8,47 @@ import { Icon } from '@/components/ui/icon';
 import { parseAreaQrPayload, normalizeAreaCode } from '@/features/administracion/areas/utils/area-qr-payload';
 
 export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
-  const [modoEscaneo, setModoEscaneo] = useState(false);
+  // El modo por defecto siempre es 'scanner' al abrir
+  const [modo, setModo] = useState('scanner'); // 'scanner' | 'manual'
   const [codigoInput, setCodigoInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [verificando, setVerificando] = useState(false);
   const [cargandoCamara, setCargandoCamara] = useState(false);
 
-  const html5QrCodeRef = useRef(null);
+  const videoRef = useRef(null);
+  const controlsRef = useRef(null);
+  const streamRef = useRef(null);
   const estaProcesandoRef = useRef(false);
+  const modalAbiertoRef = useRef(false);
 
-  // Detener la cámara de manera limpia
-  const detenerCamara = useCallback(async () => {
-    if (html5QrCodeRef.current) {
+  modalAbiertoRef.current = isOpen;
+
+  // Función de detención idempotente que NUNCA manipula el DOM de React
+  const detenerCamara = useCallback(() => {
+    if (controlsRef.current) {
       try {
-        if (html5QrCodeRef.current.isScanning) {
-          await html5QrCodeRef.current.stop();
-        }
-        await html5QrCodeRef.current.clear();
+        controlsRef.current.stop();
       } catch (err) {
-        console.error('Error al detener html5Qrcode:', err);
-      } finally {
-        html5QrCodeRef.current = null;
-        setCargandoCamara(false);
+        console.error('Error al detener controles ZXing:', err);
       }
+      controlsRef.current = null;
     }
+
+    if (streamRef.current) {
+      try {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (err) {
+        console.error('Error al detener tracks de cámara:', err);
+      }
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setCargandoCamara(false);
   }, []);
-
-  // Reiniciar estado cuando el modal se abre/cierra
-  useEffect(() => {
-    if (!isOpen) {
-      detenerCamara();
-      setModoEscaneo(false);
-      setCodigoInput('');
-      setErrorMsg('');
-      setVerificando(false);
-      estaProcesandoRef.current = false;
-    }
-  }, [isOpen, detenerCamara]);
-
-  // Limpieza al desmontar
-  useEffect(() => {
-    return () => {
-      detenerCamara();
-    };
-  }, [detenerCamara]);
 
   // Validación centralizada compartida entre cámara e input manual
   const ejecutarValidacion = useCallback((rawInput) => {
@@ -77,77 +74,101 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
 
     // Código válido y coincidente
     setVerificando(true);
-    detenerCamara().then(() => {
-      onConfirm(codigoExtraido);
-    }).catch(() => {
-      onConfirm(codigoExtraido);
-    });
+    detenerCamara();
+    onConfirm(codigoExtraido);
   }, [area, onConfirm, detenerCamara]);
 
-  // Iniciar scanner QR con html5-qrcode
-  const iniciarScanner = async () => {
+  // Iniciar scanner QR con ZXing utilizando videoRef controlado por React
+  const iniciarScanner = useCallback(async () => {
+    detenerCamara();
     setErrorMsg('');
-    setModoEscaneo(true);
     setCargandoCamara(true);
     estaProcesandoRef.current = false;
 
-    // Asegurar que el elemento DOM existe
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Esperar a que el elemento video esté montado si acaba de cambiar de modo
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const elementId = 'reader-qr-area';
-    if (!document.getElementById(elementId)) {
-      setErrorMsg('No se encontró el contenedor de cámara.');
+    if (!modalAbiertoRef.current || !videoRef.current) {
       setCargandoCamara(false);
       return;
     }
 
     try {
-      if (html5QrCodeRef.current) {
-        await detenerCamara();
-      }
-
-      const scanner = new Html5Qrcode(elementId);
-      html5QrCodeRef.current = scanner;
-
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
+      const codeReader = new BrowserQRCodeReader();
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+        },
       };
 
-      await scanner.start(
-        { facingMode: 'environment' },
-        config,
-        (decodedText) => {
-          if (!estaProcesandoRef.current) {
-            ejecutarValidacion(decodedText);
+      // Iniciar la cámara directamente sobre el elemento HTMLVideoElement ref de React
+      const controls = await codeReader.decodeFromConstraints(
+        constraints,
+        videoRef.current,
+        (result) => {
+          if (result && !estaProcesandoRef.current && modalAbiertoRef.current) {
+            ejecutarValidacion(result.getText());
           }
-        },
-        () => {
-          // Errores por frame (ignorar)
         }
       );
 
+      // Si el modal o modo cambiaron mientras solicitaba la cámara (race condition), detener de inmediato
+      if (!modalAbiertoRef.current) {
+        controls.stop();
+        return;
+      }
+
+      controlsRef.current = controls;
+      if (videoRef.current && videoRef.current.srcObject) {
+        streamRef.current = videoRef.current.srcObject;
+      }
       setCargandoCamara(false);
     } catch (err) {
-      console.error('Error al iniciar cámara:', err);
+      console.error('Error de acceso a cámara:', err);
+      detenerCamara();
       let msg = 'No se pudo acceder a la cámara. Puedes habilitar el permiso del navegador o escribir el código del área.';
       if (err?.name === 'NotAllowedError' || err?.toString()?.includes('Permission')) {
         msg = 'No se pudo acceder a la cámara. Puedes habilitar el permiso del navegador o escribir el código del área.';
       } else if (err?.name === 'NotFoundError' || err?.toString()?.includes('DevicesNotFound')) {
-        msg = 'No se detectó ninguna cámara en este dispositivo. Por favor utiliza el código manual.';
+        msg = 'No se detectó ninguna cámara en este dispositivo. Ingresa el código del área.';
       }
       setErrorMsg(msg);
-      await detenerCamara();
-      setModoEscaneo(false);
+      // Fallback automático a modo manual si falla la cámara
+      setModo('manual');
     }
-  };
+  }, [detenerCamara, ejecutarValidacion]);
 
-  const handleCancelarEscaneo = async () => {
-    await detenerCamara();
-    setModoEscaneo(false);
+  // Efecto principal al abrir o cerrar el modal
+  useEffect(() => {
+    if (isOpen) {
+      setModo('scanner');
+      setCodigoInput('');
+      setErrorMsg('');
+      setVerificando(false);
+      estaProcesandoRef.current = false;
+      iniciarScanner();
+    } else {
+      detenerCamara();
+    }
+
+    return () => {
+      detenerCamara();
+    };
+  }, [isOpen, iniciarScanner, detenerCamara]);
+
+  // Manejadores de cambio de modo
+  const cambiarAMandoManual = () => {
+    detenerCamara();
+    setModo('manual');
     setErrorMsg('');
     estaProcesandoRef.current = false;
+  };
+
+  const cambiarAModoScanner = () => {
+    setModo('scanner');
+    setErrorMsg('');
+    estaProcesandoRef.current = false;
+    iniciarScanner();
   };
 
   const handleFormSubmit = (e) => {
@@ -177,7 +198,9 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
               <span>Confirma que estás en el área correcta antes de finalizar.</span>
             </div>
             <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              Escanea el código QR del área o escribe el código alfanumérico.
+              {modo === 'scanner'
+                ? 'Apunta la cámara al código QR colocado en el departamento.'
+                : 'Escribe manualmente el código alfanumérico impreso en el área.'}
             </p>
           </div>
 
@@ -191,61 +214,80 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
             </div>
           )}
 
-          {/* El contenedor DOM del lector QR se mantiene permanentemente montado para evitar que html5-qrcode rompa el árbol de React al limpiar/manipular nodos del DOM */}
-          <div className={`space-y-3 ${modoEscaneo ? 'block' : 'hidden'}`}>
-            <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-indigo-300 bg-slate-950 p-1 text-white shadow-inner">
-              <div id="reader-qr-area" className="w-full min-h-[260px] rounded-xl overflow-hidden bg-black flex items-center justify-center">
+          {modo === 'scanner' ? (
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-indigo-500/30 bg-slate-950 shadow-inner min-h-[260px] flex items-center justify-center">
+                {/* Elemento VIDEO estrictamente controlado por React */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover max-h-[300px]"
+                />
+
                 {cargandoCamara && (
-                  <div className="flex flex-col items-center gap-2 p-6 text-slate-300">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/80 p-6 text-slate-300">
                     <Icon name="sync" className="animate-spin text-indigo-400" size="28px" />
-                    <span className="text-xs font-semibold">Solicitando acceso a la cámara...</span>
+                    <span className="text-xs font-semibold">Solicitando cámara...</span>
+                  </div>
+                )}
+
+                {/* Marco guía visual de escaneo */}
+                {!cargandoCamara && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="w-48 h-48 border-2 border-indigo-400/80 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.4)] relative">
+                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-indigo-400 rounded-tl"></div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-indigo-400 rounded-tr"></div>
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-indigo-400 rounded-bl"></div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-indigo-400 rounded-br"></div>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-            <p className="text-center text-xs font-semibold text-slate-500">
-              Apunta la cámara al código QR del área.
-            </p>
-            <div className="flex justify-center pt-1">
-              <Button variant="cancelar" size="sm" onClick={handleCancelarEscaneo} type="button">
-                Cancelar escaneo
-              </Button>
-            </div>
-          </div>
 
-          {!modoEscaneo && (
-            <form onSubmit={handleFormSubmit} className="space-y-4">
-              <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-medium text-slate-500">
+                  ¿No puedes escanear el QR?
+                </span>
                 <Button
-                  variant="secundario"
-                  size="lg"
+                  variant="ghost"
+                  size="sm"
                   type="button"
-                  onClick={iniciarScanner}
-                  className="w-full h-12 flex items-center justify-center gap-2 text-sm font-bold shadow-sm"
+                  onClick={cambiarAMandoManual}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5"
+                  aria-label="Escribir código manualmente"
                 >
-                  <Icon name="qr_code_scanner" size="22px" className="text-indigo-600" />
-                  <span>Escanear QR</span>
+                  <Icon name="keyboard" size="18px" />
+                  <span>Escribir código</span>
                 </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div>
+                <Label required>Código del área</Label>
+                <Input
+                  type="text"
+                  placeholder="Ej. YCE5-K78Y"
+                  value={codigoInput}
+                  onChange={(e) => setCodigoInput(e.target.value)}
+                  className="font-mono uppercase text-center tracking-widest text-base font-bold h-12"
+                  autoFocus
+                />
+              </div>
 
-                <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-slate-200"></div>
-                  <span className="flex-shrink mx-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    o escribe el código
-                  </span>
-                  <div className="flex-grow border-t border-slate-200"></div>
-                </div>
-
-                <div>
-                  <Label required>Código del área</Label>
-                  <Input
-                    type="text"
-                    placeholder="Ej. YCE5-K78Y"
-                    value={codigoInput}
-                    onChange={(e) => setCodigoInput(e.target.value)}
-                    className="font-mono uppercase text-center tracking-widest text-base font-bold h-11"
-                    autoFocus
-                  />
-                </div>
+              <div className="flex items-center justify-between pt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={cambiarAModoScanner}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5"
+                >
+                  <Icon name="qr_code_scanner" size="18px" />
+                  <span>Escanear QR con cámara</span>
+                </Button>
               </div>
 
               <div className="hidden">
@@ -260,7 +302,7 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
         <Button variant="cancelar" size="sm" onClick={() => { detenerCamara(); onClose(); }} type="button">
           Cancelar
         </Button>
-        {!modoEscaneo && (
+        {modo === 'manual' && (
           <Button
             variant="primario"
             size="sm"
@@ -277,4 +319,5 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
     </Modal>
   );
 }
+
 

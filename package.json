@@ -14,10 +14,11 @@
   "dependencies": {
     "@dnd-kit/helpers": "^0.1.2",
     "@dnd-kit/react": "^0.1.2",
+    "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
     "clsx": "^2.1.1",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
-    "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.475.0",
