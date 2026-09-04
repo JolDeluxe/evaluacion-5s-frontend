@@ -66,9 +66,9 @@ function ResponsablesList({ usuariosArea }) {
 function AreaCard({ area, isSelected, onToggleSelect, onVerQr, onVerDetalle, onEditar, onToggleEstado }) {
   const responsables = area.usuariosArea ?? [];
   return (
-    <div className={cn("rounded-xl border bg-white p-3.5 shadow-sm space-y-3 transition-colors", isSelected ? "border-marca-primario bg-slate-50/50 ring-1 ring-marca-primario" : "border-slate-200")}>
+    <div className={cn("rounded-2xl border p-4 shadow-xl backdrop-blur-xl space-y-3 transition-all", isSelected ? "border-marca-primario bg-white/95 ring-2 ring-marca-primario/40 shadow-2xl" : "border-white/70 bg-white/80")}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <input
             type="checkbox"
             checked={isSelected}

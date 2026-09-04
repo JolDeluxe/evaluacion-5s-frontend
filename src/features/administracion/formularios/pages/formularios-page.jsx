@@ -132,7 +132,7 @@ export function FormulariosPage() {
       </div>
 
       {/* Filtros */}
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm space-y-3">
+      <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-4 shadow-xl backdrop-blur-xl space-y-3">
         <div className="relative">
           <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
             <Icon name="search" size="18px" />

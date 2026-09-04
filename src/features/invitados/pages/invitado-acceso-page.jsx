@@ -54,7 +54,7 @@ export function InvitadoAccesoPage() {
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-app-surface px-5 py-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(30,132,115,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(244,158,72,0.16),transparent_24%),linear-gradient(135deg,#f8fafc,#eef4f1_45%,#fff7ed)]" />
-      <Card className="relative z-10 w-full max-w-lg border-white/70 bg-white/75 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl">
+      <Card className="relative z-10 w-full max-w-lg border-white/70 bg-white/75 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
         <CardBody className="space-y-6 p-6 sm:p-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-marca-primario text-white shadow-lg shadow-marca-primario/20">

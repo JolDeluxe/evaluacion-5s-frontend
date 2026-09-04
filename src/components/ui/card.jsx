@@ -19,7 +19,7 @@ const paddings = {
 export const Card = ({ children, className, variant = 'surface', ...props }) => (
   <div
     className={cn(
-      'overflow-hidden rounded-lg border',
+      'overflow-hidden rounded-2xl border sm:rounded-xl',
       variants[variant] || variants.surface,
       className,
     )}

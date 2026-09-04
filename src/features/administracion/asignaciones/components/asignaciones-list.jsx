@@ -7,13 +7,13 @@ function MobileCard({ fila, onEdit }) {
   const asignado = fila.estado === 'ASIGNADO';
 
   return (
-    <div className="rounded-2xl border border-app-border bg-white p-4 shadow-sm space-y-3">
+    <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-xl backdrop-blur-xl space-y-3">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-black uppercase text-slate-900 leading-snug">{fila.area.nombre}</h3>
         <EstadoBadge estado={fila.estado} />
       </div>
 
-      <div className="space-y-2 pt-1 border-t border-slate-100">
+      <div className="space-y-2 pt-1 border-t border-slate-100/80">
         <div>
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Auditor del mes</p>
           <p className="text-sm font-bold text-slate-800">{fila.auditorMensual?.nombre ?? 'Sin auditor'}</p>
@@ -27,7 +27,7 @@ function MobileCard({ fila, onEdit }) {
 
       <div className="pt-2">
         <Button
-          className="w-full"
+          className="w-full rounded-xl"
           variant={asignado ? 'outline' : 'default'}
           size="sm"
           icon="edit"

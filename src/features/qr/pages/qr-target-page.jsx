@@ -103,9 +103,10 @@ export function QrTargetPage() {
   // Render si no hay código en URL (Búsqueda manual)
   if (!codigoParam) {
     return (
-      <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
-          <CardBody className="p-6 space-y-5">
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-app-surface p-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(30,132,115,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(244,158,72,0.16),transparent_24%),linear-gradient(135deg,#f8fafc,#eef4f1_45%,#fff7ed)]" />
+        <Card className="relative z-10 w-full max-w-md border-white/70 bg-white/80 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
+          <CardBody className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-2">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-marca-primario/10 text-marca-primario">
                 <Icon name="qr_code_scanner" size="24px" />
@@ -156,7 +157,7 @@ export function QrTargetPage() {
   // Estado cargando
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <main className="relative flex min-h-dvh items-center justify-center bg-app-surface p-5">
         <div className="flex flex-col items-center gap-3 text-center">
           <Spinner size="lg" className="text-marca-primario" />
           <p className="text-sm font-bold text-slate-600 uppercase tracking-wide">
@@ -170,14 +171,15 @@ export function QrTargetPage() {
   // Error (Código inválido o área inactiva)
   if (error || !areaInfo) {
     return (
-      <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
+      <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-app-surface p-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(30,132,115,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(244,158,72,0.16),transparent_24%),linear-gradient(135deg,#f8fafc,#eef4f1_45%,#fff7ed)]" />
+        <Card className="relative z-10 w-full max-w-md border-white/70 bg-white/80 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
           <CardBody className="p-6 text-center space-y-4">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
               <Icon name="error_outline" size="24px" />
             </div>
             <h1 className="text-xl font-black text-slate-950">Acceso a Área</h1>
-            <p className="text-sm font-bold text-rose-700 bg-rose-50 border border-rose-100 p-3 rounded-xl">
+            <p className="text-sm font-bold text-rose-700 bg-rose-50 border border-rose-100 p-3 rounded-2xl">
               {error || 'Código de área no válido'}
             </p>
             <div className="pt-2">
@@ -201,8 +203,9 @@ export function QrTargetPage() {
     // Si tiene más de 1 asignación para esta área
     if (asignaciones.length > 1) {
       return (
-        <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
+        <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-app-surface p-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(30,132,115,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(244,158,72,0.16),transparent_24%),linear-gradient(135deg,#f8fafc,#eef4f1_45%,#fff7ed)]" />
+          <Card className="relative z-10 w-full max-w-md border-white/70 bg-white/80 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
             <CardBody className="p-6 space-y-4">
               <div className="text-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">ÁREA VERIFICADA</p>
@@ -218,14 +221,14 @@ export function QrTargetPage() {
                     key={asig.id}
                     variant="outline"
                     onClick={() => navigate(`/auditorias/${asig.id}/realizar`)}
-                    className="w-full justify-between h-auto p-3.5 text-left border-slate-200 hover:border-marca-primario"
+                    className="w-full justify-between h-auto p-3.5 text-left border-slate-200 hover:border-marca-primario rounded-2xl"
                   >
                     <div>
                       <span className="block text-xs font-black uppercase text-slate-900">
                         {asig.anio} · Mes {asig.mes} · Periodo {asig.periodo}
                       </span>
                       <span className="text-[11px] font-semibold text-slate-500">
-                        Vence: {new Date(asig.venceEn).toLocaleDateString('es-MX')}
+                        Vence: {asig.reabiertaHasta ? 'Hoy 23:59' : new Date(asig.venceEn).toLocaleDateString('es-MX')}
                       </span>
                     </div>
                     <Icon name="chevron_right" size="18px" className="text-slate-400" />
@@ -241,8 +244,9 @@ export function QrTargetPage() {
     // Si tiene 0 asignaciones realizables para esta área
     if (asignaciones.length === 0) {
       return (
-        <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
+        <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-app-surface p-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(30,132,115,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(244,158,72,0.16),transparent_24%),linear-gradient(135deg,#f8fafc,#eef4f1_45%,#fff7ed)]" />
+          <Card className="relative z-10 w-full max-w-md border-white/70 bg-white/80 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
             <CardBody className="p-6 text-center space-y-4">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
                 <Icon name="assignment_late" size="24px" />
@@ -270,8 +274,9 @@ export function QrTargetPage() {
 
   // Usuario Invitado (Sin sesión autenticada)
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-app-surface p-5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(30,132,115,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(244,158,72,0.16),transparent_24%),linear-gradient(135deg,#f8fafc,#eef4f1_45%,#fff7ed)]" />
+      <Card className="relative z-10 w-full max-w-md border-white/70 bg-white/80 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
         <CardBody className="p-6 space-y-5">
           <div className="text-center space-y-1">
             <span className="inline-block bg-emerald-100 border border-emerald-200 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">

@@ -67,7 +67,7 @@ function UsuarioCard({ usuario, onVerDetalle, onEditar, onToggleEstado }) {
   const isSuper = usuario.rol === 'SUPER_ADMIN';
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
+    <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-xl backdrop-blur-xl space-y-3">
       <div className="flex items-start justify-between gap-2" onClick={() => onVerDetalle(usuario)}>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{usuario.nombre}</h2>

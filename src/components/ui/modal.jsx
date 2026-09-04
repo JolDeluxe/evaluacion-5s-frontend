@@ -66,14 +66,16 @@ export const Modal = ({
             relative
             flex max-h-[92dvh] w-full flex-col
             overflow-hidden
-            rounded-t-lg
-            border border-white/70
-            bg-white
+            rounded-t-3xl
+            border-t border-x border-white/80
+            bg-white/95
+            backdrop-blur-xl
             shadow-2xl shadow-slate-950/20
             animate-in slide-in-from-bottom-3 duration-200
 
             sm:max-h-[90vh]
-            sm:rounded-lg
+            sm:rounded-2xl
+            sm:border
             sm:zoom-in-95
           `,
           sizes[size] || sizes.md,
@@ -81,6 +83,10 @@ export const Modal = ({
         )}
         onMouseDown={(event) => event.stopPropagation()}
       >
+        {/* Mobile handle indicator */}
+        <div className="flex justify-center pt-2.5 pb-0 sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-slate-300/80" />
+        </div>
         {React.Children.map(children, (child) => {
           if (!React.isValidElement(child)) return child;
 

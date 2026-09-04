@@ -379,7 +379,9 @@ export function MisAuditoriasPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
-                              <p className="mt-0.5 text-xs font-semibold text-slate-500">Vence: {formatearFechaCorta(asig.venceEn)}</p>
+                              <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                                Vence: {asig.reabiertaHasta ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
+                              </p>
                             </div>
 
                             {borrador && (
@@ -550,8 +552,8 @@ export function MisAuditoriasPage() {
                             )}
                           </div>
 
-                          <div className="whitespace-nowrap text-sm font-semibold text-slate-500">
-                            {formatearFecha(asig.venceEn)}
+                          <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                            {asig.reabiertaHasta ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
                           </div>
 
                           {canExecuteAudit ? (

@@ -26,6 +26,10 @@ export default defineConfig({
     },
   },
 
+  optimizeDeps: {
+    include: ['@zxing/browser', '@zxing/library'],
+  },
+
   plugins: [
     react(),
     tailwindcss(),

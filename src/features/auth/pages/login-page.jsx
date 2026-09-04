@@ -46,7 +46,7 @@ export function LoginPage() {
           </p>
         </div>
 
-        <Card className="border-white/70 bg-white/70 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl">
+        <Card className="border-white/70 bg-white/70 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
           <CardBody className="p-6 sm:p-8">
             <div className="mb-8 flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-marca-primario text-white shadow-lg shadow-marca-primario/20">
