@@ -286,33 +286,43 @@
 
 @media print {
   @page {
-    size: letter;
-    margin: 0.5in;
-  }
-
-  body {
-    background: white !important;
-    background-color: white !important;
-    color: black !important;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  #printable-area,
-  #printable-area * {
-    visibility: visible;
-  }
-
-  #printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    size: A4 portrait;
     margin: 0;
-    padding: 0;
-    background: white;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .no-print,
+  aside,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  .area-qr-print-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    background: #ffffff !important;
+  }
+
+  .area-qr-print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 }
 

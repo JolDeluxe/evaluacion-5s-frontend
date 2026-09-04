@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { useUrlState, parsePageParam } from '@/hooks/use-url-state';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
@@ -14,6 +15,7 @@ import { usuariosApi } from '@/features/administracion/usuarios/api/usuarios-api
 import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
+import { AreaQrModal } from '../components/area-qr-modal';
 import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
 
 // ---------------------------------------------------------------------------
@@ -61,14 +63,22 @@ function ResponsablesList({ usuariosArea }) {
 // Tarjeta mobile
 // ---------------------------------------------------------------------------
 
-function AreaCard({ area, onVerDetalle, onEditar, onToggleEstado }) {
+function AreaCard({ area, isSelected, onToggleSelect, onVerQr, onVerDetalle, onEditar, onToggleEstado }) {
   const responsables = area.usuariosArea ?? [];
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
-      <div className="flex items-start justify-between gap-2" onClick={() => onVerDetalle(area)}>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{area.nombre}</h2>
-          <EstadoAreaIndicator activo={area.activo} tipo={area.tipo} />
+    <div className={cn("rounded-xl border bg-white p-3.5 shadow-sm space-y-3 transition-colors", isSelected ? "border-marca-primario bg-slate-50/50 ring-1 ring-marca-primario" : "border-slate-200")}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(area.id)}
+            className="h-4 w-4 rounded border-slate-300 text-marca-primario focus:ring-marca-primario shrink-0"
+          />
+          <div className="min-w-0 flex-1" onClick={() => onVerDetalle(area)}>
+            <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{area.nombre}</h2>
+            <EstadoAreaIndicator activo={area.activo} tipo={area.tipo} />
+          </div>
         </div>
       </div>
 
@@ -89,6 +99,16 @@ function AreaCard({ area, onVerDetalle, onEditar, onToggleEstado }) {
         </div>
 
         <div className="flex items-center gap-1 shrink-0 pt-3">
+          <Button
+            type="button"
+            onClick={() => onVerQr(area)}
+            variant="ghost"
+            size="icon"
+            icon="qr_code_2"
+            className="h-8 w-8 text-slate-700 hover:bg-slate-100 rounded-lg"
+            title="Ver QR del área"
+            aria-label="Ver QR del área"
+          />
           <Button
             type="button"
             onClick={() => onVerDetalle(area)}
@@ -230,8 +250,29 @@ function FilterGridGroup({ title, value, options, onChange }) {
 // Columnas desktop
 // ---------------------------------------------------------------------------
 
-function buildColumns(onVerDetalle, onEditar, onToggleEstado) {
+function buildColumns(onVerQr, onVerDetalle, onEditar, onToggleEstado, selectedIds, onToggleSelect, isAllSelected, onToggleSelectAll) {
   return [
+    {
+      header: (
+        <input
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={onToggleSelectAll}
+          className="h-4 w-4 rounded border-slate-300 text-marca-primario focus:ring-marca-primario"
+          title="Seleccionar todas"
+        />
+      ),
+      accessorKey: '_select',
+      headerClassName: 'w-[40px]',
+      cell: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(row.id)}
+          onChange={() => onToggleSelect(row.id)}
+          className="h-4 w-4 rounded border-slate-300 text-marca-primario focus:ring-marca-primario"
+        />
+      ),
+    },
     {
       header: 'Área',
       accessorKey: 'nombre',
@@ -255,18 +296,30 @@ function buildColumns(onVerDetalle, onEditar, onToggleEstado) {
       header: '',
       accessorKey: '_acciones',
       align: 'center',
-      headerClassName: 'w-[120px]',
+      headerClassName: 'w-[150px]',
       cell: (row) => (
-        <TableActions
-          row={row}
-          actions={[
-            { key: 'ver_detalle', enabled: true, onClick: () => onVerDetalle(row), tooltip: 'Ver detalle' },
-            { key: 'editar', enabled: true, onClick: () => onEditar(row), tooltip: 'Editar' },
-            row.activo 
-              ? { key: 'toggle_estatus_desactivar', enabled: true, onClick: () => onToggleEstado(row), tooltip: 'Desactivar' }
-              : { key: 'toggle_estatus_activar', enabled: true, onClick: () => onToggleEstado(row), tooltip: 'Reactivar' }
-          ]}
-        />
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            type="button"
+            onClick={() => onVerQr(row)}
+            variant="ghost"
+            size="icon"
+            icon="qr_code_2"
+            className="h-8 w-8 text-slate-700 hover:bg-slate-100 rounded-lg"
+            title="Ver QR del área"
+            aria-label="Ver QR del área"
+          />
+          <TableActions
+            row={row}
+            actions={[
+              { key: 'ver_detalle', enabled: true, onClick: () => onVerDetalle(row), tooltip: 'Ver detalle' },
+              { key: 'editar', enabled: true, onClick: () => onEditar(row), tooltip: 'Editar' },
+              row.activo 
+                ? { key: 'toggle_estatus_desactivar', enabled: true, onClick: () => onToggleEstado(row), tooltip: 'Desactivar' }
+                : { key: 'toggle_estatus_activar', enabled: true, onClick: () => onToggleEstado(row), tooltip: 'Reactivar' }
+            ]}
+          />
+        </div>
       ),
     },
   ];
@@ -298,6 +351,7 @@ function generarCodigoInterno(nombre) {
 }
 
 export function AreasPage() {
+  const navigate = useNavigate();
   const { params, setParam, setSearch } = useUrlState(URL_DEFAULTS);
   const pagina = parsePageParam(params.pagina);
 
@@ -310,10 +364,32 @@ export function AreasPage() {
   });
 
   const [areaDetalle, setAreaDetalle] = useState(null);
+  const [areaQr, setAreaQr] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [editingArea, setEditingArea] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [reactivatingArea, setReactivatingArea] = useState(null);
   const [allUsuarios, setAllUsuarios] = useState([]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  };
+
+  const isAllSelected = state.areas.length > 0 && selectedIds.length === state.areas.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(state.areas.map((a) => a.id));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const selectedAreas = state.areas.filter((a) => selectedIds.includes(a.id));
   
   const [form, setForm] = useState({
     nombre: '',
@@ -578,9 +654,14 @@ export function AreasPage() {
   };
 
   const columns = buildColumns(
+    (area) => setAreaQr(area),
     (area) => setAreaDetalle(area),
     (area) => startEdit(area),
     (area) => toggleEstado(area),
+    selectedIds,
+    toggleSelect,
+    isAllSelected,
+    toggleSelectAll,
   );
 
   const labelEstado = params.activo === 'true' ? ' activas' : params.activo === 'false' ? ' inactivas' : '';
@@ -736,6 +817,9 @@ export function AreasPage() {
                   <AreaCard
                     key={area.id}
                     area={area}
+                    isSelected={selectedIds.includes(area.id)}
+                    onToggleSelect={toggleSelect}
+                    onVerQr={(a) => setAreaQr(a)}
                     onVerDetalle={(a) => setAreaDetalle(a)}
                     onEditar={(a) => startEdit(a)}
                     onToggleEstado={(a) => toggleEstado(a)}
@@ -747,8 +831,45 @@ export function AreasPage() {
         </>
       )}
 
+      {/* Floating selection bar for print */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-white/95 backdrop-blur-md text-slate-900 px-4 py-2 rounded-xl shadow-2xl border border-slate-200">
+          <span className="text-xs font-black tracking-tight text-slate-800">
+            {selectedIds.length} {selectedIds.length === 1 ? 'área seleccionada' : 'áreas seleccionadas'}
+          </span>
+          <div className="h-4 w-px bg-slate-200" />
+          <Button
+            type="button"
+            variant="primario"
+            size="sm"
+            icon="print"
+            onClick={() => navigate(`/admin/areas/qr/imprimir?ids=${selectedIds.join(',')}`, { state: { selectedAreas } })}
+            className="text-xs font-bold h-8"
+          >
+            Imprimir QR
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleClearSelection}
+            className="text-xs font-bold text-slate-500 hover:text-slate-900 h-8 px-2"
+          >
+            Desmarcar
+          </Button>
+        </div>
+      )}
+
       {/* Modales */}
       <AreaDetalleModal area={areaDetalle} onClose={() => setAreaDetalle(null)} />
+      <AreaQrModal
+        area={areaQr}
+        onClose={() => setAreaQr(null)}
+        onPrintSingle={(a) => {
+          setAreaQr(null);
+          navigate(`/admin/areas/qr/imprimir?ids=${a.id}`, { state: { selectedAreas: [a] } });
+        }}
+      />
 
       {/* Modal Crear/Editar */}
       <Modal isOpen={isCreating || !!editingArea} onClose={() => { setIsCreating(false); setEditingArea(null); }}>

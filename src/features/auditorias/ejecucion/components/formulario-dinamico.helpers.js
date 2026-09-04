@@ -48,7 +48,7 @@ export function obtenerBloques(versionFormulario) {
         orden: seccionIndex * 1000 + preguntaIndex + 10,
         etiqueta: texto,
         obligatorio: true,
-        requiereHallazgo: pregunta.requiereHallazgo !== false,
+        requiereHallazgo: Boolean(pregunta.requiereHallazgo),
         puntua: true,
         puntajeMaximo: preguntaIndex + 1,
         opciones: [
@@ -119,7 +119,7 @@ export function obtenerCriterios(secciones = []) {
 
 export function evaluarReglas(reglas = [], respuesta, criterio) {
   if (respuesta?.cumple === false) {
-    const exigeHallazgo = criterio?.requiereHallazgo !== false;
+    const exigeHallazgo = Boolean(criterio?.requiereHallazgo);
     return {
       reglas: [],
       exigeHallazgo,

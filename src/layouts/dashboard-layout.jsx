@@ -9,12 +9,13 @@ export function DashboardLayout() {
   const isDesktop = useIsDesktop();
   const location = useLocation();
   const isAuditCapture = /^\/auditorias\/[^/]+\/realizar$/.test(location.pathname);
+  const isPrintView = location.pathname === '/admin/areas/qr/imprimir';
 
   return (
     <>
       <OfflineBanner />
-      {isAuditCapture ? <Outlet /> : isDesktop ? <DesktopLayout /> : <MobileLayout />}
-      {!isAuditCapture && <PendientesAsignacionManager />}
+      {isAuditCapture || isPrintView ? <Outlet /> : isDesktop ? <DesktopLayout /> : <MobileLayout />}
+      {!isAuditCapture && !isPrintView && <PendientesAsignacionManager />}
     </>
   );
 }

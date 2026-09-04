@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { QrAuditoria } from '@/features/auditorias/ejecucion/components/qr-auditoria';
+import { VerificacionQrModal } from '@/features/auditorias/ejecucion/components/verificacion-qr-modal';
 import { CompactCriterio5S } from '@/features/auditorias/ejecucion/components/compact-criterio-5s';
 import { ResumenAuditoria } from '@/features/auditorias/ejecucion/components/resumen-auditoria';
 import {
@@ -308,7 +309,9 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     }
   };
 
-  const enviar = async () => {
+  const [showConfirmQrModal, setShowConfirmQrModal] = useState(false);
+
+  const enviar = async (codigoConfirmado) => {
     // Double check just in case, before sending
     const { isValid } = validarTodo();
     if (!isValid) return;
@@ -323,12 +326,14 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
         return;
       }
 
+      const codigoFinal = codigoConfirmado || verificacionArea?.codigoQr || verificacionArea?.codigoVerificacion || contexto.area?.codigoVerificacion || '';
+
       const payload = {
         identificadorCliente,
         asignacionAuditoriaId: modo === 'invitado' ? (contexto.asignacion?.id ?? null) : contexto.asignacion?.id,
         nombreAuditorSnapshot: currentUser?.nombre ?? nombreInvitado ?? contexto.nombreAuditor ?? 'Auditor',
         finalizadoEn: new Date().toISOString(),
-        codigoVerificacion: verificacionArea?.codigoQr || verificacionArea?.codigoVerificacion || contexto.area?.codigoVerificacion || '',
+        codigoVerificacion: codigoFinal,
         respuestas: criterios.map((item) => {
           const respuesta = respuestas[item.id] ?? crearRespuestaInicial(item);
           return {
@@ -360,6 +365,28 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSolicitarSubmit = () => {
+    if (preview) {
+      enviar();
+      return;
+    }
+
+    const codigoEsperado = (contexto.area?.codigoVerificacion || contexto.area?.codigo || '').trim().toUpperCase().replace(/[\s-]/g, '');
+    const codigoGuardado = (verificacionArea?.codigoQr || '').trim().toUpperCase().replace(/[\s-]/g, '');
+
+    if (verificacionArea?.verificado && codigoGuardado && codigoGuardado === codigoEsperado) {
+      enviar(verificacionArea.codigoQr);
+    } else {
+      setShowConfirmQrModal(true);
+    }
+  };
+
+  const handleConfirmQrCode = (code) => {
+    setVerificacionArea({ codigoQr: code, verificado: true });
+    setShowConfirmQrModal(false);
+    enviar(code);
   };
 
   const getResultadosFinales = () => {
@@ -466,12 +493,19 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           <ResumenAuditoria
             criterios={criterios}
             respuestas={respuestas}
-            onSubmit={enviar}
+            onSubmit={handleSolicitarSubmit}
             onBackToCapture={() => setFase('captura')}
             isSubmitting={isSubmitting}
             error={envioError}
           />
         </main>
+
+        <VerificacionQrModal
+          isOpen={showConfirmQrModal}
+          area={contexto.area}
+          onClose={() => setShowConfirmQrModal(false)}
+          onConfirm={handleConfirmQrCode}
+        />
       </div>
     );
   }

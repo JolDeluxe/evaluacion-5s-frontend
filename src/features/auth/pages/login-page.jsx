@@ -95,9 +95,14 @@ export function LoginPage() {
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
-            <Button as={Link} to="/invitado" variant="outline" className="w-full" icon="qr_code_scanner">
-              Entrar como invitado
-            </Button>
+            <div className="space-y-2">
+              <Button as={Link} to="/q" variant="outline" className="w-full font-bold" icon="pin">
+                Ingresar código de área
+              </Button>
+              <Button as={Link} to="/invitado" variant="ghost" className="w-full text-xs font-semibold text-slate-500 hover:text-slate-800" icon="qr_code_scanner">
+                Lista de áreas públicas
+              </Button>
+            </div>
           </CardBody>
         </Card>
       </section>

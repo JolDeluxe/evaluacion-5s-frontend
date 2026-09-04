@@ -12,6 +12,7 @@ import { RealizarAuditoriaPage } from '@/features/auditorias/ejecucion/pages/rea
 import { AdministracionPlaceholderPage } from '@/features/administracion/pages/administracion-placeholder-page';
 import { AsignacionesPage } from '@/features/administracion/asignaciones/pages/asignaciones-page';
 import { AreasPage } from '@/features/administracion/areas/pages/areas-page';
+import { AreaQrPrintPage } from '@/features/administracion/areas/pages/area-qr-print-page';
 import { UsuariosPage } from '@/features/administracion/usuarios/pages/usuarios-page';
 import { ResultadosPage } from '@/features/resultados/pages/resultados-page';
 import { ResultadoAreaPage } from '@/features/resultados/pages/resultado-area-page';
@@ -24,6 +25,7 @@ import { FormularioEditorPage } from '@/features/administracion/formularios/page
 import { InvitadoPage } from '@/features/invitados/pages/invitado-page';
 import { InvitadoAuditoriaPage } from '@/features/invitados/pages/invitado-auditoria-page';
 import { InvitadoAccesoPage } from '@/features/invitados/pages/invitado-acceso-page';
+import { QrTargetPage } from '@/features/qr/pages/qr-target-page';
 import { ForbiddenPage } from '@/features/errors/pages/forbidden-page';
 import { NotFoundPage } from '@/features/errors/pages/not-found-page';
 
@@ -40,6 +42,7 @@ const adminChildren = [
   { path: 'formularios/:formularioId/editar', element: <FormularioEditorPage /> },
   { path: 'formularios/:formularioId/versiones/:versionId/editar', element: <FormularioEditorPage /> },
   { path: 'areas', element: <AreasPage /> },
+  { path: 'areas/qr/imprimir', element: <AreaQrPrintPage /> },
   { path: 'areas/:id', element: <AdministracionPlaceholderPage type="areaDetalle" section="admin" /> },
   { path: 'usuarios', element: <UsuariosPage /> },
   { path: 'resultados', element: <Navigate to="/resultados" replace /> },
@@ -65,6 +68,9 @@ export const router = createBrowserRouter([
   { path: '/invitado/:token', element: <InvitadoPage /> },
   { path: '/invitado/:token/auditoria', element: <InvitadoAuditoriaPage /> },
   { path: '/invitado', element: <InvitadoAccesoPage /> },
+  { path: '/q/:codigo', element: <QrTargetPage /> },
+  { path: '/q', element: <QrTargetPage /> },
+  { path: '/ingresar-codigo', element: <QrTargetPage /> },
   {
     element: <RequireAuth />,
     children: [
