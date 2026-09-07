@@ -26,8 +26,8 @@ function MobileCard({ fila, anio, mes, onEdit }) {
         </div>
       </div>
 
-      <div className="pt-2">
-        {editable ? (
+      {editable && (
+        <div className="pt-2">
           <Button
             className="w-full rounded-xl"
             variant={asignado ? 'outline' : 'default'}
@@ -37,12 +37,8 @@ function MobileCard({ fila, anio, mes, onEdit }) {
           >
             {asignado ? 'Editar auditor' : 'Asignar auditor'}
           </Button>
-        ) : (
-          <div className="rounded-xl bg-slate-100/70 p-2 text-center text-xs font-extrabold text-slate-400">
-            Auditor finalizado (no editable)
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -95,7 +91,7 @@ export function AsignacionesList({ filas = [], anio, mes, onEdit }) {
                     <PeriodoCell fila={fila} periodo={fila.periodos.p2} />
                   </td>
                   <td className="px-5 py-4 text-right">
-                    {editable ? (
+                    {editable && (
                       <Button
                         variant={asignado ? 'ghost' : 'outline'}
                         size="sm"
@@ -104,10 +100,6 @@ export function AsignacionesList({ filas = [], anio, mes, onEdit }) {
                       >
                         {asignado ? 'Editar' : 'Asignar'}
                       </Button>
-                    ) : (
-                      <span className="text-xs font-extrabold text-slate-400 italic">
-                        No editable
-                      </span>
                     )}
                   </td>
                 </tr>

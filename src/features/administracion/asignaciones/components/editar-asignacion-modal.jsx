@@ -85,6 +85,12 @@ export function EditarAsignacionModal({
     const esReabiertaActiva = Boolean(periodo?.reabiertaHasta && new Date(periodo.reabiertaHasta) > new Date());
     const esVencida = periodo?.vencida && !esReabiertaActiva;
 
+    const ahora = new Date();
+    const anioActual = ahora.getFullYear();
+    const mesActual = ahora.getMonth() + 1;
+    const mesesDiferencia = (anioActual - anio) * 12 + (mesActual - mes);
+    const esReabrible = mesesDiferencia <= 1 && esVencida;
+
     return (
       <div className="rounded-xl border border-app-border bg-slate-50/70 p-3.5 space-y-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -109,7 +115,7 @@ export function EditarAsignacionModal({
             {detalleAuditor && <p className="text-xs font-semibold text-slate-400 mt-0.5">{detalleAuditor}</p>}
           </div>
 
-          {periodo?.vencida && !esReabiertaActiva && (
+          {esReabrible && (
             <Button
               type="button"
               variant="outline"
