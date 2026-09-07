@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EstadoBadge, PeriodoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
-import { periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
+import { esFilaEditable, periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
-function MobileCard({ fila, onEdit }) {
+function MobileCard({ fila, anio, mes, onEdit }) {
   const asignado = fila.estado === 'ASIGNADO';
+  const editable = esFilaEditable(fila, anio, mes);
 
   return (
     <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-xl backdrop-blur-xl space-y-3">
@@ -26,15 +27,21 @@ function MobileCard({ fila, onEdit }) {
       </div>
 
       <div className="pt-2">
-        <Button
-          className="w-full rounded-xl"
-          variant={asignado ? 'outline' : 'default'}
-          size="sm"
-          icon="edit"
-          onClick={() => onEdit(fila)}
-        >
-          {asignado ? 'Editar auditor' : 'Asignar auditor'}
-        </Button>
+        {editable ? (
+          <Button
+            className="w-full rounded-xl"
+            variant={asignado ? 'outline' : 'default'}
+            size="sm"
+            icon="edit"
+            onClick={() => onEdit(fila)}
+          >
+            {asignado ? 'Editar auditor' : 'Asignar auditor'}
+          </Button>
+        ) : (
+          <div className="rounded-xl bg-slate-100/70 p-2 text-center text-xs font-extrabold text-slate-400">
+            Auditor finalizado (no editable)
+          </div>
+        )}
       </div>
     </div>
   );
@@ -51,7 +58,7 @@ function PeriodoCell({ fila, periodo }) {
   );
 }
 
-export function AsignacionesList({ filas = [], onEdit }) {
+export function AsignacionesList({ filas = [], anio, mes, onEdit }) {
   return (
     <>
       <Card className="hidden overflow-hidden border-app-border bg-white shadow-sm md:block">
@@ -69,6 +76,7 @@ export function AsignacionesList({ filas = [], onEdit }) {
           <tbody className="divide-y divide-app-border">
             {filas.map((fila) => {
               const asignado = fila.estado === 'ASIGNADO';
+              const editable = esFilaEditable(fila, anio, mes);
               return (
                 <tr key={fila.area.id} className="transition hover:bg-slate-50/70">
                   <td className="px-5 py-4">
@@ -87,14 +95,20 @@ export function AsignacionesList({ filas = [], onEdit }) {
                     <PeriodoCell fila={fila} periodo={fila.periodos.p2} />
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <Button
-                      variant={asignado ? 'ghost' : 'outline'}
-                      size="sm"
-                      icon="edit"
-                      onClick={() => onEdit(fila)}
-                    >
-                      {asignado ? 'Editar' : 'Asignar'}
-                    </Button>
+                    {editable ? (
+                      <Button
+                        variant={asignado ? 'ghost' : 'outline'}
+                        size="sm"
+                        icon="edit"
+                        onClick={() => onEdit(fila)}
+                      >
+                        {asignado ? 'Editar' : 'Asignar'}
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-extrabold text-slate-400 italic">
+                        No editable
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -110,7 +124,7 @@ export function AsignacionesList({ filas = [], onEdit }) {
       </Card>
 
       <div className="space-y-3 md:hidden">
-        {filas.map((fila) => <MobileCard key={fila.area.id} fila={fila} onEdit={onEdit} />)}
+        {filas.map((fila) => <MobileCard key={fila.area.id} fila={fila} anio={anio} mes={mes} onEdit={onEdit} />)}
         {!filas.length && (
           <Card className="p-8 text-center border-app-border">
             <p className="text-sm font-semibold text-slate-500">No hay áreas con los filtros aplicados.</p>

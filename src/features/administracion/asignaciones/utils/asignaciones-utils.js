@@ -141,3 +141,25 @@ export function buildGuardarAsignacionMensualPayload({ anio, mes, form, expected
     expectedAuditorId: expectedAuditorId != null ? Number(expectedAuditorId) : null,
   };
 }
+
+export function esFilaEditable(fila, anio, mes, ahora = new Date()) {
+  if (!fila) return false;
+  const anioActual = ahora.getFullYear();
+  const mesActual = ahora.getMonth() + 1;
+  const mesesDiferencia = (anioActual - anio) * 12 + (mesActual - mes);
+
+  // 1. Meses más antiguos que el mes pasado (hace 2 o más meses) no se pueden editar
+  if (mesesDiferencia > 1) {
+    return false;
+  }
+
+  // 2. Si ambas auditorías (P1 y P2) ya fueron realizadas, no se puede modificar el auditor
+  const p1Realizada = Boolean(fila.periodos?.p1?.realizada || fila.periodos?.p1?.estadoAuditoria === 'COMPLETADA');
+  const p2Realizada = Boolean(fila.periodos?.p2?.realizada || fila.periodos?.p2?.estadoAuditoria === 'COMPLETADA');
+
+  if (p1Realizada && p2Realizada) {
+    return false;
+  }
+
+  return true;
+}
