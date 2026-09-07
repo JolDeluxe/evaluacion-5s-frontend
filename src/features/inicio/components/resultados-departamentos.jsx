@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
+import { getResultadoColor } from '@/features/resultados/utils/resultado-colors';
 
 const formatPct = (value) => {
   if (value === null || value === undefined) return '—';
@@ -36,6 +37,7 @@ export function ResultadosDepartamentos({ departamentosCargo = [] }) {
               {departamentosCargo.map((dep) => {
                 const m = dep.mesAnterior;
                 const tieneResultado = m && m.porcentaje !== null;
+                const rule = tieneResultado ? getResultadoColor(m.porcentaje) : null;
                 return (
                   <div
                     key={`prev-${dep.areaId}`}
@@ -52,7 +54,10 @@ export function ResultadosDepartamentos({ departamentosCargo = [] }) {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-xs font-black ${tieneResultado ? 'text-slate-950' : 'text-slate-400'}`}>
+                      <span
+                        className={`text-xs font-black ${tieneResultado ? '' : 'text-slate-400'}`}
+                        style={rule ? { color: rule.textColor } : undefined}
+                      >
                         {formatPct(m?.porcentaje)}
                       </span>
 
@@ -87,6 +92,7 @@ export function ResultadosDepartamentos({ departamentosCargo = [] }) {
               {departamentosCargo.map((dep) => {
                 const m = dep.mesActual;
                 const tieneResultado = m && m.porcentaje !== null;
+                const rule = tieneResultado ? getResultadoColor(m.porcentaje) : null;
                 return (
                   <div
                     key={`curr-${dep.areaId}`}
@@ -103,7 +109,10 @@ export function ResultadosDepartamentos({ departamentosCargo = [] }) {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-xs font-black ${tieneResultado ? 'text-slate-950' : 'text-slate-400'}`}>
+                      <span
+                        className={`text-xs font-black ${tieneResultado ? '' : 'text-slate-400'}`}
+                        style={rule ? { color: rule.textColor } : undefined}
+                      >
                         {formatPct(m?.porcentaje)}
                       </span>
 
