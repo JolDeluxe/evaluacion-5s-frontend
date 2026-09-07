@@ -119,11 +119,6 @@ export function FormulariosPage() {
         </h1>
       </div>
 
-      {/* Navegación compartida (Mobile local) */}
-      <div className="md:hidden">
-        <AdministracionNav />
-      </div>
-
       {/* Botón Acción */}
       <div className="flex justify-end">
         <Button variant="outline" icon="add" onClick={() => { setActionError(null); setCreating(true); }}>

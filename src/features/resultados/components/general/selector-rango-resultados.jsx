@@ -9,6 +9,7 @@ export function SelectorRangoResultados({
   trimestre,
   semestre,
   onChange,
+  rightAction,
 }) {
   const anioNum = Number(anio || new Date().getFullYear());
   const triNum = Number(trimestre || 1);
@@ -75,9 +76,9 @@ export function SelectorRangoResultados({
   else if (tipo === 'anio') textRangoNonMes = `Año ${anioNum}`;
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center w-full sm:w-auto">
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-end w-full sm:gap-3">
       {/* Botones de Alcance/Tipo */}
-      <div className="grid grid-cols-4 sm:flex rounded-xl border border-slate-200 bg-slate-100/80 p-0.5 shadow-sm w-full sm:w-auto">
+      <div className="grid grid-cols-4 sm:flex sm:shrink-0 rounded-xl border border-slate-200 bg-slate-100/80 p-0.5 shadow-sm w-full sm:w-auto">
         {tipos.map((t) => {
           const isActive = tipo === t.id;
           return (
@@ -86,7 +87,7 @@ export function SelectorRangoResultados({
               type="button"
               onClick={() => handleTipoChange(t.id)}
               className={cn(
-                'rounded-lg py-1 px-1 sm:px-2.5 text-center text-xs font-black transition',
+                'rounded-lg py-1 px-1 sm:px-2.5 text-center text-xs font-black transition whitespace-nowrap',
                 isActive
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800',
@@ -101,14 +102,14 @@ export function SelectorRangoResultados({
 
       {/* Control temporal */}
       {tipo === 'mes' ? (
-        <div className="w-full sm:w-[260px]">
+        <div className="w-full sm:w-[270px] md:w-[280px] lg:w-[300px] sm:shrink-0">
           <SelectorMesNavegacion
             monthKey={mes}
             onChange={({ monthKey }) => onChange({ tipo: 'mes', mes: monthKey })}
           />
         </div>
       ) : (
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 w-full sm:w-[260px]">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 w-full sm:w-[270px] md:w-[280px] lg:w-[300px] sm:shrink-0">
           <Button
             type="button"
             variant="icon"
@@ -120,7 +121,7 @@ export function SelectorRangoResultados({
           />
 
           <div className="min-w-0 text-center flex items-center justify-center">
-            <span className="h-9 w-full inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-xs md:text-sm font-black text-slate-800 shadow-sm">
+            <span className="h-9 w-full inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-xs md:text-sm font-black text-slate-800 shadow-sm whitespace-nowrap">
               {textRangoNonMes}
             </span>
           </div>
@@ -134,6 +135,13 @@ export function SelectorRangoResultados({
             aria-label="Periodo siguiente"
             className="h-9 w-9 shrink-0"
           />
+        </div>
+      )}
+
+      {/* Acciones adicionales en la zona derecha (PDF) */}
+      {rightAction && (
+        <div className="flex justify-end sm:shrink-0">
+          {rightAction}
         </div>
       )}
     </div>

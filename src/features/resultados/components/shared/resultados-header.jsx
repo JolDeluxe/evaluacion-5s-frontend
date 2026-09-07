@@ -23,7 +23,7 @@ export function ResultadosHeader({
   ];
 
   return (
-    <div className="space-y-3">
+    <>
       {/* 1. Encabezado */}
       <div>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento leading-none">
@@ -34,9 +34,12 @@ export function ResultadosHeader({
         </h1>
       </div>
 
+      {/* 2. Tabs General / Áreas (Fijos / Sticky) */}
+      <SectionTabs tabs={tabs} />
+
+      {/* 3. Selector de Fecha / Periodo POR DEBAJO DEL MENÚ */}
       {activeView === 'general' ? (
-        <div className="space-y-2">
-          {/* Selector de Rango (Tabs de rango + Navegación por fecha) */}
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5 sm:p-4 backdrop-blur-xl shadow-xs">
           <SelectorRangoResultados
             tipo={rangoParams.tipo}
             mes={rangoParams.mes || mes}
@@ -44,21 +47,20 @@ export function ResultadosHeader({
             trimestre={rangoParams.trimestre}
             semestre={rangoParams.semestre}
             onChange={onRangoChange}
+            rightAction={<ExportarResultadosButton rangoParams={rangoParams} data={data} />}
           />
-
-          {/* Fila exclusiva del botón PDF a la derecha en mobile / desktop */}
-          <div className="flex justify-end pt-0.5">
-            <ExportarResultadosButton rangoParams={rangoParams} data={data} />
-          </div>
         </div>
       ) : (
-        <div className="w-full sm:w-[260px]">
-          <SelectorMes value={mes} onChange={onMesChange} />
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5 sm:p-4 backdrop-blur-xl shadow-xs w-full">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Filtrar por periodo</p>
+            <p className="text-xs sm:text-sm font-black text-slate-900">Periodo {mes}</p>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[260px]">
+            <SelectorMes value={mes} onChange={onMesChange} />
+          </div>
         </div>
       )}
-
-      {/* Tabs General / Áreas */}
-      <SectionTabs tabs={tabs} />
-    </div>
+    </>
   );
 }

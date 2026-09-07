@@ -26,11 +26,6 @@ function AsignacionesHeader({ anio, mes, onPeriodoChange }) {
         </h1>
       </div>
 
-      {/* Navegación compartida (Mobile local) */}
-      <div className="md:hidden">
-        <AdministracionNav />
-      </div>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
         <p className="text-xs font-medium text-slate-500">
           Asigna y gestiona el auditor responsable de cada área durante el mes.

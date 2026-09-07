@@ -27,7 +27,7 @@ export function InicioPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 pt-4 sm:pt-0">
       <OfflinePendingBadge />
 
       {error && (

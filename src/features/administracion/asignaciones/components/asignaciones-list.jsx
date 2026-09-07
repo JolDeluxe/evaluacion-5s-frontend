@@ -1,7 +1,26 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { EstadoBadge, PeriodoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
-import { esFilaEditable, periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
+import { PeriodoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
+import { esFilaEditable, obtenerAuditorMensualDisplay, periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
+
+function AuditorMensualCell({ fila, anio, mes }) {
+  const display = obtenerAuditorMensualDisplay(fila, anio, mes);
+
+  if (display.tipo === 'ALERTA') {
+    return (
+      <span className="inline-flex items-center gap-1 mt-0.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-extrabold text-amber-700">
+        <span>!</span>
+        <span>Sin auditor</span>
+      </span>
+    );
+  }
+
+  if (display.tipo === 'NEUTRO') {
+    return <span className="text-slate-400 font-bold text-sm">—</span>;
+  }
+
+  return <p className="text-sm font-bold text-slate-800">{display.texto}</p>;
+}
 
 function MobileCard({ fila, anio, mes, onEdit }) {
   const asignado = fila.estado === 'ASIGNADO';
@@ -11,13 +30,12 @@ function MobileCard({ fila, anio, mes, onEdit }) {
     <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-xl backdrop-blur-xl space-y-3">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-black uppercase text-slate-900 leading-snug">{fila.area.nombre}</h3>
-        <EstadoBadge estado={fila.estado} />
       </div>
 
       <div className="space-y-2 pt-1 border-t border-slate-100/80">
         <div>
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Auditor del mes</p>
-          <p className="text-sm font-bold text-slate-800">{fila.auditorMensual?.nombre ?? 'Sin auditor'}</p>
+          <AuditorMensualCell fila={fila} anio={anio} mes={mes} />
         </div>
 
         <div className="pt-1">
@@ -63,7 +81,6 @@ export function AsignacionesList({ filas = [], anio, mes, onEdit }) {
             <tr>
               <th className="px-5 py-3 text-left">Área</th>
               <th className="px-5 py-3 text-left">Auditor del mes</th>
-              <th className="px-5 py-3 text-left">Estado</th>
               <th className="px-5 py-3 text-left">P1</th>
               <th className="px-5 py-3 text-left">P2</th>
               <th className="px-5 py-3 text-right">Acciones</th>
@@ -79,10 +96,7 @@ export function AsignacionesList({ filas = [], anio, mes, onEdit }) {
                     <p className="font-black uppercase text-slate-900 leading-tight">{fila.area.nombre}</p>
                   </td>
                   <td className="px-5 py-4 font-bold text-slate-800">
-                    {fila.auditorMensual?.nombre ?? <span className="text-slate-400 font-semibold">—</span>}
-                  </td>
-                  <td className="px-5 py-4">
-                    <EstadoBadge estado={fila.estado} />
+                    <AuditorMensualCell fila={fila} anio={anio} mes={mes} />
                   </td>
                   <td className="px-5 py-4">
                     <PeriodoCell fila={fila} periodo={fila.periodos.p1} />

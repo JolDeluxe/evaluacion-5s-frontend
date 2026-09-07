@@ -248,7 +248,7 @@ export function MisAuditoriasPage() {
     );
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 pt-4 sm:pt-0">
       {/* ======================================================
           HEADER
       ====================================================== */}
@@ -319,6 +319,10 @@ export function MisAuditoriasPage() {
 
             if (pendientesGrupo.length === 0 && completadasGrupo.length === 0) return null;
 
+            const esPeriodoAtrasado = grupo.asignaciones.some(
+              (a) => a.infoPeriodo?.status === 'VENCIDA' || a.infoPeriodo?.texto === 'ATRASADA' || a.estado === 'ATRASADA'
+            );
+
             const periodoInfo = {
               numeroCorte: grupo.periodo,
               mes: grupo.mes,
@@ -328,15 +332,29 @@ export function MisAuditoriasPage() {
             return (
               <div key={grupo.key} className="space-y-4">
                 {/* TARJETA DE PERIODO */}
-                <div className="rounded-2xl border border-white/80 bg-white/75 p-5 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl md:p-6">
+                <div
+                  className={`rounded-2xl border p-5 backdrop-blur-xl transition md:p-6 ${
+                    esPeriodoAtrasado
+                      ? 'border-rose-200/90 bg-rose-50/60 shadow-[0_8px_28px_rgba(225,29,72,0.05)]'
+                      : 'border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)]'
+                  }`}
+                >
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">
                         Periodo de auditoría
                       </p>
-                      <h2 className="mt-0.5 text-xl font-black text-slate-950">
-                        {getPeriodLabel(periodoInfo).toUpperCase()}
-                      </h2>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        <h2 className="text-xl font-black text-slate-950">
+                          {getPeriodLabel(periodoInfo).toUpperCase()}
+                        </h2>
+                        {esPeriodoAtrasado && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100/90 px-2.5 py-0.5 text-xs font-black text-rose-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
+                            Periodo atrasado
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
                         {formatRange(grupo.iniciaEn, grupo.terminaEn)}
                       </p>

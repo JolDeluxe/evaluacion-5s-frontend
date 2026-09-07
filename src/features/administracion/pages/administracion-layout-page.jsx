@@ -10,10 +10,8 @@ export function AdministracionLayoutPage() {
   }
 
   return (
-    <section className="space-y-5">
-      <div className="hidden md:block">
-        <AdministracionNav />
-      </div>
+    <section className="space-y-5 pt-4 sm:pt-0">
+      <AdministracionNav />
 
       <div>
         <Outlet />

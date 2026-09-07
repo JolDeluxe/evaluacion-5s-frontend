@@ -180,32 +180,37 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
   if (!isOpen || !area) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { detenerCamara(); onClose(); }} className="max-w-md">
+    <Modal isOpen={isOpen} onClose={() => { detenerCamara(); onClose(); }} className="max-w-md max-h-[85dvh] sm:max-h-[90vh] flex flex-col">
       <ModalHeader title="Verificar área" onClose={() => { detenerCamara(); onClose(); }}>
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">
-            Confirmación de Presencia Física
+        <div className="space-y-0.5 py-0.5">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-marca-acento leading-none">
+            CONFIRMACIÓN DE PRESENCIA FÍSICA
           </p>
-          <h2 className="mt-0.5 text-xl font-black text-slate-950 leading-tight">{area.nombre}</h2>
+          <h2 className="text-lg sm:text-xl font-black text-slate-950 leading-tight">{area.nombre}</h2>
         </div>
       </ModalHeader>
 
-      <ModalBody>
-        <div className="space-y-4 py-1">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-1.5">
-            <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
-              <Icon name="verified_user" size="18px" className="text-emerald-600 shrink-0" />
-              <span>Confirma que estás en el área correcta antes de finalizar.</span>
+      <ModalBody className="overflow-y-auto p-4 sm:p-5">
+        <div className="space-y-3.5">
+          {/* Instrucción principal compacta */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-2.5 sm:p-3 flex items-start gap-2.5 shadow-2xs">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <Icon name="verified_user" size="16px" />
             </div>
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              {modo === 'scanner'
-                ? 'Apunta la cámara al código QR colocado en el departamento.'
-                : 'Escribe manualmente el código alfanumérico impreso en el área.'}
-            </p>
+            <div className="min-w-0 space-y-0.5">
+              <h3 className="text-xs font-black text-slate-900 leading-tight">
+                Confirma que estás en el área correcta
+              </h3>
+              <p className="text-[11px] text-slate-600 font-medium leading-normal">
+                {modo === 'scanner'
+                  ? 'Escanea el código QR colocado en el área para poder finalizar la auditoría.'
+                  : 'Ingresa el código alfanumérico impreso en el área.'}
+              </p>
+            </div>
           </div>
 
           {errorMsg && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700 space-y-1.5">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 space-y-1">
               <div className="flex items-center gap-1.5 text-rose-800 font-black">
                 <Icon name="error_outline" size="16px" />
                 <span>Error de verificación</span>
@@ -216,55 +221,70 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
 
           {modo === 'scanner' ? (
             <div className="space-y-3">
-              <div className="relative overflow-hidden rounded-2xl border-2 border-indigo-500/30 bg-slate-950 shadow-inner min-h-[260px] flex items-center justify-center">
+              {/* Visor QR compacto, cuadrado y centrado */}
+              <div className="relative w-full aspect-square max-w-[210px] sm:max-w-[240px] mx-auto overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-inner flex items-center justify-center">
                 {/* Elemento VIDEO estrictamente controlado por React */}
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover max-h-[300px]"
+                  className="w-full h-full object-cover"
                 />
 
                 {cargandoCamara && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/80 p-6 text-slate-300">
-                    <Icon name="sync" className="animate-spin text-indigo-400" size="28px" />
-                    <span className="text-xs font-semibold">Solicitando cámara...</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/85 p-4 text-slate-300">
+                    <Icon name="sync" className="animate-spin text-indigo-400" size="24px" />
+                    <span className="text-[11px] font-semibold">Solicitando cámara...</span>
                   </div>
                 )}
 
                 {/* Marco guía visual de escaneo */}
                 {!cargandoCamara && (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="w-48 h-48 border-2 border-indigo-400/80 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.4)] relative">
-                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-indigo-400 rounded-tl"></div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-indigo-400 rounded-tr"></div>
-                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-indigo-400 rounded-bl"></div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-indigo-400 rounded-br"></div>
+                    <div className="w-36 h-36 sm:w-40 sm:h-40 relative shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
+                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-indigo-400 rounded-tl-sm"></div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-indigo-400 rounded-tr-sm"></div>
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-indigo-400 rounded-bl-sm"></div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-indigo-400 rounded-br-sm"></div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs font-medium text-slate-500">
+              <p className="text-center text-[11px] font-semibold text-slate-500 -mt-1">
+                Coloca el código QR dentro del recuadro
+              </p>
+
+              {/* Alternativa de código manual con mayor contraste */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-xs font-medium text-slate-600">
                   ¿No puedes escanear el QR?
                 </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   type="button"
                   onClick={cambiarAMandoManual}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200/80 text-xs font-black text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition active:scale-[0.98] cursor-pointer shadow-2xs shrink-0"
                   aria-label="Escribir código manualmente"
                 >
-                  <Icon name="keyboard" size="18px" />
+                  <Icon name="keyboard" size="16px" className="text-indigo-600" />
                   <span>Escribir código</span>
-                </Button>
+                </button>
+              </div>
+
+              {/* NUEVO mensaje de ayuda */}
+              <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-2.5 flex items-start gap-2 text-slate-600">
+                <Icon name="help_outline" size="16px" className="text-slate-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <p className="font-bold text-slate-700">¿No encuentras el QR o el código?</p>
+                  <p className="text-slate-500 mt-0.2">
+                    Acércate con el personal del área para que te ayude a identificarlo.
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
-            <form onSubmit={handleFormSubmit} className="space-y-4">
+            <form onSubmit={handleFormSubmit} className="space-y-3.5">
               <div>
                 <Label required>Código del área</Label>
                 <Input
@@ -272,22 +292,31 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
                   placeholder="Ej. YCE5-K78Y"
                   value={codigoInput}
                   onChange={(e) => setCodigoInput(e.target.value)}
-                  className="font-mono uppercase text-center tracking-widest text-base font-bold h-12"
+                  className="font-mono uppercase text-center tracking-widest text-base font-bold h-11"
                   autoFocus
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
+              <div className="flex items-center justify-between pt-0.5">
+                <button
                   type="button"
                   onClick={cambiarAModoScanner}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200/80 text-xs font-black text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition active:scale-[0.98] cursor-pointer shadow-2xs shrink-0"
                 >
-                  <Icon name="qr_code_scanner" size="18px" />
+                  <Icon name="qr_code_scanner" size="16px" className="text-indigo-600" />
                   <span>Escanear QR con cámara</span>
-                </Button>
+                </button>
+              </div>
+
+              {/* NUEVO mensaje de ayuda */}
+              <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-2.5 flex items-start gap-2 text-slate-600">
+                <Icon name="help_outline" size="16px" className="text-slate-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <p className="font-bold text-slate-700">¿No encuentras el QR o el código?</p>
+                  <p className="text-slate-500 mt-0.2">
+                    Acércate con el personal del área para que te ayude a identificarlo.
+                  </p>
+                </div>
               </div>
 
               <div className="hidden">
@@ -298,7 +327,7 @@ export function VerificacionQrModal({ isOpen, area, onClose, onConfirm }) {
         </div>
       </ModalBody>
 
-      <ModalFooter>
+      <ModalFooter className="p-3 sm:p-4 border-t border-slate-100 flex items-center justify-between">
         <Button variant="cancelar" size="sm" onClick={() => { detenerCamara(); onClose(); }} type="button">
           Cancelar
         </Button>

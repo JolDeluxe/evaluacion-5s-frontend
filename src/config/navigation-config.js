@@ -12,7 +12,7 @@ export const RESULTS_ROLES = ACCOUNT_ROLES;
 export const SYSTEM_ROLES = [ROLES.SUPER_ADMIN];
 
 const mobileBottomByRole = {
-  [ROLES.AUDITOR]: ['inicio', 'mis-auditorias', 'resultados', 'notificaciones'],
+  [ROLES.AUDITOR]: ['inicio', 'mis-auditorias', 'resultados'],
   [ROLES.ADMINISTRADOR]: ['inicio', 'mis-auditorias', 'resultados', 'admin'],
   [ROLES.SUPER_ADMIN]: ['inicio', 'mis-auditorias', 'resultados'],
 };
@@ -34,7 +34,7 @@ export const NAVIGATION_CONFIG = [
   {
     id: 'mis-auditorias',
     name: 'Auditorías',
-    icon: 'assignment',
+    icon: 'fact_check',
     route: '/mis-auditorias',
     allowedRoles: AUDIT_VIEW_ROLES,
     placement: ['desktop'],
@@ -43,7 +43,7 @@ export const NAVIGATION_CONFIG = [
   {
     id: 'resultados',
     name: 'Resultados',
-    icon: 'monitoring',
+    icon: 'analytics',
     route: '/resultados',
     allowedRoles: RESULTS_ROLES,
     placement: ['desktop'],
@@ -57,11 +57,12 @@ export const NAVIGATION_CONFIG = [
     allowedRoles: [ROLES.AUDITOR, ROLES.ADMINISTRADOR],
     placement: ['desktop'],
     mobilePriority: 4,
+    hideInMenu: true,
   },
   {
     id: 'admin',
     name: 'Administración',
-    icon: 'admin_panel_settings',
+    icon: 'tune',
     route: '/admin',
     allowedRoles: BUSINESS_ADMIN_ROLES,
     placement: ['desktop'],
@@ -105,7 +106,7 @@ export const ADMIN_NAVIGATION = [
   {
     id: 'admin-areas',
     name: 'Áreas',
-    icon: 'corporate_fare',
+    icon: 'domain',
     route: '/admin/areas',
     allowedRoles: BUSINESS_ADMIN_ROLES,
   },
@@ -136,7 +137,7 @@ export const SYSTEM_NAVIGATION = [
   {
     id: 'sistema-registros',
     name: 'Registro técnico',
-    icon: 'fact_check',
+    icon: 'terminal',
     route: '/sistema/registros',
     allowedRoles: SYSTEM_ROLES,
   },

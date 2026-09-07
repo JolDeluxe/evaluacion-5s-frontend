@@ -308,7 +308,7 @@ export function HistorialAuditoriasPage() {
   const labelP2 = 'Segundo periodo';
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 pt-4 sm:pt-0">
       {/* Page header */}
       <div>
         <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">

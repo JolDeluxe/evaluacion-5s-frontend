@@ -24,17 +24,21 @@ function FullPageState({ title, children, action }) {
   );
 }
 
+function AuthLoadingScreen() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-app-surface p-5">
+      <Spinner size="32px" />
+    </div>
+  );
+}
+
 export function RequireAuth() {
   const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   if (auth.status === 'loading') {
-    return (
-      <FullPageState title="Validando sesión">
-        Estamos revisando tu acceso de forma segura.
-      </FullPageState>
-    );
+    return <AuthLoadingScreen />;
   }
 
   if (auth.status === 'unknown') {
@@ -86,11 +90,7 @@ export function RedirectIfAuthenticated() {
   const location = useLocation();
 
   if (auth.status === 'loading') {
-    return (
-      <FullPageState title="Preparando acceso">
-        Estamos cargando tu sesión.
-      </FullPageState>
-    );
+    return <AuthLoadingScreen />;
   }
 
   if (auth.isAuthenticated) {

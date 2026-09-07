@@ -681,11 +681,6 @@ export function AreasPage() {
         </h1>
       </div>
 
-      {/* Navegación compartida (Mobile local) */}
-      <div className="md:hidden">
-        <AdministracionNav />
-      </div>
-
       {/* Resumen compacto y Acción */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div>

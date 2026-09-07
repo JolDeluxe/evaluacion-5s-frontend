@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { resultadosApi } from '@/features/resultados/api/resultados-api';
 import { exportarResultadosGeneralPdf } from '@/features/resultados/utils/exportar-resultados-pdf';
-import { formatMonthLabel } from '@/features/resultados/utils/resultados-format';
+import { formatMonthLabel, getCurrentMonthKey } from '@/features/resultados/utils/resultados-format';
 import { cn } from '@/utils/cn';
 
 export function ExportarResultadosModal({
@@ -26,6 +26,30 @@ export function ExportarResultadosModal({
   const [generandoPdf, setGenerandoPdf] = useState(false);
   const [errorCarga, setErrorCarga] = useState(null);
   const [errorExportacion, setErrorExportacion] = useState(null);
+
+  const ahora = new Date();
+  const currAnio = ahora.getFullYear();
+  const currMesNum = ahora.getMonth() + 1;
+  const currMesKey = getCurrentMonthKey(ahora);
+  const currTrimestre = Math.ceil(currMesNum / 3);
+  const currSemestre = currMesNum <= 6 ? 1 : 2;
+
+  const tipoActual = rangoModal.tipo || 'mes';
+  const anioNumModal = Number(rangoModal.anio || currAnio);
+  const triNumModal = Number(rangoModal.trimestre || currTrimestre);
+  const semNumModal = Number(rangoModal.semestre || currSemestre);
+  const mesKeyModal = rangoModal.mes || currMesKey;
+
+  let esPeriodoActualOMaximo = false;
+  if (tipoActual === 'mes') {
+    esPeriodoActualOMaximo = mesKeyModal >= currMesKey;
+  } else if (tipoActual === 'trimestre') {
+    esPeriodoActualOMaximo = anioNumModal > currAnio || (anioNumModal === currAnio && triNumModal >= currTrimestre);
+  } else if (tipoActual === 'semestre') {
+    esPeriodoActualOMaximo = anioNumModal > currAnio || (anioNumModal === currAnio && semNumModal >= currSemestre);
+  } else if (tipoActual === 'anio') {
+    esPeriodoActualOMaximo = anioNumModal >= currAnio;
+  }
 
   const cargarDatosRango = useCallback(async (rangoTarget) => {
     const esRangoInicial = (
@@ -86,22 +110,29 @@ export function ExportarResultadosModal({
   const handleTipoChange = (nuevoTipo) => {
     if (nuevoTipo === rangoModal.tipo) return;
     setErrorExportacion(null);
-    const ahora = new Date();
-    const currAnio = ahora.getFullYear();
-    const currMes = ahora.getMonth() + 1;
 
     let nextRango = { tipo: nuevoTipo };
     if (nuevoTipo === 'mes') {
-      const nextMes = rangoModal.mes || `${currAnio}-${String(currMes).padStart(2, '0')}`;
-      nextRango.mes = nextMes;
+      const candidateMes = rangoModal.mes || currMesKey;
+      nextRango.mes = candidateMes > currMesKey ? currMesKey : candidateMes;
     } else if (nuevoTipo === 'trimestre') {
-      nextRango.anio = rangoModal.anio || currAnio;
-      nextRango.trimestre = rangoModal.trimestre || Math.ceil(currMes / 3);
+      const targetAnio = Math.min(rangoModal.anio || currAnio, currAnio);
+      let targetTri = rangoModal.trimestre || currTrimestre;
+      if (targetAnio === currAnio && targetTri > currTrimestre) {
+        targetTri = currTrimestre;
+      }
+      nextRango.anio = targetAnio;
+      nextRango.trimestre = targetTri;
     } else if (nuevoTipo === 'semestre') {
-      nextRango.anio = rangoModal.anio || currAnio;
-      nextRango.semestre = rangoModal.semestre || (currMes <= 6 ? 1 : 2);
+      const targetAnio = Math.min(rangoModal.anio || currAnio, currAnio);
+      let targetSem = rangoModal.semestre || currSemestre;
+      if (targetAnio === currAnio && targetSem > currSemestre) {
+        targetSem = currSemestre;
+      }
+      nextRango.anio = targetAnio;
+      nextRango.semestre = targetSem;
     } else if (nuevoTipo === 'anio') {
-      nextRango.anio = rangoModal.anio || currAnio;
+      nextRango.anio = Math.min(rangoModal.anio || currAnio, currAnio);
     }
 
     setRangoModal(nextRango);
@@ -109,16 +140,17 @@ export function ExportarResultadosModal({
   };
 
   const handleShift = (offset) => {
+    if (offset > 0 && esPeriodoActualOMaximo) return;
     setErrorExportacion(null);
     const tipo = rangoModal.tipo || 'mes';
-    const anioNum = Number(rangoModal.anio || new Date().getFullYear());
+    const anioNum = Number(rangoModal.anio || currAnio);
     const triNum = Number(rangoModal.trimestre || 1);
     const semNum = Number(rangoModal.semestre || 1);
 
     let nextRango = { tipo };
 
     if (tipo === 'mes') {
-      const [y, m] = (rangoModal.mes || `${new Date().getFullYear()}-01`).split('-').map(Number);
+      const [y, m] = (rangoModal.mes || `${currAnio}-01`).split('-').map(Number);
       const dt = new Date(y, m - 1 + offset, 1);
       nextRango.mes = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
     } else if (tipo === 'trimestre') {
@@ -174,12 +206,12 @@ export function ExportarResultadosModal({
 
   const renderEtiquetaPeriodo = () => {
     const tipo = rangoModal.tipo || 'mes';
-    const anioNum = Number(rangoModal.anio || new Date().getFullYear());
+    const anioNum = Number(rangoModal.anio || currAnio);
     const triNum = Number(rangoModal.trimestre || 1);
     const semNum = Number(rangoModal.semestre || 1);
 
     if (tipo === 'mes') {
-      return formatMonthLabel(rangoModal.mes || `${new Date().getFullYear()}-01`);
+      return formatMonthLabel(rangoModal.mes || `${currAnio}-01`);
     }
     if (tipo === 'trimestre') return `Trimestre ${triNum} · ${anioNum}`;
     if (tipo === 'semestre') return `Semestre ${semNum} · ${anioNum}`;
@@ -256,6 +288,7 @@ export function ExportarResultadosModal({
               icon="chevron_right"
               onClick={() => handleShift(1)}
               aria-label="Periodo siguiente"
+              disabled={esPeriodoActualOMaximo}
               className="h-9 w-9 shrink-0"
             />
           </div>

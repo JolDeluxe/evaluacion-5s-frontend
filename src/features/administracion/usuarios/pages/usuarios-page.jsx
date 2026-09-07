@@ -653,11 +653,6 @@ export function UsuariosPage() {
         </div>
       )}
 
-      {/* Navegación compartida (Mobile local) */}
-      <div className="md:hidden">
-        <AdministracionNav />
-      </div>
-
       {/* Resumen en 1 sola barra de 4 columnas */}
       <div className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
         <div className="grid grid-cols-4 divide-x divide-slate-100 text-center">

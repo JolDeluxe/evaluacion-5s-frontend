@@ -7,7 +7,7 @@ import { ResultadosEmpty } from '@/features/resultados/components/shared/resulta
 
 import { mapAreasConPosicion } from '@/features/resultados/utils/posicion-areas';
 
-export function ResultadosMobile({ vista, data, mes }) {
+export function ResultadosMobile({ vista, data, mes, canViewDetails = true }) {
   if (!data?.areas?.length) {
     return <ResultadosEmpty />;
   }
@@ -39,13 +39,15 @@ export function ResultadosMobile({ vista, data, mes }) {
             titulo={titulos.ganadores}
           />
 
-          {/* 3. PEORES */}
-          <PeoresDelMes
-            peoresPorTipo={data.peoresPorTipo}
-            mostrarResultado={estadoGeneral?.mostrarResultado}
-            mensaje={data.mensajePeores}
-            titulo={titulos.peores}
-          />
+          {/* 3. PEORES (Solo administradores) */}
+          {canViewDetails && (
+            <PeoresDelMes
+              peoresPorTipo={data.peoresPorTipo}
+              mostrarResultado={estadoGeneral?.mostrarResultado}
+              mensaje={data.mensajePeores}
+              titulo={titulos.peores}
+            />
+          )}
 
           {/* 4. TABLA DE ÁREAS (tarjetas en móvil) */}
           <div className="space-y-3">
@@ -57,8 +59,10 @@ export function ResultadosMobile({ vista, data, mes }) {
             ))}
           </div>
 
-          {/* 5. PREGUNTAS CON MAYOR INCIDENCIA */}
-          <TopIncidencias incidenciasPorTipo={data.incidenciasPorTipo} />
+          {/* 5. PREGUNTAS CON MAYOR INCIDENCIA (Solo administradores) */}
+          {canViewDetails && (
+            <TopIncidencias incidenciasPorTipo={data.incidenciasPorTipo} />
+          )}
         </>
       ) : (
         data.areas.map((item) => (

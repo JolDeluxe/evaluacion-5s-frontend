@@ -7,7 +7,7 @@ import { TopIncidencias } from '@/features/resultados/components/general/top-inc
 import { ResultadosEmpty } from '@/features/resultados/components/shared/resultados-states';
 import { Card } from '@/components/ui/card';
 
-export function ResultadosDesktop({ vista, data, mes }) {
+export function ResultadosDesktop({ vista, data, mes, canViewDetails = true }) {
   if (!data?.areas?.length) {
     return <ResultadosEmpty />;
   }
@@ -36,19 +36,23 @@ export function ResultadosDesktop({ vista, data, mes }) {
           titulo={titulos.ganadores}
         />
 
-        {/* 3. PEORES */}
-        <PeoresDelMes
-          peoresPorTipo={data.peoresPorTipo}
-          mostrarResultado={estadoGeneral?.mostrarResultado}
-          mensaje={data.mensajePeores}
-          titulo={titulos.peores}
-        />
+        {/* 3. PEORES (Solo administradores) */}
+        {canViewDetails && (
+          <PeoresDelMes
+            peoresPorTipo={data.peoresPorTipo}
+            mostrarResultado={estadoGeneral?.mostrarResultado}
+            mensaje={data.mensajePeores}
+            titulo={titulos.peores}
+          />
+        )}
 
         {/* 4. TABLA DE ÁREAS */}
         <TablaResultadosAreas areas={data.areas} rango={data.rango} mes={mes} estadoMes={data.estadoMes} />
 
-        {/* 5. PREGUNTAS CON MAYOR INCIDENCIA */}
-        <TopIncidencias incidenciasPorTipo={data.incidenciasPorTipo} />
+        {/* 5. PREGUNTAS CON MAYOR INCIDENCIA (Solo administradores) */}
+        {canViewDetails && (
+          <TopIncidencias incidenciasPorTipo={data.incidenciasPorTipo} />
+        )}
       </div>
     );
   }

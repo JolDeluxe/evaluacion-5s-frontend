@@ -163,3 +163,29 @@ export function esFilaEditable(fila, anio, mes, ahora = new Date()) {
 
   return true;
 }
+
+export function obtenerAuditorMensualDisplay(fila, anio, mes, ahora = new Date()) {
+  if (!fila) return { tipo: 'NEUTRO', texto: '—' };
+
+  if (fila.auditorMensual?.nombre) {
+    return { tipo: 'NOMBRE', texto: fila.auditorMensual.nombre };
+  }
+
+  const auditorP1 = fila.periodos?.p1?.auditorEfectivo?.nombre;
+  const auditorP2 = fila.periodos?.p2?.auditorEfectivo?.nombre;
+
+  if (auditorP1 || auditorP2) {
+    const texto = auditorP1 && auditorP2 && auditorP1 !== auditorP2
+      ? `${auditorP1} / ${auditorP2}`
+      : (auditorP1 || auditorP2);
+    return { tipo: 'NOMBRE', texto };
+  }
+
+  const editable = esFilaEditable(fila, anio, mes, ahora);
+
+  if (editable) {
+    return { tipo: 'ALERTA', texto: 'Sin auditor' };
+  }
+
+  return { tipo: 'NEUTRO', texto: '—' };
+}
