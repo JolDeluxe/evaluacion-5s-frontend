@@ -228,7 +228,7 @@ export function QrTargetPage() {
                         {asig.anio} · Mes {asig.mes} · Periodo {asig.periodo}
                       </span>
                       <span className="text-[11px] font-semibold text-slate-500">
-                        Vence: {asig.reabiertaHasta ? 'Hoy 23:59' : new Date(asig.venceEn).toLocaleDateString('es-MX')}
+                        Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : new Date(asig.venceEn).toLocaleDateString('es-MX')}
                       </span>
                     </div>
                     <Icon name="chevron_right" size="18px" className="text-slate-400" />

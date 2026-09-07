@@ -58,6 +58,9 @@ function PeriodoCell({ periodoData, auditorNombre }) {
 
   // Si periodoData trae estado / estadoAuditoria explícito, respetarlo primeramente (p. ej. NO_REALIZADA de Resultados)
   const estadoBase = periodoData.estado || periodoData.estadoAuditoria;
+  const esReabiertaActiva = Boolean(
+    periodoData.reabiertaHasta && new Date(periodoData.reabiertaHasta) > new Date()
+  );
 
   const estado = periodoData.realizada
     ? 'REALIZADA'
@@ -67,7 +70,7 @@ function PeriodoCell({ periodoData, auditorNombre }) {
     ? 'NO_REALIZADA'
     : estadoBase === 'ATRASADA' || estadoBase === 'ATRASADA_EN_GRACIA'
     ? 'ATRASADA'
-    : periodoData.vencida && !periodoData.reabiertaHasta
+    : periodoData.vencida && !esReabiertaActiva
     ? 'NO_REALIZADA'
     : periodoData.vencida
     ? 'ATRASADA'
@@ -75,7 +78,7 @@ function PeriodoCell({ periodoData, auditorNombre }) {
 
   return (
     <div className="flex flex-col items-center gap-0 py-0.5">
-      <StatusText estado={estado} reabierta={Boolean(periodoData.reabiertaHasta)} />
+      <StatusText estado={estado} reabierta={esReabiertaActiva} />
       {auditorNombre ? (
         <span className="text-[10px] font-medium text-slate-500 truncate max-w-[110px]" title={auditorNombre}>
           {auditorNombre}

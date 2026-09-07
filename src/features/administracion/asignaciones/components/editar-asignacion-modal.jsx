@@ -81,8 +81,9 @@ export function EditarAsignacionModal({
 
   const renderPeriodo = (label, periodo) => {
     const detalleAuditor = periodoDetalleTexto(periodo, fila.auditorMensual);
-    const esCompletada = periodo?.estadoAuditoria === 'COMPLETADA';
-    const esVencida = periodo?.vencida;
+    const esCompletada = periodo?.estadoAuditoria === 'COMPLETADA' || periodo?.realizada;
+    const esReabiertaActiva = Boolean(periodo?.reabiertaHasta && new Date(periodo.reabiertaHasta) > new Date());
+    const esVencida = periodo?.vencida && !esReabiertaActiva;
 
     return (
       <div className="rounded-xl border border-app-border bg-slate-50/70 p-3.5 space-y-1">
@@ -94,19 +95,21 @@ export function EditarAsignacionModal({
                 className={`inline-flex items-center gap-1 text-xs font-bold ${
                   esCompletada
                     ? 'text-emerald-700'
-                    : esVencida
+                    : esReabiertaActiva
                       ? 'text-rose-600 font-extrabold'
-                      : 'text-slate-600'
+                      : esVencida
+                        ? 'text-rose-600 font-extrabold'
+                        : 'text-slate-600'
                 }`}
               >
-                <span>{esCompletada ? '✓' : esVencida ? '!' : '•'}</span>
+                <span>{esCompletada ? '✓' : esReabiertaActiva ? '↻' : esVencida ? '!' : '•'}</span>
                 <span>{periodoTexto(periodo, fila.auditorMensual?.nombre)}</span>
               </span>
             </div>
             {detalleAuditor && <p className="text-xs font-semibold text-slate-400 mt-0.5">{detalleAuditor}</p>}
           </div>
 
-          {periodo?.vencida && (
+          {periodo?.vencida && !esReabiertaActiva && (
             <Button
               type="button"
               variant="outline"
