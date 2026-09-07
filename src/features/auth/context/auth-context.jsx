@@ -81,6 +81,11 @@ export function AuthProvider({ children }) {
     setState({ status: 'noAuth', user: null, error: null });
   }, []);
 
+  const syncAuthenticatedUser = useCallback((user) => {
+    if (!user) return;
+    setState({ status: 'authenticated', user, error: null });
+  }, []);
+
   const value = useMemo(() => ({
     ...state,
     isAuthenticated: state.status === 'authenticated' && Boolean(state.user),
@@ -88,7 +93,8 @@ export function AuthProvider({ children }) {
     logout,
     goToLoginManually,
     refreshSession,
-  }), [goToLoginManually, login, logout, refreshSession, state]);
+    syncAuthenticatedUser,
+  }), [goToLoginManually, login, logout, refreshSession, state, syncAuthenticatedUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

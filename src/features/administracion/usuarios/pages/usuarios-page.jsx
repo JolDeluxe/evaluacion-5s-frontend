@@ -17,6 +17,10 @@ import { AdministracionNav } from '@/features/administracion/components/administ
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
 import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
+import { formatFechaLarga } from '@/utils/format';
+import { notify } from '@/components/notification/adaptive-notify';
+import { useCredentialReveal } from '@/hooks/use-credential-reveal';
+
 
 // ---------------------------------------------------------------------------
 // Helpers visuales
@@ -62,9 +66,10 @@ function ResponsableAreasCell({ areasUsuario = [] }) {
 // Tarjeta mobile
 // ---------------------------------------------------------------------------
 
-function UsuarioCard({ usuario, onVerDetalle, onEditar, onToggleEstado }) {
+function UsuarioCard({ usuario, currentUser, onVerDetalle, onEditar, onToggleEstado, onRestablecerContrasena }) {
   const responsables = usuario.areasUsuario ?? [];
   const isSuper = usuario.rol === 'SUPER_ADMIN';
+  const canManageTarget = !isSuper || currentUser?.rol === 'SUPER_ADMIN';
 
   return (
     <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-xl backdrop-blur-xl space-y-3">
@@ -103,7 +108,7 @@ function UsuarioCard({ usuario, onVerDetalle, onEditar, onToggleEstado }) {
             title="Ver detalle"
             aria-label="Ver detalle"
           />
-          {!isSuper && (
+          {canManageTarget && (
             <>
               <Button
                 type="button"
@@ -114,6 +119,16 @@ function UsuarioCard({ usuario, onVerDetalle, onEditar, onToggleEstado }) {
                 className="h-8 w-8 text-amber-500 hover:bg-slate-100 rounded-lg"
                 title="Editar usuario"
                 aria-label="Editar usuario"
+              />
+              <Button
+                type="button"
+                onClick={() => onRestablecerContrasena(usuario)}
+                variant="ghost"
+                size="icon"
+                icon="key"
+                className="h-8 w-8 text-blue-600 hover:bg-slate-100 rounded-lg"
+                title="Establecer nueva contraseña"
+                aria-label="Establecer nueva contraseña"
               />
               <Button
                 type="button"
@@ -137,13 +152,34 @@ function UsuarioCard({ usuario, onVerDetalle, onEditar, onToggleEstado }) {
 // Modal de detalle del usuario
 // ---------------------------------------------------------------------------
 
-function UsuarioDetalleModal({ usuario, onClose }) {
+function UsuarioDetalleModal({ usuario, currentUser, onClose, onRestablecerContrasena }) {
+  const loadCredential = useCallback(
+    () => usuariosApi.obtenerCredencial(usuario.id),
+    [usuario.id],
+  );
+  const {
+    revealedCredential: revealedPassword,
+    loadingCredential: loadingCred,
+    copied,
+    toggleCredential: handleToggleReveal,
+    copyCredential: handleCopiarPassword,
+    clearCredential,
+  } = useCredentialReveal({ loadCredential, resetKey: usuario.id });
+
+  const handleCloseModal = () => {
+    clearCredential();
+    onClose();
+  };
+
   if (!usuario) return null;
   const areas = usuario.areasUsuario ?? [];
+  const fechaMiembro = formatFechaLarga(usuario.creadoEn);
+  const isSuper = usuario.rol === 'SUPER_ADMIN';
+  const canManageTarget = !isSuper || currentUser?.rol === 'SUPER_ADMIN';
 
   return (
-    <Modal isOpen={!!usuario} onClose={onClose}>
-      <ModalHeader title="Detalle de Usuario" onClose={onClose}>
+    <Modal isOpen={!!usuario} onClose={handleCloseModal}>
+      <ModalHeader title="Detalle de Usuario" onClose={handleCloseModal}>
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">
             @{usuario.nombreUsuario}
@@ -154,6 +190,24 @@ function UsuarioDetalleModal({ usuario, onClose }) {
       <ModalBody>
         <div className="space-y-4">
           <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} />
+
+          {fechaMiembro && (
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-100 px-3 py-2.5 rounded-xl">
+              <Icon name="calendar_today" size="xs" className="text-slate-400 shrink-0" />
+              <span>Miembro desde: {fechaMiembro}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-2 text-slate-600 bg-slate-50 border border-slate-100 px-3 py-2 rounded-xl min-w-0">
+              <Icon name="mail" size="xs" className="text-slate-400 shrink-0" />
+              <span className="truncate">{usuario.correo || 'Sin correo'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-600 bg-slate-50 border border-slate-100 px-3 py-2 rounded-xl min-w-0">
+              <Icon name="call" size="xs" className="text-slate-400 shrink-0" />
+              <span className="truncate">{usuario.telefonoE164 || 'Sin teléfono'}</span>
+            </div>
+          </div>
 
           <div>
             <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 mb-2">
@@ -176,14 +230,337 @@ function UsuarioDetalleModal({ usuario, onClose }) {
               </div>
             )}
           </div>
+
+          {/* Sección de Seguridad */}
+          <div className="border-t border-slate-100 pt-3">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500 mb-2">
+              Seguridad
+            </p>
+            <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Contraseña</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono text-base font-bold tracking-widest text-slate-800 select-all">
+                      {revealedPassword || '••••••••••••'}
+                    </span>
+                    {usuario.tieneCredencialCifrada !== false && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          icon={revealedPassword ? 'visibility_off' : 'visibility'}
+                          onClick={handleToggleReveal}
+                          isLoading={loadingCred}
+                          className="h-8 w-8 text-slate-600 hover:bg-slate-200/60 rounded-lg"
+                          title={revealedPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                          aria-label={revealedPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                        />
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          icon={copied ? 'check' : 'content_copy'}
+                          onClick={handleCopiarPassword}
+                          disabled={loadingCred}
+                          className="h-8 w-8 text-slate-600 hover:bg-slate-200/60 rounded-lg"
+                          title={copied ? '¡Copiada!' : 'Copiar contraseña'}
+                          aria-label="Copiar contraseña"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {usuario.tieneCredencialCifrada === false ? (
+                    <p className="text-[11px] text-amber-700 font-medium block mt-1 leading-relaxed">
+                      La contraseña actual fue creada antes de habilitar la visualización y no puede recuperarse. Establece una nueva para habilitar ojo y copiar.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 block mt-1 leading-relaxed">
+                      {revealedPassword
+                        ? 'Contraseña visible temporalmente (se ocultará automáticamente en 2 minutos).'
+                        : 'Haz clic en el ojo para revelar la contraseña actual.'}
+                    </p>
+                  )}
+                </div>
+
+                {canManageTarget && onRestablecerContrasena && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon="key"
+                    onClick={() => {
+                      handleCloseModal();
+                      onRestablecerContrasena(usuario);
+                    }}
+                    className="shrink-0 text-xs font-bold text-blue-700 hover:bg-blue-50 border-blue-200"
+                  >
+                    Establecer nueva contraseña
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </ModalBody>
       <ModalFooter>
-        <Button variant="cancelar" size="sm" onClick={onClose}>Cerrar</Button>
+        <Button variant="cancelar" size="sm" onClick={handleCloseModal}>Cerrar</Button>
       </ModalFooter>
     </Modal>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Modal de Establecer Nueva Contraseña
+// ---------------------------------------------------------------------------
+
+function EstablecerContrasenaModal({ usuario, onClose, onSuccess }) {
+  const [contrasenaNueva, setContrasenaNueva] = useState('');
+  const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [debeCambiarContrasena, setDebeCambiarContrasena] = useState(true);
+  const [showNueva, setShowNueva] = useState(false);
+  const [showConfirmar, setShowConfirmar] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!usuario) return null;
+
+  const handleGenerar = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    const arr = new Uint8Array(10);
+    crypto.getRandomValues(arr);
+    const pass = Array.from(arr).map((x) => chars[x % chars.length]).join('');
+    setContrasenaNueva(pass);
+    setConfirmarContrasena(pass);
+    setShowNueva(false);
+    setShowConfirmar(false);
+    setCopied(false);
+    setError('');
+  };
+
+  const handleCopiar = async () => {
+    if (!contrasenaNueva) return;
+    try {
+      await navigator.clipboard.writeText(contrasenaNueva);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignorar fallo de clipboard
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!contrasenaNueva || contrasenaNueva.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (contrasenaNueva !== confirmarContrasena) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await usuariosApi.establecerContrasenaTemporal(usuario.id, {
+        contrasena: contrasenaNueva,
+        debeCambiarContrasena,
+      });
+      handleClose();
+      onSuccess?.(usuario);
+    } catch (err) {
+      setError(err.message || 'Error al establecer la contraseña');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    setContrasenaNueva('');
+    setConfirmarContrasena('');
+    setError('');
+    setShowNueva(false);
+    setShowConfirmar(false);
+    setCopied(false);
+    onClose();
+  };
+
+  const isSaveDisabled =
+    saving ||
+    !contrasenaNueva ||
+    contrasenaNueva.length < 6 ||
+    !confirmarContrasena ||
+    contrasenaNueva !== confirmarContrasena;
+
+  return (
+    <Modal isOpen={Boolean(usuario)} onClose={handleClose} className="max-w-md">
+      <ModalHeader title="Establecer Nueva Contraseña" onClose={handleClose}>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">
+            @{usuario.nombreUsuario}
+          </p>
+          <h2 className="mt-0.5 text-xl font-black text-slate-950 leading-tight">{usuario.nombre}</h2>
+        </div>
+      </ModalHeader>
+      <form onSubmit={handleSubmit} autoComplete="off">
+        <ModalBody>
+          <div className="space-y-4 text-sm">
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-bold text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="rounded-xl bg-amber-50 border border-amber-200/80 p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
+              <Icon name="security" size="sm" className="text-amber-700 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="leading-relaxed font-medium">
+                  Una vez guardada, la contraseña podrá ser visualizada temporalmente por administradores autorizados.
+                </p>
+                <p className="text-[11px] text-amber-800 font-bold">
+                  Usa una contraseña exclusiva para Encuestas 5S. No reutilices contraseñas personales.
+                </p>
+              </div>
+            </div>
+
+            {/* Nueva Contraseña */}
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <Label htmlFor="pass-nueva-admin" className="mb-0">
+                  Nueva Contraseña <span className="text-red-500">*</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={handleGenerar}
+                  className="text-xs font-bold text-marca-primario hover:underline flex items-center gap-1"
+                >
+                  <Icon name="autorenew" size="xs" />
+                  Generar segura
+                </button>
+              </div>
+
+              <div className="relative flex items-center">
+                <Input
+                  id="pass-nueva-admin"
+                  type={showNueva ? 'text' : 'password'}
+                  value={contrasenaNueva}
+                  onChange={(e) => {
+                    setContrasenaNueva(e.target.value.replace(/\s/g, ''));
+                    setError('');
+                  }}
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  className="pr-20 font-mono"
+                  autoComplete="new-password"
+                />
+                <div className="absolute right-2 flex items-center gap-1">
+                  {contrasenaNueva && (
+                    <button
+                      type="button"
+                      onClick={handleCopiar}
+                      className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                      title={copied ? '¡Copiada!' : 'Copiar contraseña'}
+                      aria-label="Copiar contraseña"
+                    >
+                      <Icon name={copied ? 'check' : 'content_copy'} size="xs" className={copied ? 'text-emerald-600' : ''} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowNueva(!showNueva)}
+                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                    title={showNueva ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    aria-label={showNueva ? 'Ocultar nueva contraseña' : 'Ver nueva contraseña'}
+                  >
+                    <Icon name={showNueva ? 'visibility_off' : 'visibility'} size="xs" />
+                  </button>
+                </div>
+              </div>
+
+              {contrasenaNueva && (
+                <div className="mt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleCopiar}
+                    aria-label={copied ? 'Contraseña copiada al portapapeles' : 'Copiar contraseña al portapapeles'}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors shadow-sm"
+                  >
+                    <Icon name={copied ? 'check' : 'content_copy'} size="xs" className={copied ? 'text-emerald-600' : 'text-slate-500'} />
+                    <span>{copied ? '¡Copiada al portapapeles!' : 'Copiar contraseña'}</span>
+                  </button>
+                  <span className="text-[11px] text-slate-400 italic">
+                    {showNueva ? 'Visible' : 'Oculta'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Confirmar Contraseña */}
+            <div>
+              <Label htmlFor="pass-confirmar-admin">
+                Confirmar Contraseña <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative flex items-center">
+                <Input
+                  id="pass-confirmar-admin"
+                  type={showConfirmar ? 'text' : 'password'}
+                  value={confirmarContrasena}
+                  onChange={(e) => {
+                    setConfirmarContrasena(e.target.value.replace(/\s/g, ''));
+                    setError('');
+                  }}
+                  required
+                  placeholder="Repite la contraseña"
+                  className="pr-10 font-mono"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmar(!showConfirmar)}
+                  className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                  title={showConfirmar ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  aria-label={showConfirmar ? 'Ocultar confirmación de contraseña' : 'Ver confirmación de contraseña'}
+                >
+                  <Icon name={showConfirmar ? 'visibility_off' : 'visibility'} size="xs" />
+                </button>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none text-xs text-slate-700 font-medium pt-1">
+              <input
+                type="checkbox"
+                checked={debeCambiarContrasena}
+                onChange={(e) => setDebeCambiarContrasena(e.target.checked)}
+                className="mt-0.5 rounded border-slate-300 text-marca-primario focus:ring-marca-primario/30"
+              />
+              <span>Forzar cambio de contraseña en el próximo inicio de sesión</span>
+            </label>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button type="button" variant="cancelar" size="sm" onClick={handleClose}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="guardar"
+            size="sm"
+            icon="key"
+            isLoading={saving}
+            disabled={isSaveDisabled}
+          >
+            Guardar contraseña
+          </Button>
+        </ModalFooter>
+      </form>
+    </Modal>
+  );
+}
+
 
 // ---------------------------------------------------------------------------
 // Filtros
@@ -238,7 +615,7 @@ function FilterGridGroup({ title, value, options, onChange, gridCols = 'grid-col
 // Columnas desktop
 // ---------------------------------------------------------------------------
 
-function buildColumns(onVerDetalle, onEditar, onToggleEstado) {
+function buildColumns(onVerDetalle, onEditar, onToggleEstado, onRestablecerContrasena, currentUser) {
   return [
     {
       header: 'Usuario',
@@ -280,18 +657,20 @@ function buildColumns(onVerDetalle, onEditar, onToggleEstado) {
       header: '',
       accessorKey: '_acciones',
       align: 'center',
-      headerClassName: 'w-[120px]',
+      headerClassName: 'w-[140px]',
       cell: (row) => {
         const isSuper = row.rol === 'SUPER_ADMIN';
+        const canManageTarget = !isSuper || currentUser?.rol === 'SUPER_ADMIN';
         return (
           <TableActions
             row={row}
             actions={[
               { key: 'ver_detalle', enabled: true, onClick: () => onVerDetalle(row), tooltip: 'Ver detalle' },
-              { key: 'editar', enabled: !isSuper, onClick: () => onEditar(row), tooltip: 'Editar' },
+              { key: 'editar', enabled: canManageTarget, onClick: () => onEditar(row), tooltip: 'Editar usuario' },
+              { key: 'restablecer_contrasena', enabled: canManageTarget, onClick: () => onRestablecerContrasena(row), tooltip: 'Establecer nueva contraseña' },
               row.activo 
-                ? { key: 'toggle_estatus_desactivar', enabled: !isSuper, onClick: () => onToggleEstado(row), tooltip: 'Desactivar' }
-                : { key: 'toggle_estatus_activar', enabled: !isSuper, onClick: () => onToggleEstado(row), tooltip: 'Activar' }
+                ? { key: 'toggle_estatus_desactivar', enabled: canManageTarget, onClick: () => onToggleEstado(row), tooltip: 'Desactivar' }
+                : { key: 'toggle_estatus_activar', enabled: canManageTarget, onClick: () => onToggleEstado(row), tooltip: 'Activar' }
             ]}
           />
         );
@@ -322,7 +701,10 @@ export function UsuariosPage() {
 
   const [usuarioDetalle, setUsuarioDetalle] = useState(null);
   const [editingUsuario, setEditingUsuario] = useState(null);
+  const [restablecerTarget, setRestablecerTarget] = useState(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+
 
   const activeFiltersCount = [
     params.rol !== '',
@@ -455,6 +837,7 @@ export function UsuariosPage() {
       contrasena: '',
       areasResponsablesIds: [],
     });
+    setShowCreatePassword(false);
     setActionError(null);
     setIsCreating(true);
   };
@@ -470,6 +853,7 @@ export function UsuariosPage() {
       contrasena: '',
       areasResponsablesIds: responsables,
     });
+    setShowCreatePassword(false);
     setActionError(null);
     setEditingUsuario(usuario);
   };
@@ -484,9 +868,9 @@ export function UsuariosPage() {
       }
 
       const payload = {
-        nombre: form.nombre,
-        nombreUsuario: form.nombreUsuario,
-        correo: form.correo || null,
+        nombre: form.nombre.trim(),
+        nombreUsuario: form.nombreUsuario.trim().toLowerCase(),
+        correo: form.correo?.trim() || null,
         telefonoE164: form.telefonoE164.trim() || null,
         rol: form.rol,
       };
@@ -541,6 +925,8 @@ export function UsuariosPage() {
 
       setIsCreating(false);
       setEditingUsuario(null);
+      setShowCreatePassword(false);
+      setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
       cargar(params);
       cargarStats();
     } catch (err) {
@@ -631,6 +1017,8 @@ export function UsuariosPage() {
     (usuario) => setUsuarioDetalle(usuario),
     (usuario) => startEdit(usuario),
     (usuario) => toggleEstado(usuario),
+    (usuario) => setRestablecerTarget(usuario),
+    currentUser,
   );
 
   const labelEstado = params.activo === 'true' ? ' activos' : params.activo === 'false' ? ' inactivos' : '';
@@ -803,9 +1191,11 @@ export function UsuariosPage() {
                 <UsuarioCard
                   key={usuario.id}
                   usuario={usuario}
+                  currentUser={currentUser}
                   onVerDetalle={(u) => setUsuarioDetalle(u)}
                   onEditar={(u) => startEdit(u)}
                   onToggleEstado={(u) => toggleEstado(u)}
+                  onRestablecerContrasena={(u) => setRestablecerTarget(u)}
                 />
               ))}
             </div>
@@ -815,7 +1205,33 @@ export function UsuariosPage() {
 
       {/* Modal de detalle */}
       {usuarioDetalle && (
-        <UsuarioDetalleModal usuario={usuarioDetalle} onClose={() => setUsuarioDetalle(null)} />
+        <UsuarioDetalleModal
+          usuario={usuarioDetalle}
+          currentUser={currentUser}
+          onClose={() => setUsuarioDetalle(null)}
+          onRestablecerContrasena={(u) => setRestablecerTarget(u)}
+        />
+      )}
+
+      {/* Modal de establecer contraseña */}
+      {restablecerTarget && (
+        <EstablecerContrasenaModal
+          usuario={restablecerTarget}
+          onClose={() => setRestablecerTarget(null)}
+          onSuccess={(u) => {
+            const usuarioConCredencial = { ...u, tieneCredencialCifrada: true };
+            setState((current) => ({
+              ...current,
+              usuarios: current.usuarios.map((usuario) => (
+                usuario.id === u.id
+                  ? { ...usuario, tieneCredencialCifrada: true }
+                  : usuario
+              )),
+            }));
+            setUsuarioDetalle(usuarioConCredencial);
+            notify.success(`Contraseña establecida correctamente para ${u.nombre}.`);
+          }}
+        />
       )}
 
       {impactContext && (
@@ -834,12 +1250,22 @@ export function UsuariosPage() {
       {/* Modal de Crear / Editar */}
       <Modal
         isOpen={(isCreating || !!editingUsuario) && !impactContext}
-        onClose={() => { setIsCreating(false); setEditingUsuario(null); }}
+        onClose={() => {
+          setIsCreating(false);
+          setEditingUsuario(null);
+          setShowCreatePassword(false);
+          setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+        }}
         className="max-w-xl"
       >
         <ModalHeader
           title={editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
-          onClose={() => { setIsCreating(false); setEditingUsuario(null); }}
+          onClose={() => {
+            setIsCreating(false);
+            setEditingUsuario(null);
+            setShowCreatePassword(false);
+            setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+          }}
         />
         <form onSubmit={saveUsuario} autoComplete="off">
           <ModalBody>
@@ -851,58 +1277,77 @@ export function UsuariosPage() {
               )}
 
               <div>
-                <Label>Nombre Completo</Label>
+                <Label htmlFor="crear-nombre">Nombre Completo <span className="text-red-500">*</span></Label>
                 <Input
+                  id="crear-nombre"
                   name="name"
                   autoComplete="name"
                   value={form.nombre}
                   required
-                  placeholder="Ej: Carlos Mendoza"
+                  placeholder="Carlos Mendoza"
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 />
               </div>
 
               <div>
-                <Label>Username</Label>
-                <Input
-                  name="username"
-                  autoComplete="username"
-                  value={form.nombreUsuario}
-                  required
-                  placeholder="Ej: carlos.mendoza"
-                  disabled={!!editingUsuario}
-                  onChange={(e) => setForm({ ...form, nombreUsuario: e.target.value })}
-                />
+                <Label htmlFor="crear-username">Username <span className="text-red-500">*</span></Label>
+                <div className="flex items-center">
+                  <span className="inline-flex items-center px-3 h-10 bg-slate-100 border border-r-0 border-slate-200 rounded-l-lg text-slate-500 font-mono text-xs font-bold select-none">
+                    @
+                  </span>
+                  <Input
+                    id="crear-username"
+                    name="username"
+                    autoComplete="username"
+                    value={form.nombreUsuario}
+                    required
+                    placeholder="carlos.mendoza"
+                    disabled={Boolean(editingUsuario)}
+                    className={editingUsuario ? 'rounded-l-none bg-slate-100/80 text-slate-500 cursor-not-allowed' : 'rounded-l-none'}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        nombreUsuario: e.target.value.replace(/[@\s]/g, '').toLowerCase(),
+                      })
+                    }
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Identificador único para inicio de sesión (sin espacios ni @).
+                </p>
               </div>
 
               <div>
-                <Label>Correo Electrónico (Opcional)</Label>
+                <Label htmlFor="crear-correo">Correo Electrónico <span className="text-slate-400 font-normal italic">(Opcional)</span></Label>
                 <Input
+                  id="crear-correo"
                   name="email"
                   autoComplete="email"
                   type="email"
                   value={form.correo}
-                  placeholder="Ej: carlos.mendoza@example.test"
+                  placeholder="carlos.mendoza@cuadra.com.mx"
                   onChange={(e) => setForm({ ...form, correo: e.target.value })}
                 />
               </div>
 
               <div>
-                <Label>Teléfono (Opcional, E.164)</Label>
+                <Label htmlFor="crear-tel">Teléfono <span className="text-slate-400 font-normal italic">(Opcional, E.164)</span></Label>
                 <Input
+                  id="crear-tel"
                   name="telefonoE164"
                   autoComplete="tel"
                   type="tel"
                   inputMode="tel"
                   value={form.telefonoE164}
-                  placeholder="Ej: +525512345678"
+                  placeholder="+525512345678"
                   onChange={(e) => setForm({ ...form, telefonoE164: e.target.value })}
                 />
               </div>
 
               <div>
-                <Label>Rol</Label>
+                <Label htmlFor="crear-rol">Rol</Label>
                 <Select
+                  id="crear-rol"
                   name="rol"
                   autoComplete="off"
                   value={form.rol}
@@ -916,16 +1361,29 @@ export function UsuariosPage() {
 
               {!editingUsuario && (
                 <div>
-                  <Label>Contraseña Temporal</Label>
-                  <Input
-                    name="new-password"
-                    autoComplete="new-password"
-                    type="password"
-                    value={form.contrasena}
-                    required
-                    placeholder="Mínimo 6 caracteres"
-                    onChange={(e) => setForm({ ...form, contrasena: e.target.value })}
-                  />
+                  <Label htmlFor="crear-pass">Contraseña Temporal <span className="text-red-500">*</span></Label>
+                  <div className="relative flex items-center">
+                    <Input
+                      id="crear-pass"
+                      name="new-password"
+                      autoComplete="new-password"
+                      type={showCreatePassword ? 'text' : 'password'}
+                      value={form.contrasena}
+                      required
+                      placeholder="Mínimo 6 caracteres"
+                      className="pr-10"
+                      onChange={(e) => setForm({ ...form, contrasena: e.target.value.replace(/\s/g, '') })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 text-slate-400 hover:text-slate-600 transition-colors"
+                      title={showCreatePassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      aria-label={showCreatePassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    >
+                      <Icon name={showCreatePassword ? 'visibility_off' : 'visibility'} size="xs" />
+                    </button>
+                  </div>
                   <p className="text-[11px] text-slate-400 mt-1">
                     Se forzará al usuario a cambiarla en su primer inicio de sesión.
                   </p>
@@ -950,7 +1408,12 @@ export function UsuariosPage() {
               type="button"
               variant="cancelar"
               size="sm"
-              onClick={() => { setIsCreating(false); setEditingUsuario(null); }}
+              onClick={() => {
+                setIsCreating(false);
+                setEditingUsuario(null);
+                setShowCreatePassword(false);
+                setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+              }}
             >
               Cancelar
             </Button>
@@ -968,3 +1431,4 @@ export function UsuariosPage() {
     </section>
   );
 }
+

@@ -38,4 +38,7 @@ export const usuariosApi = {
 
   establecerContrasenaTemporal: async (id, body, options) =>
     datos(await apiClient.post(`/usuarios/${id}/contrasena-temporal`, body, options)),
+
+  obtenerCredencial: async (id, options) =>
+    datos(await apiClient.get(`/usuarios/${id}/credencial`, options)),
 };

@@ -1,33 +1,70 @@
-import { Card, CardBody } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useEffect } from 'react';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { usePerfil } from '../hooks/use-perfil';
+import { PerfilDesktop } from '../views/perfil-desktop';
+import { PerfilMobile } from '../views/perfil-mobile';
+import { notify } from '@/components/notification/adaptive-notify';
 
 export function PerfilPage() {
-  const { user } = useAuth();
-  const initial = (user?.nombre || user?.nombreUsuario || 'U').charAt(0).toUpperCase();
+  const isDesktop = useIsDesktop();
+  const {
+    user,
+    updating,
+    error,
+    success,
+    fetchPerfil,
+    actualizarPerfil,
+    cambiarContrasena,
+    clearError,
+    clearSuccess,
+  } = usePerfil();
+
+  useEffect(() => {
+    fetchPerfil();
+  }, [fetchPerfil]);
+
+  useEffect(() => {
+    if (success?.message) {
+      notify.success(success.message);
+      const timer = setTimeout(() => clearSuccess?.(), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, clearSuccess]);
+
+  useEffect(() => {
+    if (error?.message) {
+      const msg = error.message.toLowerCase();
+      // Silenciamos los errores que ya son manejados inline por los formularios
+      const isHandledInline =
+        msg.includes('contraseña') ||
+        msg.includes('contrasena') ||
+        msg.includes('correo') ||
+        msg.includes('nombre') ||
+        msg.includes('teléfono') ||
+        msg.includes('telefono');
+
+      if (!isHandledInline) {
+        notify.error(error.message);
+      }
+    }
+  }, [error]);
+
+  const viewProps = {
+    user,
+    updating,
+    error,
+    onUpdate: actualizarPerfil,
+    onChangePassword: cambiarContrasena,
+    clearError,
+  };
 
   return (
-    <section className="space-y-5">
-      <div>
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">Cuenta</p>
-        <h1 className="text-3xl font-black text-slate-950">Perfil</h1>
-      </div>
-      <Card className="border-white/70 bg-white/80 shadow-xl backdrop-blur-2xl rounded-2xl">
-        <CardBody className="space-y-4 p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-marca-secundario text-2xl font-black text-white shadow-md">
-              {initial}
-            </div>
-            <div className="space-y-1 min-w-0">
-              <h2 className="text-xl font-black text-slate-950 truncate">{user?.nombre || user?.nombreUsuario || 'Usuario'}</h2>
-              <p className="text-xs font-medium text-slate-600 truncate">{user?.correo || 'Sin correo registrado'}</p>
-              <Badge status="resuelto" className="bg-marca-primario/10 text-marca-primario border border-marca-primario/20 shadow-none">
-                {user?.rol}
-              </Badge>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-    </section>
+    <div className="max-w-4xl mx-auto">
+      {isDesktop ? (
+        <PerfilDesktop {...viewProps} />
+      ) : (
+        <PerfilMobile {...viewProps} />
+      )}
+    </div>
   );
 }

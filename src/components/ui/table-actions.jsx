@@ -34,6 +34,12 @@ const ACTION_CONFIG = {
         variant: "dark",
         className: "text-estado-resuelto hover:bg-estado-resuelto/10",
     },
+    restablecer_contrasena: {
+        icon: "lock_reset",
+        tooltip: "Restablecer contraseña",
+        variant: "dark",
+        className: "text-blue-600 hover:bg-blue-600/10",
+    },
     // ── Acciones de Tickets ──
     asignar_tecnico: {
         icon: "engineering",
