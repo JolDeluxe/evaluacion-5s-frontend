@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { EstadoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
-import { periodoDetalleTexto, periodoTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
+import { EstadoBadge, PeriodoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
+import { periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
 function MobileCard({ fila, onEdit }) {
   const asignado = fila.estado === 'ASIGNADO';
@@ -42,26 +42,11 @@ function MobileCard({ fila, onEdit }) {
 
 function PeriodoCell({ fila, periodo }) {
   const detalle = periodoDetalleTexto(periodo, fila.auditorMensual);
-  const texto = periodoTexto(periodo, fila.auditorMensual?.nombre);
-  const esVencida = periodo?.vencida;
-  const esCompletada = periodo?.estadoAuditoria === 'COMPLETADA';
-  const esPendiente = !esCompletada && !esVencida;
 
   return (
-    <div className="flex flex-col gap-0.5">
-      <span
-        className={`inline-flex items-center gap-1 text-xs font-semibold ${
-          esCompletada
-            ? 'text-emerald-700 font-bold'
-            : esVencida
-              ? 'text-rose-600 font-bold'
-              : 'text-slate-600'
-        }`}
-      >
-        <span>{esCompletada ? '✓' : esVencida ? '!' : '•'}</span>
-        <span>{texto}</span>
-      </span>
-      {detalle && <span className="text-[11px] font-medium text-slate-400">{detalle}</span>}
+    <div className="flex flex-col items-start gap-0.5">
+      <PeriodoBadge periodo={periodo} auditorMensualNombre={fila.auditorMensual?.nombre} />
+      {detalle && <span className="text-[11px] font-semibold text-slate-400 pl-1">{detalle}</span>}
     </div>
   );
 }
