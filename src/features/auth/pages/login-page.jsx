@@ -24,7 +24,11 @@ export function LoginPage() {
     try {
       const user = await auth.login({ nombreUsuario, password: contrasena, contrasena });
       notify.success('Sesión iniciada.');
-      navigate(location.state?.from?.pathname || getHomeForRole(user?.rol), { replace: true });
+      const from = location.state?.from;
+      const target = from
+        ? `${from.pathname || ''}${from.search || ''}${from.hash || ''}`
+        : getHomeForRole(user?.rol);
+      navigate(target, { replace: true });
     } catch (error) {
       notify.error(error?.message || 'No se pudo iniciar sesión.');
     } finally {

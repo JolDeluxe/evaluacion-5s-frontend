@@ -28,6 +28,7 @@ import { InvitadoAccesoPage } from '@/features/invitados/pages/invitado-acceso-p
 import { QrTargetPage } from '@/features/qr/pages/qr-target-page';
 import { ForbiddenPage } from '@/features/errors/pages/forbidden-page';
 import { NotFoundPage } from '@/features/errors/pages/not-found-page';
+import { EntregasPage } from '@/features/sistema/entregas/pages/entregas-page';
 
 import { AdministracionLayoutPage } from '@/features/administracion/pages/administracion-layout-page';
 
@@ -126,7 +127,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <AdministracionPlaceholderPage type="sistema" section="system" /> },
               { path: 'sesiones', element: <AdministracionPlaceholderPage type="sistemaSesiones" section="system" /> },
-              { path: 'entregas', element: <AdministracionPlaceholderPage type="sistemaEntregas" section="system" /> },
+              { path: 'entregas', element: <EntregasPage /> },
               { path: 'registros', element: <AdministracionPlaceholderPage type="registros" section="system" /> },
             ],
           },

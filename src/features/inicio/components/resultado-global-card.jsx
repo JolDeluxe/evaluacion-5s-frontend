@@ -50,7 +50,6 @@ export function ResultadoGlobalCard({ resultadoGlobal }) {
                 className="text-xs font-bold"
                 style={rule ? { color: rule.textColor } : undefined}
               >
-                promedio
               </span>
             )}
           </div>

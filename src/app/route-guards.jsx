@@ -94,7 +94,10 @@ export function RedirectIfAuthenticated() {
   }
 
   if (auth.isAuthenticated) {
-    const target = location.state?.from?.pathname || getHomeForRole(auth.user?.rol);
+    const from = location.state?.from;
+    const target = from
+      ? `${from.pathname || ''}${from.search || ''}${from.hash || ''}`
+      : getHomeForRole(auth.user?.rol);
     return <Navigate to={target} replace />;
   }
 
