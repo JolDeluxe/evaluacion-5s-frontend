@@ -20,7 +20,6 @@ const ALCANCE_OPTS = [
   { value: '', label: 'Todos los alcances' },
   { value: 'ADMINISTRATIVO', label: 'Administrativo' },
   { value: 'OPERATIVO', label: 'Operativo' },
-  { value: 'AMBOS', label: 'Ambos' },
 ];
 
 const ESTADOS = [
@@ -59,7 +58,7 @@ export function FormulariosPage() {
 
   const { params, setParam, setSearch } = useUrlState(URL_DEFAULTS);
 
-  const [form, setForm] = useState({ nombre: '', descripcion: '', alcance: 'AMBOS' });
+  const [form, setForm] = useState({ nombre: '', descripcion: '', alcance: 'ADMINISTRATIVO' });
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState(null);
 
@@ -98,7 +97,7 @@ export function FormulariosPage() {
     try {
       await formulariosApi.crear(form);
       setCreating(false);
-      setForm({ nombre: '', descripcion: '', alcance: 'AMBOS' });
+      setForm({ nombre: '', descripcion: '', alcance: 'ADMINISTRATIVO' });
       cargar(params);
     } catch (err) {
       setActionError(err?.message || 'No se pudo crear el formulario.');
@@ -202,7 +201,6 @@ export function FormulariosPage() {
                 >
                   <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
                   <option value="OPERATIVO">OPERATIVO</option>
-                  <option value="AMBOS">AMBOS</option>
                 </Select>
               </div>
 
