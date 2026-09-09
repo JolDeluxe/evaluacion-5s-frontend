@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { AppRouteShell } from '@/app/app-route-shell';
 import { DashboardLayout } from '@/layouts/dashboard-layout';
 import { RequireAuth, RequireRole, RedirectIfAuthenticated } from '@/app/route-guards';
-import { AUDIT_EXECUTION_ROLES, AUDIT_VIEW_ROLES, BUSINESS_ADMIN_ROLES, ROLES, SYSTEM_ROLES } from '@/config/navigation-config';
+import { AUDIT_EXECUTION_ROLES, AUDIT_VIEW_ROLES, BUSINESS_ADMIN_ROLES, RESULTS_ROLES, SYSTEM_ROLES } from '@/config/navigation-config';
 import { LoginPage } from '@/features/auth/pages/login-page';
 import { InicioPage } from '@/features/inicio/pages/inicio-page';
 import { MisAuditoriasPage } from '@/features/auditorias/por-realizar/pages/mis-auditorias-page';
@@ -15,8 +15,10 @@ import { AreasPage } from '@/features/administracion/areas/pages/areas-page';
 import { AreaQrPrintPage } from '@/features/administracion/areas/pages/area-qr-print-page';
 import { UsuariosPage } from '@/features/administracion/usuarios/pages/usuarios-page';
 import { ResultadosPage } from '@/features/resultados/pages/resultados-page';
+import { ResultadosDefaultRedirect } from '@/features/resultados/pages/resultados-default-redirect';
 import { ResultadoAreaPage } from '@/features/resultados/pages/resultado-area-page';
 import { ResultadoPeriodoPage } from '@/features/resultados/pages/resultado-periodo-page';
+import { ResultadosDescargarPage } from '@/features/resultados/pages/resultados-descargar-page';
 import { NotificacionesPage } from '@/features/notificaciones/pages/notificaciones-page';
 import { PerfilPage } from '@/features/perfil/pages/perfil-page';
 import { FormulariosPage } from '@/features/administracion/formularios/pages/formularios-page';
@@ -98,9 +100,10 @@ export const router = createBrowserRouter([
           },
           { 
             path: '/resultados', 
-            element: <RequireRole roles={[ROLES.SUPER_ADMIN, ROLES.ADMINISTRADOR, ROLES.AUDITOR]} />, 
+            element: <RequireRole roles={RESULTS_ROLES} />,
             children: [
-              { index: true, element: <ResultadosPage /> },
+              { index: true, element: <ResultadosDefaultRedirect /> },
+              { path: 'descargar', element: <ResultadosDescargarPage /> },
               { path: 'general', element: <ResultadosPage /> },
               { path: 'areas', element: <ResultadosPage /> },
               { path: 'areas/:areaId', element: <ResultadoAreaPage /> },
@@ -113,7 +116,7 @@ export const router = createBrowserRouter([
           { path: '/perfil', element: <PerfilPage /> },
           {
             path: '/admin',
-            element: <RequireRole roles={[ROLES.SUPER_ADMIN, ROLES.ADMINISTRADOR]} />,
+            element: <RequireRole roles={BUSINESS_ADMIN_ROLES} />,
             children: [
               {
                 element: <AdministracionLayoutPage />,
@@ -123,7 +126,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/sistema',
-            element: <RequireRole roles={[ROLES.SUPER_ADMIN]} />,
+            element: <RequireRole roles={SYSTEM_ROLES} />,
             children: [
               { index: true, element: <AdministracionPlaceholderPage type="sistema" section="system" /> },
               { path: 'sesiones', element: <AdministracionPlaceholderPage type="sistemaSesiones" section="system" /> },

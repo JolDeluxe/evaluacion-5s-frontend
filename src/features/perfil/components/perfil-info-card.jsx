@@ -55,9 +55,8 @@ export function PerfilInfoCard({ user }) {
           <InfoBlock label="Nombre Completo" value={user.nombre} icon="person" />
           <InfoBlock
             label="Nombre de Usuario (Login)"
-            value={`@${user.nombreUsuario}`}
+            value={user.nombreUsuario}
             icon="alternate_email"
-            readOnly
           />
           <InfoBlock label="Correo Electrónico" value={user.correo} icon="mail" />
           <InfoBlock label="Teléfono de Contacto" value={user.telefonoE164} icon="call" />

@@ -1,12 +1,18 @@
 import { NavLink } from 'react-router';
 import { cn } from '@/utils/cn';
 
-export function SectionTabs({ tabs = [], className = '' }) {
+export function SectionTabs({ tabs = [], className = '', label = 'Secciones' }) {
   if (!tabs.length) return null;
 
   return (
-    <div className="sticky top-0 z-30 !mt-0 -mx-4 px-4 sm:mx-0 sm:px-0 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs py-1">
-      <nav className={cn('flex flex-nowrap items-center overflow-x-auto gap-2 sm:gap-6 custom-scrollbar h-10', className)}>
+    <div className="sticky top-0 z-30 min-w-0 w-full py-2">
+      <nav
+        aria-label={label}
+        className={cn(
+          'flex w-full min-w-0 items-stretch overflow-hidden rounded-2xl border border-marca-secundario/15 bg-white/95 px-2 shadow-sm shadow-marca-secundario/5 backdrop-blur-xl',
+          className,
+        )}
+      >
         {tabs.map((tab) => (
           <NavLink
             key={tab.to || tab.id}
@@ -14,10 +20,10 @@ export function SectionTabs({ tabs = [], className = '' }) {
             end={tab.end}
             className={({ isActive }) =>
               cn(
-                'whitespace-nowrap border-b-2 px-3 py-2 text-xs sm:text-sm font-black uppercase tracking-wide transition-all shrink-0',
+                'relative flex min-h-12 min-w-0 flex-1 items-center justify-center whitespace-nowrap px-1.5 py-3 text-center text-[11px] font-bold uppercase leading-5 tracking-normal transition-colors duration-150 after:absolute after:inset-x-2 after:bottom-0 after:h-1 after:rounded-full after:bg-marca-primario after:opacity-0 after:transition-opacity after:duration-150 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-marca-primario motion-reduce:transition-none motion-reduce:after:transition-none sm:px-3 sm:text-xs md:min-h-14 md:flex-none md:px-6 md:text-sm',
                 isActive
-                  ? 'border-marca-secundario text-marca-primario'
-                  : 'border-transparent text-slate-500 hover:text-slate-900',
+                  ? 'text-marca-primario after:opacity-100'
+                  : 'text-slate-500 hover:bg-marca-secundario/5 hover:text-marca-primario',
               )
             }
           >

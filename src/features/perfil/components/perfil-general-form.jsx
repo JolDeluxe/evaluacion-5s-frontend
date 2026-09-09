@@ -3,6 +3,7 @@ import { Input } from '@/components/form/input';
 import { Label } from '@/components/form/label';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { isValidUsername, normalizeUsernameInput } from '@/utils/username';
 
 export function PerfilGeneralForm({
   user,
@@ -14,12 +15,14 @@ export function PerfilGeneralForm({
 }) {
   const [formData, setFormData] = useState({
     nombre: '',
+    nombreUsuario: '',
     correo: '',
     telefonoE164: '',
   });
 
   const [initialData, setInitialData] = useState({
     nombre: '',
+    nombreUsuario: '',
     correo: '',
     telefonoE164: '',
   });
@@ -30,6 +33,7 @@ export function PerfilGeneralForm({
     if (user) {
       const data = {
         nombre: user.nombre || '',
+        nombreUsuario: user.nombreUsuario || '',
         correo: user.correo || '',
         telefonoE164: user.telefonoE164 || '',
       };
@@ -50,6 +54,11 @@ export function PerfilGeneralForm({
 
       if (msg.includes('nombre')) {
         setFormErrors((prev) => ({ ...prev, nombre: error.message }));
+        handled = true;
+      }
+
+      if (msg.includes('usuario')) {
+        setFormErrors((prev) => ({ ...prev, nombreUsuario: error.message }));
         handled = true;
       }
 
@@ -74,6 +83,13 @@ export function PerfilGeneralForm({
       errors.nombre = 'El nombre debe tener al menos 2 caracteres';
     } else if (nombreTrimmed.length > 160) {
       errors.nombre = 'El nombre no debe exceder 160 caracteres';
+    }
+
+    const nombreUsuarioTrimmed = formData.nombreUsuario?.trim() || '';
+    if (!nombreUsuarioTrimmed) {
+      errors.nombreUsuario = 'El nombre de usuario es obligatorio';
+    } else if (!isValidUsername(nombreUsuarioTrimmed)) {
+      errors.nombreUsuario = 'Usa solo letras minúsculas, sin espacios, números ni símbolos';
     }
 
     const correoTrimmed = formData.correo?.trim() || '';
@@ -105,6 +121,8 @@ export function PerfilGeneralForm({
       if (finalValue.length > 180) finalValue = finalValue.substring(0, 180);
     } else if (field === 'nombre') {
       if (finalValue.length > 160) finalValue = finalValue.substring(0, 160);
+    } else if (field === 'nombreUsuario') {
+      finalValue = normalizeUsernameInput(value);
     }
 
     setFormData((prev) => ({ ...prev, [field]: finalValue }));
@@ -124,6 +142,7 @@ export function PerfilGeneralForm({
 
     onSave({
       nombre: formData.nombre.trim(),
+      nombreUsuario: formData.nombreUsuario.trim(),
       correo: formData.correo?.trim() || null,
       telefonoE164: formData.telefonoE164?.trim() || null,
     });
@@ -131,10 +150,11 @@ export function PerfilGeneralForm({
 
   const isDataUnchanged =
     formData.nombre?.trim() === (initialData.nombre || '').trim() &&
+    formData.nombreUsuario?.trim() === (initialData.nombreUsuario || '').trim() &&
     formData.correo?.trim() === (initialData.correo || '').trim() &&
     formData.telefonoE164?.trim() === (initialData.telefonoE164 || '').trim();
 
-  const isMissingRequiredFields = !formData.nombre?.trim();
+  const isMissingRequiredFields = !formData.nombre?.trim() || !formData.nombreUsuario?.trim();
   const isSaveDisabled = updating || isMissingRequiredFields || isDataUnchanged;
 
   return (
@@ -186,27 +206,31 @@ export function PerfilGeneralForm({
           />
         </div>
 
-        {/* Nombre de usuario (Read-only informativo) */}
+        {/* Nombre de usuario */}
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
-            <Label htmlFor="nombreUsuario" className="text-slate-500">
+            <Label htmlFor="nombreUsuario" error={Boolean(formErrors.nombreUsuario)}>
               Nombre de Usuario
             </Label>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Icon name="lock" size="xs" /> No editable
+            <span
+              className={`text-[10px] font-bold tracking-wider ${
+                formData.nombreUsuario.length > 80 ? 'text-red-500' : 'text-slate-400'
+              }`}
+            >
+              {formData.nombreUsuario.length}/80
             </span>
           </div>
-          <div className="flex items-center">
-            <span className="inline-flex items-center px-3 h-10 bg-slate-100 border border-r-0 border-slate-200 rounded-l-lg text-slate-500 font-mono text-xs font-bold select-none">
-              @
-            </span>
-            <Input
-              id="nombreUsuario"
-              value={user?.nombreUsuario || ''}
-              disabled
-              className="rounded-l-none bg-slate-100/80 text-slate-500 cursor-not-allowed border-slate-200"
-            />
-          </div>
+          <Input
+            id="nombreUsuario"
+            value={formData.nombreUsuario}
+            onChange={(e) => handleChange('nombreUsuario', e.target.value)}
+            error={Boolean(formErrors.nombreUsuario)}
+            helperText={formErrors.nombreUsuario || 'Solo letras minúsculas, sin espacios, números ni símbolos.'}
+            disabled={updating}
+            placeholder="juanperez"
+            maxLength={80}
+            autoComplete="username"
+          />
         </div>
 
         {/* Teléfono */}

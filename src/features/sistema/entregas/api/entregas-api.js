@@ -1,4 +1,4 @@
-﻿import { apiClient } from '@/lib/api/api-client';
+import { apiClient } from '@/lib/api/api-client';
 
 const datos = (response) => response?.datos ?? response;
 
@@ -59,4 +59,28 @@ export const entregasApi = {
 
   desconectarMicrosoft: async (options) =>
     datos(await apiClient.post('/sistema/correos/microsoft/desconectar', {}, options)),
+
+  // Control operativo persistente y preflight
+  getControlOperativo: async (options) =>
+    datos(await apiClient.get('/sistema/correos/control-operativo', options)),
+
+  pausarControlOperativo: async (body = {}, options) =>
+    datos(await apiClient.post('/sistema/correos/control-operativo/pausar', body, options)),
+
+  reanudarControlOperativo: async (body = {}, options) =>
+    datos(await apiClient.post('/sistema/correos/control-operativo/reanudar', body, options)),
+
+  // Gestión de entregas (detalle y cancelaciones)
+  getDetalleEntrega: async (id, options) =>
+    datos(await apiClient.get(`/sistema/correos/entregas/${id}/detalle`, options)),
+
+  cancelarEntrega: async (id, body = {}, options) =>
+    datos(await apiClient.post(`/sistema/correos/entregas/${id}/cancelar`, body, options)),
+
+  cancelarEntregasMasivo: async (body = {}, options) =>
+    datos(await apiClient.post('/sistema/correos/entregas/cancelar-masivo', body, options)),
+
+  // Prueba canario de cola y worker
+  probarCola: async (options) =>
+    datos(await apiClient.post('/sistema/correos/probar-cola', {}, options)),
 };

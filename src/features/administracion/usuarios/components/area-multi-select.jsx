@@ -87,13 +87,13 @@ export function AreaMultiSelect({ areas = [], value = [], onChange, labelId }) {
       )}
 
       {seleccionadas.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="custom-scrollbar flex max-h-28 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-slate-200/70 bg-white/55 p-2 shadow-inner shadow-slate-950/5">
           {seleccionadas.map((area) => (
             <button
               key={area.id}
               type="button"
               onClick={() => quitarArea(area.id)}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-800"
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-800 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
             >
               <span className="truncate">{area.nombre}</span>
               <Icon name="close" size="14px" className="shrink-0 text-slate-500" />

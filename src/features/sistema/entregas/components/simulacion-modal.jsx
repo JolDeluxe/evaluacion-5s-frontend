@@ -32,8 +32,8 @@ export function SimulacionModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalHeader
-        title="Simulación Dry-Run de Notificaciones"
-        description="Previsualiza el cálculo de destinatarios, consolidación de áreas y claves de deduplicación sin enviar correos ni modificar la base de datos."
+        title="Simulación de Notificaciones"
+        description="Previsualiza los destinatarios y el contenido de los correos antes de enviarlos."
         onClose={onClose}
       />
 
@@ -51,8 +51,10 @@ export function SimulacionModal({
                 onChange={(e) => setTipo(e.target.value)}
                 className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
               >
-                <option value="asignaciones">Asignaciones Mensuales</option>
-                <option value="resultados">Resultados Mensuales</option>
+                <option value="asignaciones">Asignaciones</option>
+                <option value="recordatorio_p1">Recordatorio 1er periodo</option>
+                <option value="recordatorio_p2">Recordatorio 2do periodo</option>
+                <option value="resultados">Resultados</option>
               </select>
             </div>
 
@@ -120,7 +122,15 @@ export function SimulacionModal({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-marca-acento block">
-                    Simulación · {resultado.tipo === 'asignaciones' ? 'Asignaciones' : 'Resultados'}
+                    Simulación · {
+                      resultado.tipo === 'asignaciones'
+                        ? 'Asignaciones'
+                        : resultado.tipo === 'recordatorio_p1'
+                        ? 'Recordatorio 1er periodo'
+                        : resultado.tipo === 'recordatorio_p2'
+                        ? 'Recordatorio 2do periodo'
+                        : 'Resultados'
+                    }
                   </span>
                   <h3 className="text-sm font-black text-slate-900">
                     Período: {resultado.mesEtiqueta}
@@ -140,15 +150,34 @@ export function SimulacionModal({
                   </div>
                 )}
 
+                {(resultado.tipo === 'recordatorio_p1' || resultado.tipo === 'recordatorio_p2') && (
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-500 block">Fecha Límite:</span>
+                    <span className="text-xs font-bold text-slate-800">
+                      {resultado.fechaLimiteTexto || resultado.fechaRecordatorio}
+                    </span>
+                  </div>
+                )}
+
                 {resultado.tipo === 'resultados' && (
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-500 block">Resultado Global:</span>
+                    <span className="text-[10px] text-slate-500 block">Resultados Generales:</span>
                     <span className="text-sm font-black text-slate-900">
                       {resultado.resultadoGeneral !== null ? `${resultado.resultadoGeneral.toFixed(1)}%` : '—'}
                     </span>
                   </div>
                 )}
               </div>
+
+              {(resultado.tipo === 'recordatorio_p1' || resultado.tipo === 'recordatorio_p2') && resultado.motivoVentana && (
+                <div className={cn(
+                  'p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2',
+                  resultado.esElegiblePorFecha ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                )}>
+                  <Icon name={resultado.esElegiblePorFecha ? 'check_circle' : 'schedule'} size="xs" />
+                  <span>{resultado.motivoVentana}</span>
+                </div>
+              )}
 
               {/* Contadores */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
@@ -190,7 +219,7 @@ export function SimulacionModal({
                         if (d.accionSimulada === 'ENVIAR_CORREO') {
                           badgeAccion = { status: 'success', label: 'Nuevo Envío' };
                         } else if (d.accionSimulada === 'IGNORAR_DUPLICADO') {
-                          badgeAccion = { status: 'info', label: 'Ya Registrado (Idempotente)' };
+                          badgeAccion = { status: 'info', label: 'Ya Registrado' };
                         } else if (d.accionSimulada === 'CANCELAR_SIN_CORREO') {
                           badgeAccion = { status: 'warning', label: 'Sin Correo' };
                         }
@@ -207,7 +236,7 @@ export function SimulacionModal({
                             </td>
                             <td className="py-2.5 px-3 text-slate-700 max-w-[200px]">
                               <p className="truncate" title={areasTexto}>
-                                {areasTexto || <span className="italic text-slate-400">Solo resultado general</span>}
+                                {areasTexto || <span className="italic text-slate-400">Solo resultados generales</span>}
                               </p>
                             </td>
                             <td className="py-2.5 px-3">

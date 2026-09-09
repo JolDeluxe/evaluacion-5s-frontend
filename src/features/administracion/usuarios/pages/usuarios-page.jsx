@@ -20,6 +20,7 @@ import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
 import { formatFechaLarga } from '@/utils/format';
 import { notify } from '@/components/notification/adaptive-notify';
 import { useCredentialReveal } from '@/hooks/use-credential-reveal';
+import { isValidUsername, normalizeUsernameInput } from '@/utils/username';
 
 
 // ---------------------------------------------------------------------------
@@ -76,7 +77,7 @@ function UsuarioCard({ usuario, currentUser, onVerDetalle, onEditar, onToggleEst
       <div className="flex items-start justify-between gap-2" onClick={() => onVerDetalle(usuario)}>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{usuario.nombre}</h2>
-          <p className="text-xs font-medium text-slate-400">@{usuario.nombreUsuario}</p>
+          <p className="text-xs font-medium text-slate-400">{usuario.nombreUsuario}</p>
           <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} />
         </div>
       </div>
@@ -182,7 +183,7 @@ function UsuarioDetalleModal({ usuario, currentUser, onClose, onRestablecerContr
       <ModalHeader title="Detalle de Usuario" onClose={handleCloseModal}>
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">
-            @{usuario.nombreUsuario}
+            {usuario.nombreUsuario}
           </p>
           <h2 className="mt-0.5 text-xl font-black text-slate-950 leading-tight">{usuario.nombre}</h2>
         </div>
@@ -401,7 +402,7 @@ function EstablecerContrasenaModal({ usuario, onClose, onSuccess }) {
       <ModalHeader title="Establecer Nueva Contraseña" onClose={handleClose}>
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento">
-            @{usuario.nombreUsuario}
+            {usuario.nombreUsuario}
           </p>
           <h2 className="mt-0.5 text-xl font-black text-slate-950 leading-tight">{usuario.nombre}</h2>
         </div>
@@ -638,7 +639,7 @@ function buildColumns(onVerDetalle, onEditar, onToggleEstado, onRestablecerContr
       headerClassName: 'w-[140px]',
       cell: (row) => (
         <span className="font-mono text-xs text-slate-500">
-          @{row.nombreUsuario}
+          {row.nombreUsuario}
         </span>
       ),
     },
@@ -741,7 +742,7 @@ export function UsuariosPage() {
   const [isMobile, setIsMobile] = useState(false);
   const debounceRef = useRef(null);
 
-  // Contadores de roles
+  // Contadores de usuarios activos
   const [stats, setStats] = useState({
     total: 0,
     admins: 0,
@@ -759,7 +760,7 @@ export function UsuariosPage() {
 
   const cargarStats = useCallback(async () => {
     try {
-      const { datos: lista, meta } = await obtenerCatalogoCompleto(usuariosApi.listar, {}, 100);
+      const { datos: lista, meta } = await obtenerCatalogoCompleto(usuariosApi.listar, { activo: true }, 100);
       const totalReal = meta.total ?? lista.length;
       setStats({
         total: totalReal,
@@ -866,10 +867,13 @@ export function UsuariosPage() {
       if (form.telefonoE164 && !/^\+[1-9]\d{7,14}$/.test(form.telefonoE164.trim())) {
         throw new Error('El teléfono debe usar formato E.164, por ejemplo +525512345678.');
       }
+      if (!isValidUsername(form.nombreUsuario.trim())) {
+        throw new Error('El username debe usar solo letras minúsculas, sin espacios, números ni símbolos.');
+      }
 
       const payload = {
         nombre: form.nombre.trim(),
-        nombreUsuario: form.nombreUsuario.trim().toLowerCase(),
+        nombreUsuario: normalizeUsernameInput(form.nombreUsuario),
         correo: form.correo?.trim() || null,
         telefonoE164: form.telefonoE164.trim() || null,
         rol: form.rol,
@@ -1045,7 +1049,7 @@ export function UsuariosPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
         <div className="grid grid-cols-4 divide-x divide-slate-100 text-center">
           <div className="px-1">
-            <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Total</span>
+            <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Activos</span>
             <span className="text-base sm:text-xl font-black text-slate-900">{stats.total}</span>
           </div>
           <div className="px-1">
@@ -1267,7 +1271,7 @@ export function UsuariosPage() {
             setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
           }}
         />
-        <form onSubmit={saveUsuario} autoComplete="off">
+        <form onSubmit={saveUsuario} autoComplete="off" className="flex min-h-0 flex-1 flex-col">
           <ModalBody>
             <div className="space-y-4 font-sans text-sm">
               {actionError && (
@@ -1291,29 +1295,23 @@ export function UsuariosPage() {
 
               <div>
                 <Label htmlFor="crear-username">Username <span className="text-red-500">*</span></Label>
-                <div className="flex items-center">
-                  <span className="inline-flex items-center px-3 h-10 bg-slate-100 border border-r-0 border-slate-200 rounded-l-lg text-slate-500 font-mono text-xs font-bold select-none">
-                    @
-                  </span>
-                  <Input
-                    id="crear-username"
-                    name="username"
-                    autoComplete="username"
-                    value={form.nombreUsuario}
-                    required
-                    placeholder="carlos.mendoza"
-                    disabled={Boolean(editingUsuario)}
-                    className={editingUsuario ? 'rounded-l-none bg-slate-100/80 text-slate-500 cursor-not-allowed' : 'rounded-l-none'}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        nombreUsuario: e.target.value.replace(/[@\s]/g, '').toLowerCase(),
-                      })
-                    }
-                  />
-                </div>
+                <Input
+                  id="crear-username"
+                  name="username"
+                  autoComplete="username"
+                  value={form.nombreUsuario}
+                  required
+                  placeholder="carlosmendoza"
+                  maxLength={80}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      nombreUsuario: normalizeUsernameInput(e.target.value),
+                    })
+                  }
+                />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Identificador único para inicio de sesión (sin espacios ni @).
+                  Identificador único para inicio de sesión: solo letras minúsculas, sin espacios, números ni símbolos.
                 </p>
               </div>
 

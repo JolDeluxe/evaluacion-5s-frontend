@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api/api-client';
+import { apiClient, triggerBrowserDownload } from '@/lib/api/api-client';
 
 const unwrap = (response) => response?.datos ?? response;
 
@@ -18,6 +18,13 @@ export const resultadosApi = {
     return unwrap(await apiClient.get(withQuery('/resultados/general', { tipo, mes, anio, trimestre, semestre, tipoArea })));
   },
 
+  async descargarPdfGeneral(params = {}) {
+    const { blob, filename } = await apiClient.download(withQuery('/resultados/general/pdf', params));
+    const finalFilename = filename || `Resultados Generales 5S - ${params.mes || 'periodo'}.pdf`;
+    triggerBrowserDownload(blob, finalFilename);
+    return { filename: finalFilename };
+  },
+
   async obtenerAreas({ mes, tipoArea } = {}) {
     return unwrap(await apiClient.get(withQuery('/resultados/areas', { mes, tipoArea })));
   },
@@ -30,3 +37,4 @@ export const resultadosApi = {
     return unwrap(await apiClient.get(withQuery(`/resultados/areas/${areaId}/periodos/${periodo}`, { mes })));
   },
 };
+

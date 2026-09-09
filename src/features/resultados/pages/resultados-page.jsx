@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from 'react';
-import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
-import { ROLES } from '@/config/navigation-config';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useResultadosGeneral } from '@/features/resultados/hooks/use-resultados-general';
@@ -11,8 +10,9 @@ import { ResultadosMobile } from '@/features/resultados/views/resultados-mobile'
 import { ResultadosHeader } from '@/features/resultados/components/shared/resultados-header';
 import { ResultadosError, ResultadosLoading } from '@/features/resultados/components/shared/resultados-states';
 import { getDefaultMonthKey, normalizeMonthKey } from '@/features/resultados/utils/resultados-format';
-
-const adminRoles = [ROLES.ADMINISTRADOR, ROLES.SUPER_ADMIN];
+import { notify } from '@/components/notification/adaptive-notify';
+import { resultadosApi } from '@/features/resultados/api/resultados-api';
+import { canViewRestrictedResultSections } from '@/features/resultados/utils/resultados-permissions';
 
 export function ResultadosPage() {
   const { user } = useAuth();
@@ -23,7 +23,7 @@ export function ResultadosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const canViewGeneral = true;
-  const canViewDetails = adminRoles.includes(user?.rol);
+  const canViewDetails = canViewRestrictedResultSections(user?.rol);
   const activeView = location.pathname.includes('/resultados/general') ? 'general' : 'areas';
   const fallbackMonth = getDefaultMonthKey();
 
@@ -47,12 +47,8 @@ export function ResultadosPage() {
     }
   }, [anio, mes, mesRuta, navigate, searchParams, setSearchParams]);
 
-  const redirectTo = location.pathname === '/resultados'
-    ? `/resultados/general?mes=${mes}`
-    : null;
-
-  const shouldLoadGeneral = activeView === 'general' && !redirectTo;
-  const shouldLoadAreas = activeView !== 'general' && !redirectTo;
+  const shouldLoadGeneral = activeView === 'general';
+  const shouldLoadAreas = activeView !== 'general';
   const generalState = useResultadosGeneral({
     tipo,
     mes,
@@ -80,10 +76,6 @@ export function ResultadosPage() {
     });
     setSearchParams(params);
   };
-
-  if (redirectTo) {
-    return <Navigate to={redirectTo} replace />;
-  }
 
   return (
     <section className="space-y-5 pt-4 sm:pt-0">

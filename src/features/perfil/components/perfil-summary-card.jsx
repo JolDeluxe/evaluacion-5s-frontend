@@ -38,7 +38,7 @@ export function PerfilSummaryCard({ user }) {
               {user.nombre || user.nombreUsuario}
             </h2>
             <p className="text-sm font-medium text-slate-500 truncate mt-0.5">
-              @{user.nombreUsuario}
+              {user.nombreUsuario}
             </p>
           </div>
 

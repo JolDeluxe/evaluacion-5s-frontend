@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
@@ -61,11 +61,18 @@ export function CorreoPreviewModal({
                   <span className="font-mono truncate font-semibold text-slate-800">{preview.urlBoton}</span>
                 </div>
 
-                {preview.qrDataUri && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
-                    <Icon name="qr_code" size="xs" /> QR CID Generado
-                  </span>
-                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {preview.adjuntosInfo && preview.adjuntosInfo.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0" title={preview.adjuntosInfo.map((a) => a.nombre).join(', ')}>
+                      <Icon name="attach_file" size="xs" /> Adjunto PDF ({preview.adjuntosInfo.length})
+                    </span>
+                  )}
+                  {preview.qrDataUri && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+                      <Icon name="qr_code" size="xs" /> QR CID Generado
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

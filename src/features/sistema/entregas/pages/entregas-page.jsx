@@ -6,17 +6,56 @@ import { EntregasTabla } from '../components/entregas-tabla';
 import { SimulacionModal } from '../components/simulacion-modal';
 import { CorreoPreviewModal } from '../components/correo-preview-modal';
 import { MicrosoftConexionModal } from '../components/microsoft-conexion-modal';
+import { ControlOperativoModal } from '../components/control-operativo-modal';
+import { CancelarEntregaModal } from '../components/cancelar-entrega-modal';
+import { EntregaDetalleModal } from '../components/entrega-detalle-modal';
+import { ReenviarEntregaModal } from '../components/reenviar-entrega-modal';
 
 export function EntregasPage() {
   const {
     resumen,
     estadoSistema,
+    controlOperativo,
     entregas,
-    paginacion,
+    total,
+    hayMas,
+    cargandoMas,
+    cargarMas,
     filtros,
     cargando,
     cargandoTabla,
     accionEnProgreso,
+    // Selección múltiple
+    seleccionados,
+    toggleSeleccion,
+    seleccionarTodosVisibles,
+    limpiarSeleccion,
+    // Control Operativo
+    modalControlOperativoAbierto,
+    modoControlOperativo,
+    guardandoControlOperativo,
+    abrirModalControlOperativo,
+    confirmarControlOperativo,
+    setModalControlOperativoAbierto,
+    // Cancelación Individual
+    modalCancelarAbierto,
+    entregaACancelar,
+    cancelandoEntrega,
+    abrirModalCancelar,
+    confirmarCancelarEntrega,
+    setModalCancelarAbierto,
+    // Cancelación Masiva
+    modalCancelarMasivoAbierto,
+    cancelandoMasivo,
+    abrirModalCancelarMasivo,
+    confirmarCancelarMasivo,
+    setModalCancelarMasivoAbierto,
+    // Detalle de Entrega
+    modalDetalleAbierto,
+    entregaDetalle,
+    cargandoDetalle,
+    abrirDetalleEntrega,
+    setModalDetalleAbierto,
     // Simulación
     modalSimulacionAbierto,
     cargandoSimulacion,
@@ -38,9 +77,18 @@ export function EntregasPage() {
     setModalMicrosoftAbierto,
     iniciarConexionMicrosoft,
     desconectarMicrosoft,
-    // Tabla y Filtros
+    // Prueba Canario de Cola
+    probandoCola,
+    probarCola,
+    // Reenvío de Entrega
+    modalReenviarAbierto,
+    entregaAReenviar,
+    cargandoDetalleReenvio,
+    reenviandoEntrega,
+    confirmarReenviarEntrega,
+    setModalReenviarAbierto,
+    // Filtros y Acciones
     cambiarFiltros,
-    cambiarPagina,
     reintentar,
     reenviar,
     recargarTodo,
@@ -55,15 +103,19 @@ export function EntregasPage() {
         </p>
         <h1 className="text-3xl font-black text-slate-950">Entregas de Notificaciones</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Monitoreo técnico de envíos de correo, estado del worker, simulación de destinatarios y reintentos manuales.
+          Monitoreo técnico de envíos de correo, control operativo seguro, cola de entregas y trazabilidad.
         </p>
       </div>
 
-      {/* Banner de Estado Técnico del Sistema */}
+      {/* Banner de Estado Técnico y Control Operativo */}
       <EntregasEstadoBanner
         estado={estadoSistema}
+        controlOperativo={controlOperativo}
+        onAbrirControlOperativo={abrirModalControlOperativo}
         onAbrirSimulacion={() => setModalSimulacionAbierto(true)}
         onAbrirConexionMicrosoft={() => setModalMicrosoftAbierto(true)}
+        onProbarCola={probarCola}
+        probandoCola={probandoCola}
         onRecargar={recargarTodo}
         cargando={cargando}
       />
@@ -78,16 +130,81 @@ export function EntregasPage() {
         cargando={cargandoTabla}
       />
 
-      {/* Tabla de Entregas */}
+      {/* Tabla de Entregas con Selección Múltiple y Acciones */}
       <EntregasTabla
         entregas={entregas}
-        paginacion={paginacion}
-        onCambiarPagina={cambiarPagina}
+        total={total}
+        hayMas={hayMas}
+        cargandoMas={cargandoMas}
+        onCargarMas={cargarMas}
         onReintentar={reintentar}
         onReenviar={reenviar}
         onVerPreview={abrirPreviewEntrega}
+        onVerDetalle={abrirDetalleEntrega}
+        onCancelar={abrirModalCancelar}
+        onAbrirCancelarMasivo={abrirModalCancelarMasivo}
+        seleccionados={seleccionados}
+        onToggleSeleccion={toggleSeleccion}
+        onSeleccionarTodos={seleccionarTodosVisibles}
+        onLimpiarSeleccion={limpiarSeleccion}
         accionEnProgreso={accionEnProgreso}
         cargando={cargandoTabla && entregas.length === 0}
+      />
+
+      {/* Modal de Pausa y Reanudación Operativa (Fail-Safe) */}
+      <ControlOperativoModal
+        isOpen={modalControlOperativoAbierto}
+        onClose={() => setModalControlOperativoAbierto(false)}
+        modo={modoControlOperativo}
+        controlOperativo={controlOperativo}
+        onConfirmar={confirmarControlOperativo}
+        cargando={guardandoControlOperativo}
+      />
+
+      {/* Modal de Cancelación Individual */}
+      <CancelarEntregaModal
+        isOpen={modalCancelarAbierto}
+        onClose={() => {
+          setModalCancelarAbierto(false);
+          setEntregaACancelar(null);
+        }}
+        entrega={entregaACancelar}
+        onConfirmar={confirmarCancelarEntrega}
+        cargando={cancelandoEntrega}
+      />
+
+      {/* Modal de Cancelación Masiva */}
+      <CancelarEntregaModal
+        isOpen={modalCancelarMasivoAbierto}
+        onClose={() => setModalCancelarMasivoAbierto(false)}
+        ids={Array.from(seleccionados)}
+        onConfirmar={confirmarCancelarMasivo}
+        cargando={cancelandoMasivo}
+      />
+
+      {/* Modal de Detalle Técnico de Entrega */}
+      <EntregaDetalleModal
+        isOpen={modalDetalleAbierto}
+        onClose={() => {
+          setModalDetalleAbierto(false);
+          setEntregaDetalle(null);
+        }}
+        entrega={entregaDetalle}
+        cargando={cargandoDetalle}
+        onCancelar={(e) => abrirModalCancelar(e)}
+        onReintentar={(id) => reintentar(id)}
+        onReenviar={(e) => reenviar(e)}
+        onVerCorreo={(id) => abrirPreviewEntrega(id)}
+      />
+
+      {/* Modal de Reenvío de Correo (Usa destinatario actual del usuario) */}
+      <ReenviarEntregaModal
+        isOpen={modalReenviarAbierto}
+        onClose={() => setModalReenviarAbierto(false)}
+        entrega={entregaAReenviar}
+        onConfirmar={confirmarReenviarEntrega}
+        cargando={reenviandoEntrega}
+        cargandoDetalle={cargandoDetalleReenvio}
       />
 
       {/* Modal de Simulación Dry-Run */}
