@@ -12,6 +12,10 @@ export function canViewRestrictedResultSections(role) {
   return BUSINESS_ADMIN_ROLES.includes(role);
 }
 
+export function canViewAreaDetail(role) {
+  return role !== ROLES.VISUALIZADOR && Boolean(role);
+}
+
 export function getResultadosDefaultPath(role, search = '') {
   const query = search || '';
   const target = role === ROLES.AUDITOR ? '/resultados/areas' : '/resultados/general';

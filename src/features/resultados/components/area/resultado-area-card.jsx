@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/hooks/use-auth';
+import { canViewAreaDetail } from '@/features/resultados/utils/resultados-permissions';
 import { formatPeriodLabel } from '@/features/resultados/utils/resultados-format';
 import { getResultadoCenterGlowStyle } from '@/features/resultados/utils/resultado-colors';
 import { formatPercentTrunc } from '@/utils/format';
@@ -51,6 +53,8 @@ function ResultadoMensualTag({ value }) {
 }
 
 export function ResultadoAreaCard({ item, mes, rango }) {
+  const { user } = useAuth();
+  const canViewDetail = canViewAreaDetail(user?.rol);
   const location = useLocation();
 
   const isGeneral = location.pathname.includes('/resultados/general');
@@ -96,20 +100,22 @@ export function ResultadoAreaCard({ item, mes, rango }) {
 
             <div className="flex items-center gap-2 shrink-0">
               <EstadoPeriodoTexto periodo={periodo} />
-              <Button
-                as={Link}
-                to={`/resultados/areas/${item.area.id}/periodos/${periodo.periodo}?mes=${mes}`}
-                state={{
-                  from: `${location.pathname}${location.search}`,
-                  fromLabel,
-                }}
-                variant="ghost"
-                size="sm"
-                icon="open_in_new"
-                disabled={!periodo.completado}
-                aria-label={`Ver ${formatPeriodLabel(periodo.periodo)}`}
-                className="h-7 w-7 p-0"
-              />
+              {canViewDetail && (
+                <Button
+                  as={Link}
+                  to={`/resultados/areas/${item.area.id}/periodos/${periodo.periodo}?mes=${mes}`}
+                  state={{
+                    from: `${location.pathname}${location.search}`,
+                    fromLabel,
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  icon="open_in_new"
+                  disabled={!periodo.completado}
+                  aria-label={`Ver ${formatPeriodLabel(periodo.periodo)}`}
+                  className="h-7 w-7 p-0"
+                />
+              )}
             </div>
           </div>
         ))}

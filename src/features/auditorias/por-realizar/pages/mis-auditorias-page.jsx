@@ -112,9 +112,16 @@ export function MisAuditoriasPage() {
       user?.rol,
     );
 
+  const esComodin = Boolean(user?.rol === 'ADMINISTRADOR' && user?.esComodin);
+
   const [
     executables,
     setExecutables,
+  ] = useState([]);
+
+  const [
+    comodinAudits,
+    setComodinAudits,
   ] = useState([]);
 
   const [
@@ -140,10 +147,14 @@ export function MisAuditoriasPage() {
       setLoading(true);
 
       try {
-        const res =
-          await apiClient.get(
-            '/asignaciones?tipoBandeja=EJECUTABLES&limite=100',
-          );
+        const requests = [
+          apiClient.get('/asignaciones?tipoBandeja=EJECUTABLES&limite=100'),
+        ];
+        if (esComodin) {
+          requests.push(apiClient.get('/asignaciones?tipoBandeja=COMODIN&limite=100'));
+        }
+
+        const [res, resComodin] = await Promise.all(requests);
 
         if (!active) {
           return;
@@ -157,6 +168,16 @@ export function MisAuditoriasPage() {
               : [];
 
         setExecutables(list);
+
+        if (resComodin) {
+          const comodinList =
+            Array.isArray(resComodin?.datos)
+              ? resComodin.datos
+              : Array.isArray(resComodin)
+                ? resComodin
+                : [];
+          setComodinAudits(comodinList);
+        }
       } catch (err) {
         console.error(
           'Error fetching executables:',
@@ -174,7 +195,7 @@ export function MisAuditoriasPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [esComodin]);
 
   /*
    * ============================================================
@@ -629,6 +650,112 @@ export function MisAuditoriasPage() {
               </div>
             );
           })}
+
+          {/* ==================================================
+              BANDEJA COMODÍN (PERIODO VIGENTE)
+          ================================================== */}
+          {esComodin && (
+            <div className="space-y-4 pt-6 border-t border-slate-200/90">
+              <div className="rounded-2xl border border-amber-300/90 bg-gradient-to-r from-amber-500/10 via-amber-100/40 to-white/70 p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
+                      <Icon name="military_tech" size="md" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
+                          Rol Comodín Activo
+                        </span>
+                        <span className="inline-flex rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-black text-amber-900">
+                          {comodinAudits.length} disponibles
+                        </span>
+                      </div>
+                      <h2 className="text-lg font-black text-slate-900">
+                        Auditorías de apoyo en periodo vigente
+                      </h2>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs font-medium text-slate-600 max-w-3xl">
+                  Puedes intervenir y realizar cualquiera de estas auditorías pendientes de la organización durante el periodo vigente.
+                  El KPI y la titularidad se acreditarán al auditor y responsable asignados, sin penalizar ni sumar a tus métricas personales.
+                </p>
+              </div>
+
+              {comodinAudits.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-white/60 p-6 text-center text-sm font-semibold text-slate-500">
+                  No hay auditorías pendientes de otros usuarios en el periodo vigente en este momento.
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {comodinAudits.map((asig) => {
+                    const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
+                    const areaTipo = asig.objetivoAuditoria?.area?.tipo ?? asig.objetivoAuditoria?.tipoAreaSnapshot ?? '';
+                    const auditorNombre = asig.auditor?.nombre ?? 'Sin auditor';
+                    const responsableNombre = asig.responsableCumplimiento?.nombre;
+                    const esDelegado = Boolean(responsableNombre && responsableNombre !== auditorNombre);
+
+                    return (
+                      <div
+                        key={asig.id}
+                        className="flex flex-col justify-between rounded-2xl border border-white/80 bg-white/80 p-4 shadow-[0_4px_20px_rgba(15,23,42,0.05)] backdrop-blur-xl transition hover:border-amber-300"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                {areaTipo}
+                              </span>
+                              <h3 className="text-sm font-black uppercase text-slate-900 leading-tight">
+                                {areaNombre}
+                              </h3>
+                            </div>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                              P{asig.objetivoAuditoria?.periodo} · {MESES_CORTOS[(asig.objetivoAuditoria?.mes ?? 1) - 1]}
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl bg-slate-50 p-2.5 space-y-1 text-xs">
+                            <div className="flex items-center justify-between text-slate-600">
+                              <span className="text-[11px] font-bold text-slate-400">Auditor:</span>
+                              <span className="font-semibold text-slate-800 truncate max-w-[170px]" title={auditorNombre}>
+                                {auditorNombre}
+                              </span>
+                            </div>
+                            {esDelegado && (
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span className="text-[11px] font-bold text-slate-400">Resp. KPI:</span>
+                                <span className="font-semibold text-indigo-700 truncate max-w-[170px]" title={responsableNombre}>
+                                  {responsableNombre} (Delegado)
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between text-slate-600">
+                              <span className="text-[11px] font-bold text-slate-400">Vence:</span>
+                              <span className="font-bold text-slate-700">
+                                {formatearFechaCorta(asig.venceEn)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end">
+                          <Link
+                            to={`/auditorias/${asig.id}/realizar`}
+                            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 hover:bg-amber-100 transition"
+                          >
+                            <span>Realizar como comodín</span>
+                            <Icon name="arrow_forward" size="14px" />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

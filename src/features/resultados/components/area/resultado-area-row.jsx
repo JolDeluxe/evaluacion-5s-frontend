@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import { getResultadoCenterGlowStyle } from '@/features/resultados/utils/resultado-colors';
+import { canViewAreaDetail } from '@/features/resultados/utils/resultados-permissions';
 import { formatPercentTrunc } from '@/utils/format';
 import { cn } from '@/utils/cn';
 
-function PeriodoTextoCell({ periodo, areaId, mes }) {
+function PeriodoTextoCell({ periodo, areaId, mes, canViewDetail = true }) {
   const location = useLocation();
   const hasValue = periodo.porcentaje !== null && periodo.porcentaje !== undefined && periodo.porcentaje !== '';
 
@@ -15,18 +17,20 @@ function PeriodoTextoCell({ periodo, areaId, mes }) {
       <td className="px-5 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
           <span className="text-sm font-black text-slate-800">{formatPercentTrunc(periodo.porcentaje)}</span>
-          <Button
-            as={Link}
-            to={`/resultados/areas/${areaId}/periodos/${periodo.periodo}?mes=${mes}`}
-            state={{
-              from: `${location.pathname}${location.search}`,
-              fromLabel,
-            }}
-            variant="ghost"
-            size="sm"
-            icon="open_in_new"
-            aria-label="Ver resultado"
-          />
+          {canViewDetail && (
+            <Button
+              as={Link}
+              to={`/resultados/areas/${areaId}/periodos/${periodo.periodo}?mes=${mes}`}
+              state={{
+                from: `${location.pathname}${location.search}`,
+                fromLabel,
+              }}
+              variant="ghost"
+              size="sm"
+              icon="open_in_new"
+              aria-label="Ver resultado"
+            />
+          )}
         </div>
       </td>
     );
@@ -77,6 +81,9 @@ function ResultadoMensualCell({ value }) {
 }
 
 export function ResultadoAreaRow({ item, mes }) {
+  const { user } = useAuth();
+  const canViewDetail = canViewAreaDetail(user?.rol);
+
   return (
     <tr className={cn('bg-white transition hover:bg-slate-50/70', item.area.esPropia && 'bg-amber-50/35 hover:bg-amber-50/55')}>
       <td className="px-5 py-3.5">
@@ -92,25 +99,30 @@ export function ResultadoAreaRow({ item, mes }) {
           periodo={periodo}
           areaId={item.area.id}
           mes={mes}
+          canViewDetail={canViewDetail}
         />
       ))}
 
       <ResultadoMensualCell value={item.resultadoMensual} />
 
       <td className="px-5 py-3.5 text-right">
-        <Button
-          as={Link}
-          to={`/resultados/areas/${item.area.id}?mes=${mes}`}
-          state={{
-            from: `${location.pathname}${location.search}`,
-            fromLabel: location.pathname.includes('/resultados/general') ? 'General' : 'Áreas',
-          }}
-          variant="outline"
-          size="sm"
-          icon="visibility"
-        >
-          Ver área
-        </Button>
+        {canViewDetail ? (
+          <Button
+            as={Link}
+            to={`/resultados/areas/${item.area.id}?mes=${mes}`}
+            state={{
+              from: `${location.pathname}${location.search}`,
+              fromLabel: location.pathname.includes('/resultados/general') ? 'General' : 'Áreas',
+            }}
+            variant="outline"
+            size="sm"
+            icon="visibility"
+          >
+            Ver área
+          </Button>
+        ) : (
+          <span className="text-xs text-slate-400 font-semibold">—</span>
+        )}
       </td>
     </tr>
   );

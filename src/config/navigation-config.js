@@ -2,19 +2,21 @@ export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMINISTRADOR: 'ADMINISTRADOR',
   AUDITOR: 'AUDITOR',
+  VISUALIZADOR: 'VISUALIZADOR',
 };
 
 export const ACCOUNT_ROLES = Object.values(ROLES);
-export const AUDIT_VIEW_ROLES = ACCOUNT_ROLES;
+export const AUDIT_VIEW_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMINISTRADOR, ROLES.AUDITOR];
 export const AUDIT_EXECUTION_ROLES = [ROLES.AUDITOR, ROLES.ADMINISTRADOR];
 export const BUSINESS_ADMIN_ROLES = [ROLES.ADMINISTRADOR, ROLES.SUPER_ADMIN];
 export const RESULTS_ROLES = ACCOUNT_ROLES;
 export const SYSTEM_ROLES = [ROLES.SUPER_ADMIN];
 
 const mobileBottomByRole = {
-  [ROLES.AUDITOR]: ['inicio', 'mis-auditorias', 'resultados'],
-  [ROLES.ADMINISTRADOR]: ['inicio', 'mis-auditorias', 'resultados', 'admin'],
-  [ROLES.SUPER_ADMIN]: ['inicio', 'mis-auditorias', 'resultados'],
+  [ROLES.AUDITOR]: ['inicio', 'mis-auditorias', 'cumplimientos', 'resultados'],
+  [ROLES.ADMINISTRADOR]: ['inicio', 'mis-auditorias', 'cumplimientos', 'resultados', 'admin'],
+  [ROLES.SUPER_ADMIN]: ['inicio', 'mis-auditorias', 'cumplimientos', 'resultados'],
+  [ROLES.VISUALIZADOR]: ['inicio', 'cumplimientos', 'resultados'],
 };
 
 const mobileMoreByRole = {
@@ -41,13 +43,22 @@ export const NAVIGATION_CONFIG = [
     mobilePriority: 2,
   },
   {
+    id: 'cumplimientos',
+    name: 'Cumplimientos',
+    icon: 'task_alt',
+    route: '/cumplimientos',
+    allowedRoles: ACCOUNT_ROLES,
+    placement: ['desktop'],
+    mobilePriority: 3,
+  },
+  {
     id: 'resultados',
     name: 'Resultados',
     icon: 'analytics',
     route: '/resultados',
     allowedRoles: RESULTS_ROLES,
     placement: ['desktop'],
-    mobilePriority: 3,
+    mobilePriority: 4,
   },
   {
     id: 'notificaciones',

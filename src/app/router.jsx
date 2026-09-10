@@ -2,18 +2,20 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { AppRouteShell } from '@/app/app-route-shell';
 import { DashboardLayout } from '@/layouts/dashboard-layout';
 import { RequireAuth, RequireRole, RedirectIfAuthenticated } from '@/app/route-guards';
-import { AUDIT_EXECUTION_ROLES, AUDIT_VIEW_ROLES, BUSINESS_ADMIN_ROLES, RESULTS_ROLES, SYSTEM_ROLES } from '@/config/navigation-config';
+import { ACCOUNT_ROLES, AUDIT_EXECUTION_ROLES, AUDIT_VIEW_ROLES, BUSINESS_ADMIN_ROLES, RESULTS_ROLES, SYSTEM_ROLES } from '@/config/navigation-config';
 import { LoginPage } from '@/features/auth/pages/login-page';
 import { InicioPage } from '@/features/inicio/pages/inicio-page';
 import { MisAuditoriasPage } from '@/features/auditorias/por-realizar/pages/mis-auditorias-page';
 import { HistorialAuditoriasPage } from '@/features/auditorias/historial/pages/historial-auditorias-page';
 import { AuditoriaDetallePage } from '@/features/auditorias/ejecucion/pages/auditoria-detalle-page';
+import { CumplimientosPage } from '@/features/cumplimientos/pages/cumplimientos-page';
 import { RealizarAuditoriaPage } from '@/features/auditorias/ejecucion/pages/realizar-auditoria-page';
 import { AdministracionPlaceholderPage } from '@/features/administracion/pages/administracion-placeholder-page';
 import { AsignacionesPage } from '@/features/administracion/asignaciones/pages/asignaciones-page';
 import { AreasPage } from '@/features/administracion/areas/pages/areas-page';
 import { AreaQrPrintPage } from '@/features/administracion/areas/pages/area-qr-print-page';
 import { UsuariosPage } from '@/features/administracion/usuarios/pages/usuarios-page';
+import { DelegacionesPage } from '@/features/administracion/delegaciones/pages/delegaciones-page';
 import { ResultadosPage } from '@/features/resultados/pages/resultados-page';
 import { ResultadosDefaultRedirect } from '@/features/resultados/pages/resultados-default-redirect';
 import { ResultadoAreaPage } from '@/features/resultados/pages/resultado-area-page';
@@ -48,6 +50,7 @@ const adminChildren = [
   { path: 'areas/qr/imprimir', element: <AreaQrPrintPage /> },
   { path: 'areas/:id', element: <AdministracionPlaceholderPage type="areaDetalle" section="admin" /> },
   { path: 'usuarios', element: <UsuariosPage /> },
+  { path: 'delegaciones', element: <DelegacionesPage /> },
   { path: 'resultados', element: <Navigate to="/resultados" replace /> },
   { path: 'aprobaciones', element: <Navigate to="/admin" replace /> },
   { path: 'notificaciones', element: <Navigate to="/admin" replace /> },
@@ -98,6 +101,11 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={BUSINESS_ADMIN_ROLES} />,
             children: [{ index: true, element: <Navigate to="/admin" replace /> }],
           },
+          {
+            path: '/cumplimientos',
+            element: <RequireRole roles={ACCOUNT_ROLES} />,
+            children: [{ index: true, element: <CumplimientosPage /> }],
+          },
           { 
             path: '/resultados', 
             element: <RequireRole roles={RESULTS_ROLES} />,
@@ -106,9 +114,14 @@ export const router = createBrowserRouter([
               { path: 'descargar', element: <ResultadosDescargarPage /> },
               { path: 'general', element: <ResultadosPage /> },
               { path: 'areas', element: <ResultadosPage /> },
-              { path: 'areas/:areaId', element: <ResultadoAreaPage /> },
-              { path: 'areas/:areaId/periodos/:periodo', element: <ResultadoPeriodoPage /> },
-              { path: 'areas/:areaId/periodo/:periodo', element: <ResultadoPeriodoPage /> },
+              {
+                element: <RequireRole roles={AUDIT_VIEW_ROLES} />,
+                children: [
+                  { path: 'areas/:areaId', element: <ResultadoAreaPage /> },
+                  { path: 'areas/:areaId/periodos/:periodo', element: <ResultadoPeriodoPage /> },
+                  { path: 'areas/:areaId/periodo/:periodo', element: <ResultadoPeriodoPage /> },
+                ],
+              },
               { path: ':anio/:mes', element: <ResultadosPage /> }
             ] 
           },

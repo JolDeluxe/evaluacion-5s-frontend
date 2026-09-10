@@ -27,19 +27,35 @@ import { isValidUsername, normalizeUsernameInput } from '@/utils/username';
 // Helpers visuales
 // ---------------------------------------------------------------------------
 
-function EstadoUsuarioIndicator({ activo, rol }) {
+function EstadoUsuarioIndicator({ activo, rol, esComodin, puedeSerAsignadoAuditoria, seEvalua }) {
   const isSuper = rol === 'SUPER_ADMIN';
   const isAdmin = rol === 'ADMINISTRADOR';
-  const rolLabel = isSuper ? 'Super Admin' : isAdmin ? 'Administrador' : 'Auditor';
+  const isVis = rol === 'VISUALIZADOR';
+  const rolLabel = isSuper ? 'Super Admin' : isAdmin ? 'Administrador' : isVis ? 'Visualizador' : 'Auditor';
 
   return (
-    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+    <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-500">
       <span>{rolLabel}</span>
       <span>·</span>
       <span className={cn('inline-flex items-center gap-1 font-bold', activo ? 'text-emerald-700' : 'text-slate-500')}>
         <span className={cn('h-1.5 w-1.5 rounded-full', activo ? 'bg-emerald-500' : 'bg-slate-400')} />
         {activo ? 'Activo' : 'Inactivo'}
       </span>
+      {esComodin && (
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700 border border-amber-200">
+          Comodín
+        </span>
+      )}
+      {puedeSerAsignadoAuditoria === false && (
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black text-rose-700 border border-rose-200">
+          No asignable
+        </span>
+      )}
+      {seEvalua && (
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-700 border border-indigo-200">
+          KPI 50/50
+        </span>
+      )}
     </div>
   );
 }
@@ -78,7 +94,7 @@ function UsuarioCard({ usuario, currentUser, onVerDetalle, onEditar, onToggleEst
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-black text-slate-900 leading-snug break-words">{usuario.nombre}</h2>
           <p className="text-xs font-medium text-slate-400">{usuario.nombreUsuario}</p>
-          <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} />
+          <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} esComodin={usuario.esComodin} puedeSerAsignadoAuditoria={usuario.puedeSerAsignadoAuditoria} seEvalua={usuario.seEvalua} />
         </div>
       </div>
 
@@ -190,7 +206,7 @@ function UsuarioDetalleModal({ usuario, currentUser, onClose, onRestablecerContr
       </ModalHeader>
       <ModalBody>
         <div className="space-y-4">
-          <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} />
+          <EstadoUsuarioIndicator activo={usuario.activo} rol={usuario.rol} esComodin={usuario.esComodin} puedeSerAsignadoAuditoria={usuario.puedeSerAsignadoAuditoria} seEvalua={usuario.seEvalua} />
 
           {fechaMiembro && (
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-100 px-3 py-2.5 rounded-xl">
@@ -572,6 +588,7 @@ const ROLES_OPTIONS = [
   { value: 'SUPER_ADMIN', label: 'Super' },
   { value: 'ADMINISTRADOR', label: 'Admin' },
   { value: 'AUDITOR', label: 'Auditor' },
+  { value: 'VISUALIZADOR', label: 'Visualizador' },
 ];
 
 const ESTADOS = [
@@ -647,7 +664,7 @@ function buildColumns(onVerDetalle, onEditar, onToggleEstado, onRestablecerContr
       header: 'Rol y Estado',
       accessorKey: 'rol',
       headerClassName: 'w-[180px]',
-      cell: (row) => <EstadoUsuarioIndicator activo={row.activo} rol={row.rol} />,
+      cell: (row) => <EstadoUsuarioIndicator activo={row.activo} rol={row.rol} esComodin={row.esComodin} puedeSerAsignadoAuditoria={row.puedeSerAsignadoAuditoria} seEvalua={row.seEvalua} />,
     },
     {
       header: 'Áreas bajo su responsabilidad',
@@ -835,6 +852,9 @@ export function UsuariosPage() {
       correo: '',
       telefonoE164: '',
       rol: 'AUDITOR',
+      esComodin: false,
+      puedeSerAsignadoAuditoria: true,
+      seEvalua: false,
       contrasena: '',
       areasResponsablesIds: [],
     });
@@ -851,6 +871,9 @@ export function UsuariosPage() {
       correo: usuario.correo ?? '',
       telefonoE164: usuario.telefonoE164 ?? '',
       rol: usuario.rol,
+      esComodin: Boolean(usuario.esComodin),
+      puedeSerAsignadoAuditoria: usuario.puedeSerAsignadoAuditoria ?? true,
+      seEvalua: Boolean(usuario.seEvalua),
       contrasena: '',
       areasResponsablesIds: responsables,
     });
@@ -871,12 +894,18 @@ export function UsuariosPage() {
         throw new Error('El username debe usar solo letras minúsculas, sin espacios, números ni símbolos.');
       }
 
+      if (form.seEvalua && form.areasResponsablesIds.length === 0) {
+        throw new Error('Para activar "Se evalúa con KPI 50/50", el usuario debe tener al menos un área asignada.');
+      }
+
       const payload = {
         nombre: form.nombre.trim(),
         nombreUsuario: normalizeUsernameInput(form.nombreUsuario),
         correo: form.correo?.trim() || null,
         telefonoE164: form.telefonoE164.trim() || null,
         rol: form.rol,
+        esComodin: form.rol === 'ADMINISTRADOR' ? Boolean(form.esComodin) : false,
+        puedeSerAsignadoAuditoria: Boolean(form.puedeSerAsignadoAuditoria ?? true),
       };
 
       let usuarioId;
@@ -897,7 +926,22 @@ export function UsuariosPage() {
           });
           return;
         }
-        await usuariosApi.actualizar(usuarioId, payload);
+
+        const prevResponsables = (editingUsuario.areasUsuario ?? []).map((ua) => String(ua.area.id));
+        const toAdd = form.areasResponsablesIds.filter((id) => !prevResponsables.includes(id));
+        const toRemove = prevResponsables.filter((id) => !form.areasResponsablesIds.includes(id));
+
+        for (const areaId of toAdd) {
+          const resultadoArea = await areasApi.guardarUsuarioArea(Number(areaId), { usuarioId });
+          if (resultadoArea.impacto?.liberadas > 0) {
+            window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+          }
+        }
+        for (const areaId of toRemove) {
+          await areasApi.eliminarUsuarioArea(Number(areaId), usuarioId);
+        }
+
+        await usuariosApi.actualizar(usuarioId, { ...payload, seEvalua: Boolean(form.seEvalua) });
       } else {
         if (!form.contrasena) {
           throw new Error('La contraseña es obligatoria para nuevos usuarios.');
@@ -905,32 +949,23 @@ export function UsuariosPage() {
         payload.contrasena = form.contrasena;
         const res = await usuariosApi.crear(payload);
         usuarioId = res.usuario.id;
-      }
 
-      const prevResponsables = editingUsuario
-        ? (editingUsuario.areasUsuario ?? []).map((ua) => String(ua.area.id))
-        : [];
-
-      const toAdd = form.areasResponsablesIds.filter((id) => !prevResponsables.includes(id));
-      const toRemove = prevResponsables.filter((id) => !form.areasResponsablesIds.includes(id));
-
-      for (const areaId of toAdd) {
-        const resultadoArea = await areasApi.guardarUsuarioArea(Number(areaId), {
-          usuarioId,
-        });
-        if (resultadoArea.impacto?.liberadas > 0) {
-          window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+        for (const areaId of form.areasResponsablesIds) {
+          const resultadoArea = await areasApi.guardarUsuarioArea(Number(areaId), { usuarioId });
+          if (resultadoArea.impacto?.liberadas > 0) {
+            window.dispatchEvent(new Event('asignaciones:pendientes-cambiaron'));
+          }
         }
-      }
 
-      for (const areaId of toRemove) {
-        await areasApi.eliminarUsuarioArea(Number(areaId), usuarioId);
+        if (form.seEvalua && form.areasResponsablesIds.length > 0) {
+          await usuariosApi.actualizar(usuarioId, { seEvalua: true });
+        }
       }
 
       setIsCreating(false);
       setEditingUsuario(null);
       setShowCreatePassword(false);
-      setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+      setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', esComodin: false, puedeSerAsignadoAuditoria: true, seEvalua: false, contrasena: '', areasResponsablesIds: [] });
       cargar(params);
       cargarStats();
     } catch (err) {
@@ -1128,7 +1163,7 @@ export function UsuariosPage() {
           />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-4" />
+          <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-5" />
           <FilterGridGroup title="ESTADO" value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} gridCols="grid-cols-3" />
           <FilterGridGroup title="RESPONSABILIDAD" value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} gridCols="grid-cols-3" />
         </div>
@@ -1139,7 +1174,7 @@ export function UsuariosPage() {
         <ModalHeader title="Filtros de Usuarios" onClose={() => setShowMobileFilters(false)} />
         <ModalBody>
           <div className="space-y-4">
-            <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-4" />
+            <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-5" />
             <FilterGridGroup title="ESTADO" value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} gridCols="grid-cols-3" />
             <FilterGridGroup title="RESPONSABILIDAD" value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} gridCols="grid-cols-3" />
           </div>
@@ -1258,7 +1293,7 @@ export function UsuariosPage() {
           setIsCreating(false);
           setEditingUsuario(null);
           setShowCreatePassword(false);
-          setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+          setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', esComodin: false, puedeSerAsignadoAuditoria: true, seEvalua: false, contrasena: '', areasResponsablesIds: [] });
         }}
         className="max-w-xl"
       >
@@ -1268,7 +1303,7 @@ export function UsuariosPage() {
             setIsCreating(false);
             setEditingUsuario(null);
             setShowCreatePassword(false);
-            setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+            setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', esComodin: false, puedeSerAsignadoAuditoria: true, seEvalua: false, contrasena: '', areasResponsablesIds: [] });
           }}
         />
         <form onSubmit={saveUsuario} autoComplete="off" className="flex min-h-0 flex-1 flex-col">
@@ -1349,12 +1384,72 @@ export function UsuariosPage() {
                   name="rol"
                   autoComplete="off"
                   value={form.rol}
-                  onChange={(e) => setForm({ ...form, rol: e.target.value })}
+                  onChange={(e) => setForm({
+                    ...form,
+                    rol: e.target.value,
+                    esComodin: e.target.value === 'ADMINISTRADOR' ? form.esComodin : false,
+                  })}
                 >
                   <option value="AUDITOR">Auditor</option>
                   <option value="ADMINISTRADOR">Administrador</option>
+                  <option value="VISUALIZADOR">Visualizador</option>
                   {currentUser?.rol === 'SUPER_ADMIN' && <option value="SUPER_ADMIN">Super Admin</option>}
                 </Select>
+
+                <div className="mt-3 space-y-2.5 rounded-xl border border-slate-200/80 bg-slate-50/60 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Configuración especial
+                  </p>
+
+                  {form.rol === 'ADMINISTRADOR' && (
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(form.esComodin)}
+                        onChange={(e) => setForm({ ...form, esComodin: e.target.checked })}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-slate-800">Administrador Comodín</span>
+                        <p className="text-[11px] font-medium text-slate-500">
+                          Puede ejecutar auditorías pendientes de la organización en periodo vigente sin afectar su KPI personal.
+                        </p>
+                      </div>
+                    </label>
+                  )}
+
+                  {['AUDITOR', 'ADMINISTRADOR'].includes(form.rol) && (
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.puedeSerAsignadoAuditoria ?? true}
+                        onChange={(e) => setForm({ ...form, puedeSerAsignadoAuditoria: e.target.checked })}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-slate-800">Habilitado para asignaciones de auditoría</span>
+                        <p className="text-[11px] font-medium text-slate-500">
+                          Al desmarcar, se excluye de sugerencias y autoasignaciones sin afectar su histórico.
+                        </p>
+                      </div>
+                    </label>
+                  )}
+
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.seEvalua)}
+                      onChange={(e) => setForm({ ...form, seEvalua: e.target.checked })}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-800">Se evalúa con KPI 50/50</span>
+                      <p className="text-[11px] font-medium text-slate-500">
+                        Habilita el cálculo mensual: 50% cumplimiento a tiempo + 50% promedio de áreas a cargo. (Requiere al menos 1 área asignada).
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {!editingUsuario && (
@@ -1410,7 +1505,7 @@ export function UsuariosPage() {
                 setIsCreating(false);
                 setEditingUsuario(null);
                 setShowCreatePassword(false);
-                setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', contrasena: '', areasResponsablesIds: [] });
+                setForm({ nombre: '', nombreUsuario: '', correo: '', telefonoE164: '', rol: 'AUDITOR', esComodin: false, puedeSerAsignadoAuditoria: true, seEvalua: false, contrasena: '', areasResponsablesIds: [] });
               }}
             >
               Cancelar

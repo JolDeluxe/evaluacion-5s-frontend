@@ -134,12 +134,16 @@ export function buildAsignacionesMensualQuery(anio, mes, params) {
 }
 
 export function buildGuardarAsignacionMensualPayload({ anio, mes, form, expectedAuditorId }) {
-  return {
+  const payload = {
     anio,
     mes,
     auditorMensualId: Number(form.auditorMensualId),
     expectedAuditorId: expectedAuditorId != null ? Number(expectedAuditorId) : null,
   };
+  if (form.responsableCumplimientoId) {
+    payload.responsableCumplimientoId = Number(form.responsableCumplimientoId);
+  }
+  return payload;
 }
 
 export function esFilaEditable(fila, anio, mes, ahora = new Date()) {

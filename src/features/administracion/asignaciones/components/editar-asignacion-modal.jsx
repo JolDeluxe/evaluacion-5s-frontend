@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { Label } from '@/components/form/label';
+import { Select } from '@/components/form/select';
 import { SelectAuditor } from '@/features/administracion/asignaciones/components/select-auditor';
 import { ReabrirAsignacionModal } from '@/features/administracion/asignaciones/components/reabrir-asignacion-modal';
+import { delegacionesApi } from '@/features/administracion/delegaciones/api/delegaciones-api';
 import {
   buildGuardarAsignacionMensualPayload,
   MESES,
@@ -23,7 +25,10 @@ export function EditarAsignacionModal({
 }) {
   const [form, setForm] = useState(() => ({
     auditorMensualId: fila.auditorMensual?.id ?? '',
+    responsableCumplimientoId: fila.responsableCumplimiento?.id ?? '',
   }));
+  const [delegaciones, setDelegaciones] = useState([]);
+  const [cargandoDelegaciones, setCargandoDelegaciones] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [reabriendoPeriodo, setReabriendoPeriodo] = useState(null);
@@ -31,6 +36,42 @@ export function EditarAsignacionModal({
   const setField = (key, value) => setForm((actual) => ({ ...actual, [key]: value }));
 
   const auditorSeleccionado = auditores.find((a) => a.id === Number(form.auditorMensualId)) ?? null;
+
+  useEffect(() => {
+    if (!form.auditorMensualId) {
+      setDelegaciones([]);
+      return;
+    }
+
+    let cancelado = false;
+    setCargandoDelegaciones(true);
+
+    delegacionesApi
+      .listar({ ejecutorId: form.auditorMensualId, activa: true })
+      .then((res) => {
+        if (!cancelado) {
+          const lista = res || [];
+          setDelegaciones(lista);
+          // Si solo hay 1 delegación, sugerirla automáticamente si no hay selección previa
+          setForm((actual) => {
+            if (lista.length === 1 && !actual.responsableCumplimientoId) {
+              return { ...actual, responsableCumplimientoId: String(lista[0].responsableId) };
+            }
+            return actual;
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setDelegaciones([]);
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoDelegaciones(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [form.auditorMensualId]);
 
   const handleConfirmReabrir = async ({ motivo, auditorMensualId, expectedAuditorId }) => {
     if (!reabriendoPeriodo?.periodo) return;
@@ -150,12 +191,40 @@ export function EditarAsignacionModal({
               <Label className="text-xs font-black uppercase tracking-wider text-slate-500">Auditor del mes</Label>
               <SelectAuditor
                 value={form.auditorMensualId}
-                onChange={(value) => setField('auditorMensualId', value)}
+                onChange={(value) => {
+                  setField('auditorMensualId', value);
+                  setField('responsableCumplimientoId', '');
+                }}
                 auditores={auditores}
                 responsablesIds={fila.area.responsablesIds}
               />
               <p className="text-xs font-medium text-slate-500">Los periodos no realizados de este mes pasarán al nuevo auditor automáticamente.</p>
             </div>
+
+            {delegaciones.length > 0 && (
+              <div className="space-y-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                <Label className="text-xs font-black uppercase tracking-wider text-indigo-900">
+                  Responsable del KPI (Delegación activa)
+                </Label>
+                <Select
+                  value={form.responsableCumplimientoId}
+                  onChange={(e) => setField('responsableCumplimientoId', e.target.value)}
+                  disabled={cargandoDelegaciones}
+                >
+                  <option value="">(Por defecto) El mismo auditor asignado</option>
+                  {delegaciones.map((d) => (
+                    <option key={d.id} value={d.responsableId}>
+                      {d.responsable?.nombre || 'Responsable'} ({d.responsable?.nombreUsuario})
+                    </option>
+                  ))}
+                </Select>
+                <p className="text-[11px] font-semibold text-indigo-700">
+                  {delegaciones.length > 1
+                    ? 'Este auditor tiene múltiples delegaciones activas. Debes seleccionar al responsable específico de esta asignación.'
+                    : 'Delegación detectada: la ejecución de la auditoría contará para el KPI del responsable seleccionado.'}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2.5 pt-2">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Estado del mes</p>

@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { ROLES } from '../../../config/navigation-config';
 import {
   canAccessGeneralResults,
+  canViewAreaDetail,
   canViewRestrictedResultSections,
   getResultadosDefaultPath,
 } from './resultados-permissions';
@@ -12,12 +13,25 @@ describe('permisos de resultados generales', () => {
     ROLES.SUPER_ADMIN,
     ROLES.ADMINISTRADOR,
     ROLES.AUDITOR,
+    ROLES.VISUALIZADOR,
   ])('%s puede consultar el resultado general', (role) => {
     expect(canAccessGeneralResults(role)).toBe(true);
   });
 
   test('AUDITOR no puede ver los bloques restringidos', () => {
     expect(canViewRestrictedResultSections(ROLES.AUDITOR)).toBe(false);
+  });
+
+  test('VISUALIZADOR no puede ver detalle de área', () => {
+    expect(canViewAreaDetail(ROLES.VISUALIZADOR)).toBe(false);
+  });
+
+  test.each([
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMINISTRADOR,
+    ROLES.AUDITOR,
+  ])('%s puede ver detalle de área', (role) => {
+    expect(canViewAreaDetail(role)).toBe(true);
   });
 
   test.each([
