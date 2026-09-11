@@ -377,14 +377,14 @@ export function EvidenciaField({
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {/* Render completed thumbnails */}
-            {thumbnails.map((evidencia) => (
+            {thumbnails.map((evidencia, idx) => (
               <div
                 key={evidencia.identificadorCliente}
                 className="group relative aspect-square w-16 h-16 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm"
               >
                 <button
                   type="button"
-                  onClick={() => setViewer(evidencia)}
+                  onClick={() => setViewer({ images: thumbnails, activeIndex: idx })}
                   className="h-full w-full cursor-zoom-in"
                   aria-label={`Ver ${evidencia.label}`}
                 >
@@ -470,8 +470,11 @@ export function EvidenciaField({
       <ImageViewer
         open={Boolean(viewer)}
         src={viewer?.src}
-        title={viewer?.label}
-        alt={viewer?.label}
+        images={viewer?.images || []}
+        activeIndex={viewer?.activeIndex || 0}
+        onIndexChange={(newIdx) => setViewer((prev) => (prev ? { ...prev, activeIndex: newIdx } : null))}
+        title={viewer?.label || viewer?.title}
+        alt={viewer?.label || viewer?.title}
         onClose={() => setViewer(null)}
       />
     </div>

@@ -79,7 +79,17 @@ export function ResumenAuditoria({
                           <button
                             key={foto.identificadorCliente || idx}
                             type="button"
-                            onClick={() => setViewer({ src, title: `${criterio.etiqueta} - Evidencia ${idx + 1}` })}
+                            onClick={() => {
+                              const listaImagenes = respuesta.evidencias.map((ev, i) => ({
+                                src: ev.url || ev.previewUrl,
+                                title: `${criterio.etiqueta} • Evidencia ${i + 1}`,
+                                alt: `${criterio.etiqueta} - Evidencia ${i + 1}`,
+                              }));
+                              setViewer({
+                                images: listaImagenes,
+                                activeIndex: idx,
+                              });
+                            }}
                             className="relative aspect-square w-16 h-16 shrink-0 overflow-hidden rounded-xl border border-rose-200/50 bg-slate-100 transition active:scale-95 shadow-sm cursor-zoom-in"
                           >
                             <img src={src} alt={`Evidencia ${idx + 1}`} className="h-full w-full object-cover" />
@@ -132,6 +142,9 @@ export function ResumenAuditoria({
       <ImageViewer
         open={Boolean(viewer)}
         src={viewer?.src}
+        images={viewer?.images || []}
+        activeIndex={viewer?.activeIndex || 0}
+        onIndexChange={(newIdx) => setViewer((prev) => (prev ? { ...prev, activeIndex: newIdx } : null))}
         title={viewer?.title}
         alt={viewer?.title}
         onClose={() => setViewer(null)}
