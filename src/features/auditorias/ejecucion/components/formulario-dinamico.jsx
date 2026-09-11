@@ -14,7 +14,8 @@ import {
   obtenerCriterios,
 } from '@/features/auditorias/ejecucion/components/formulario-dinamico.helpers';
 import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-api';
-import { markAuditDraftDirty, markAuditDraftSaved } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
+import { getAuditRuntimeStatus, markAuditDraftDirty, markAuditDraftSaved } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
+import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -301,7 +302,31 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     return { isValid: Object.keys(nuevosErrores).length === 0, faltantes: Object.keys(nuevosErrores).length };
   };
 
-  const handleIntentarFinalizar = () => {
+  const auditoriaIdActual = useMemo(() => {
+    return modo === 'invitado'
+      ? contexto.invitacion?.id ?? contexto.asignacion?.id ?? 'invitado'
+      : contexto.asignacion?.id ?? contexto.objetivo?.id ?? contexto.area?.id ?? 'auditoria';
+  }, [contexto.area?.id, contexto.asignacion?.id, contexto.invitacion?.id, contexto.objetivo?.id, modo]);
+
+  const handleIntentarFinalizar = async () => {
+    // 1. Validar si hay subidas activas a Cloudinary en curso
+    const runtimeStatus = getAuditRuntimeStatus();
+    if (runtimeStatus.uploadsInProgress > 0) {
+      setFeedbackIncompleto('Hay evidencias subiéndose. Espera a que finalicen antes de revisar.');
+      return;
+    }
+
+    // 2. Validar si hay fotos pendientes en Dexie (offline/error)
+    try {
+      const fotosPendientes = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
+      if (fotosPendientes?.length > 0) {
+        setFeedbackIncompleto(`Hay ${fotosPendientes.length} foto(s) pendiente(s) de subida. Conéctate a internet y reintenta la subida antes de finalizar.`);
+        return;
+      }
+    } catch {
+      // noop
+    }
+
     const { isValid, faltantes } = validarTodo();
     if (isValid) {
       setFeedbackIncompleto(null);
@@ -314,6 +339,24 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   const [showConfirmQrModal, setShowConfirmQrModal] = useState(false);
 
   const enviar = async (codigoConfirmado) => {
+    // 1. Validar que no haya subidas activas
+    const runtimeStatus = getAuditRuntimeStatus();
+    if (runtimeStatus.uploadsInProgress > 0) {
+      setEnvioError('Aún hay evidencias fotográficas subiéndose. Por favor espera.');
+      return;
+    }
+
+    // 2. Validar que no queden evidencias pendientes en IndexedDB
+    try {
+      const fotosPendientes = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
+      if (fotosPendientes?.length > 0) {
+        setEnvioError(`No se puede enviar: Tienes ${fotosPendientes.length} evidencia(s) pendiente(s) de subir. Verifica tu conexión a internet.`);
+        return;
+      }
+    } catch {
+      // noop
+    }
+
     // Double check just in case, before sending
     const { isValid } = validarTodo();
     if (!isValid) return;
@@ -354,6 +397,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
       try {
         localStorage.removeItem(draftKey);
         markAuditDraftSaved();
+        await evidenciasOffline.limpiarAuditoria(auditoriaIdActual);
       } catch {
         // noop
       }
@@ -568,6 +612,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
                     modo={modo}
                     token={token}
                     preview={preview}
+                    auditoriaId={auditoriaIdActual}
                     onSelectOption={(opcion) => seleccionarOpcion(criterio.id, opcion)}
                     onChangeHallazgo={(hallazgo) => actualizarRespuesta(criterio.id, { hallazgo })}
                     onChangeEvidencias={(evidencias) => actualizarRespuesta(criterio.id, { evidencias })}

@@ -8,11 +8,13 @@ const formatPct = (value) => {
   return `${value.toFixed(1)}%`;
 };
 
-export function ResultadoGlobalCard({ resultadoGlobal }) {
+export function ResultadoGlobalCard({ resultadoGlobal, resultadoMisAreas }) {
   if (!resultadoGlobal) return null;
 
   const rule = getResultadoColor(resultadoGlobal.porcentaje);
   const pctStr = formatPct(resultadoGlobal.porcentaje);
+  const pctMisAreasStr = formatPct(resultadoMisAreas);
+  const ruleMisAreas = resultadoMisAreas !== null && resultadoMisAreas !== undefined ? getResultadoColor(resultadoMisAreas) : null;
 
   return (
     <Card className="border-slate-200/80 bg-white shadow-sm overflow-hidden">
@@ -32,31 +34,36 @@ export function ResultadoGlobalCard({ resultadoGlobal }) {
             )}
           </div>
           <h2 className="text-lg font-black text-slate-950 uppercase">Resultado global</h2>
-          <p className="text-xs font-semibold text-slate-500">
-            {resultadoGlobal.areasConResultado} de {resultadoGlobal.totalAreas} áreas evaluadas
-          </p>
+
         </div>
 
         <div className="flex items-center gap-4 shrink-0 justify-between sm:justify-end">
-          <div className="flex items-baseline gap-2">
-            <span
-              className="text-3xl sm:text-4xl font-black tracking-tight"
-              style={rule ? { color: rule.textColor } : undefined}
-            >
-              {pctStr}
-            </span>
-            {resultadoGlobal.porcentaje !== null && (
+          <div className="flex flex-col items-end gap-0.5">
+            <div className="flex items-baseline gap-2">
               <span
-                className="text-xs font-bold"
+                className="text-4xl sm:text-5xl font-black tracking-tight"
                 style={rule ? { color: rule.textColor } : undefined}
               >
+                {pctStr}
               </span>
+            </div>
+
+            {resultadoMisAreas !== null && resultadoMisAreas !== undefined && (
+              <p className="text-xs sm:text-sm font-semibold text-slate-600">
+                Promedio de tus áreas:{' '}
+                <span
+                  className="font-bold"
+                  style={ruleMisAreas ? { color: ruleMisAreas.textColor } : undefined}
+                >
+                  {pctMisAreasStr}
+                </span>
+              </p>
             )}
           </div>
 
           <Link
             to={`/resultados/general?mes=${resultadoGlobal.clave}`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-black text-slate-800 hover:bg-slate-200 transition"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-black text-slate-800 hover:bg-slate-200 transition shrink-0"
           >
             <span>Ver resultados</span>
             <Icon name="arrow_forward" className="text-sm" />

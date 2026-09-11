@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/icon';
 import { ImageViewer } from '@/components/ui/image-viewer';
 import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-api';
 import { setAuditUploadActive } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
+import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
 import { procesarImagen } from '@/utils/procesar-imagen';
 
 const MAX_EVIDENCIAS = 3;
@@ -43,7 +44,16 @@ function mapearEvidenciaCloudinary(data, file) {
   };
 }
 
-export function EvidenciaField({ evidencias = [], onChange, modo, token, error, preview = false }) {
+export function EvidenciaField({
+  evidencias = [],
+  onChange,
+  modo,
+  token,
+  error,
+  preview = false,
+  criterioId,
+  auditoriaId,
+}) {
   const [colaSubidas, setColaSubidas] = useState([]);
   const [mensaje, setMensaje] = useState('');
   const [viewer, setViewer] = useState(null);
@@ -60,6 +70,9 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
     label: `Evidencia ${index + 1}`,
   })), [evidencias]);
 
+  const auditoriaIdActual = auditoriaId || (typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : 'borrador') || 'borrador';
+  const criterioIdActual = criterioId || 'criterio-general';
+
   useEffect(() => {
     const activeUploadIds = activeUploadIdsRef.current;
 
@@ -71,6 +84,46 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
     };
   }, []);
 
+  // Rehidratar fotos pendientes desde Dexie al montar
+  useEffect(() => {
+    let cancelado = false;
+
+    async function rehidratarCola() {
+      try {
+        const registros = await evidenciasOffline.obtenerPorCriterio(auditoriaIdActual, criterioIdActual);
+        if (cancelado || !registros?.length) return;
+
+        setColaSubidas((actuales) => {
+          const idsExistentes = new Set(actuales.map((t) => t.id));
+          const nuevosPendientes = registros
+            .filter((reg) => !idsExistentes.has(reg.identificadorCliente))
+            .map((reg) => {
+              const fileBlob = reg.fileBlob;
+              const previewUrl = fileBlob ? URL.createObjectURL(fileBlob) : '';
+              return {
+                id: reg.identificadorCliente,
+                file: fileBlob,
+                previewUrl,
+                estado: 'error',
+                errorMsg: 'Pendiente de subir (Offline)',
+                preprocesado: true,
+              };
+            });
+
+          return [...actuales, ...nuevosPendientes];
+        });
+      } catch (err) {
+        console.warn('Error al rehidratar evidencias desde IndexedDB:', err);
+      }
+    }
+
+    rehidratarCola();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [auditoriaIdActual, criterioIdActual]);
+
   const ejecutarSubida = async (tarea) => {
     activeUploadIdsRef.current.add(tarea.id);
     setAuditUploadActive(tarea.id, true);
@@ -78,16 +131,33 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
     try {
       // 1. Process and compress image in frontend (webp, max 1600px, quality 0.8)
       let fileParaSubir = tarea.file;
+      if (!tarea.preprocesado) {
+        try {
+          fileParaSubir = await procesarImagen(tarea.file);
+        } catch {
+          fileParaSubir = tarea.file;
+        }
+      }
+
+      // Persistir el archivo binario procesado en Dexie (IndexedDB)
+      const auditoriaIdActual = auditoriaId || (typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : 'borrador') || 'borrador';
+      const criterioIdActual = criterioId || 'criterio-general';
       try {
-        fileParaSubir = await procesarImagen(tarea.file);
-      } catch (e) {
-        // Fallback to original file on error
-        fileParaSubir = tarea.file;
+        await evidenciasOffline.guardar(
+          auditoriaIdActual,
+          criterioIdActual,
+          tarea.id,
+          fileParaSubir,
+          fileParaSubir.name,
+          fileParaSubir.type
+        );
+      } catch (dbErr) {
+        console.warn('No se pudo guardar la evidencia en IndexedDB:', dbErr);
       }
 
       // Update state to uploading
       setColaSubidas((prev) =>
-        prev.map((t) => (t.id === tarea.id ? { ...t, estado: 'subiendo' } : t))
+        prev.map((t) => (t.id === tarea.id ? { ...t, file: fileParaSubir, preprocesado: true, estado: 'subiendo' } : t))
       );
 
       // 2. Fetch upload signature
@@ -113,6 +183,9 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
           return [...seguro, simulada];
         });
 
+        // Limpiar de Dexie tras éxito
+        await evidenciasOffline.eliminar(tarea.id).catch(() => {});
+
         setColaSubidas((prev) => prev.filter((t) => t.id !== tarea.id));
         return;
       }
@@ -134,6 +207,9 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
         return [...seguro, nuevaEvidencia];
       });
 
+      // Limpiar de Dexie tras subida exitosa a Cloudinary
+      await evidenciasOffline.eliminar(tarea.id).catch(() => {});
+
       // Clear from queue and release resources
       setColaSubidas((prev) => {
         URL.revokeObjectURL(tarea.previewUrl);
@@ -150,7 +226,17 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
   };
 
   const handleFiles = (event) => {
-    const files = Array.from(event.target.files ?? []).filter((file) => file.type?.startsWith('image/'));
+    const files = Array.from(event.target.files ?? []).filter((file) => {
+      const type = (file.type || '').toLowerCase();
+      const name = (file.name || '').toLowerCase();
+      return (
+        type.startsWith('image/') ||
+        type.includes('heic') ||
+        type.includes('heif') ||
+        name.endsWith('.heic') ||
+        name.endsWith('.heif')
+      );
+    });
     event.target.value = ''; // Clean input to allow re-selection
     if (!files.length || limiteAlcanzado) return;
 
@@ -170,6 +256,7 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
         previewUrl,
         estado: 'preparando',
         errorMsg: '',
+        preprocesado: false,
       };
     });
 
@@ -181,18 +268,51 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
     });
   };
 
-  const reintentar = (id) => {
-    const tarea = colaSubidas.find((t) => t.id === id);
-    if (!tarea) return;
+  const reintentar = async (id) => {
+    let tarea = colaSubidas.find((t) => t.id === id);
 
-    setColaSubidas((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, estado: 'preparando', errorMsg: '' } : t))
-    );
+    // Si el archivo en memoria no existe o se perdió por recarga, buscarlo en Dexie
+    if (!tarea || !tarea.file) {
+      const registroOffline = await evidenciasOffline.obtener(id);
+      if (!registroOffline || !registroOffline.fileBlob) {
+        setMensaje('No se encontró el archivo original para reintentar la subida.');
+        return;
+      }
+      const restoredFile = new File(
+        [registroOffline.fileBlob],
+        registroOffline.fileName || 'evidencia.webp',
+        { type: registroOffline.fileType || 'image/webp' }
+      );
+      tarea = {
+        id,
+        file: restoredFile,
+        previewUrl: URL.createObjectURL(restoredFile),
+        estado: 'preparando',
+        errorMsg: '',
+        preprocesado: true,
+      };
+      setColaSubidas((prev) => [...prev.filter((t) => t.id !== id), tarea]);
+    } else {
+      // Verificar si hay versión procesada en Dexie
+      const registroOffline = await evidenciasOffline.obtener(id);
+      if (registroOffline?.fileBlob) {
+        const restoredFile = new File(
+          [registroOffline.fileBlob],
+          registroOffline.fileName || tarea.file.name,
+          { type: registroOffline.fileType || tarea.file.type }
+        );
+        tarea = { ...tarea, file: restoredFile, preprocesado: true };
+      }
+      setColaSubidas((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, estado: 'preparando', errorMsg: '' } : t))
+      );
+    }
 
     ejecutarSubida(tarea);
   };
 
-  const quitarCola = (id) => {
+  const quitarCola = async (id) => {
+    await evidenciasOffline.eliminar(id).catch(() => {});
     setColaSubidas((prev) => {
       const tarea = prev.find((t) => t.id === id);
       if (tarea?.previewUrl) {
@@ -202,7 +322,8 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
     });
   };
 
-  const quitar = (identificadorCliente) => {
+  const quitar = async (identificadorCliente) => {
+    await evidenciasOffline.eliminar(identificadorCliente).catch(() => {});
     onChange((actual) => {
       const seguro = Array.isArray(actual) ? actual : [];
       return seguro.filter((evidencia) => evidencia.identificadorCliente !== identificadorCliente);
@@ -221,7 +342,7 @@ export function EvidenciaField({ evidencias = [], onChange, modo, token, error, 
       <input
         type="file"
         ref={inputRef}
-        accept="image/*"
+        accept="image/*,.heic,.heif,image/heic,image/heif"
         multiple
         className="sr-only"
         onChange={handleFiles}

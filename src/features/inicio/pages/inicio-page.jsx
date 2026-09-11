@@ -45,11 +45,14 @@ export function InicioPage() {
 
       {/* 2. Resultado Global destacado */}
       {data?.resultadoGlobal && (
-        <ResultadoGlobalCard resultadoGlobal={data.resultadoGlobal} />
+        <ResultadoGlobalCard
+          resultadoGlobal={data.resultadoGlobal}
+          resultadoMisAreas={data.resultadoMisAreas}
+        />
       )}
 
       {/* 3. Auditorías del Mes (Métricas por Periodo) */}
-      {(data?.periodosResumen || data?.resumen) && (
+      {esAdmin && (data?.periodosResumen || data?.resumen) && (
         <ResumenTarjetasMes
           periodosResumen={data?.periodosResumen}
           resumen={data?.resumen}

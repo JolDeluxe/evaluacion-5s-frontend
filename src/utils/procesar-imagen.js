@@ -1,101 +1,50 @@
-export async function procesarImagen(file) {
-  // Fallback direct to original file if native canvas or createImageBitmap APIs are not available
-  if (
-    typeof window === 'undefined' ||
-    !window.createImageBitmap ||
-    !window.HTMLCanvasElement ||
-    !window.OffscreenCanvas && !document.createElement
-  ) {
-    return file;
-  }
+import heic2any from 'heic2any';
+import imageCompression from 'browser-image-compression';
 
-  // Only process files that are images
-  if (!file.type?.startsWith('image/')) {
-    return file;
-  }
-
+export const procesarImagen = async (file) => {
   try {
-    // createImageBitmap automatically decodes EXIF orientation metadata by default
-    // we explicitly request 'from-image' to guarantee browser decodes rotation correctly.
-    const bitmap = await window.createImageBitmap(file, { imageOrientation: 'from-image' });
+    let fileToCompress = file;
+    const mimeLower = (file.type || '').toLowerCase();
+    const nameLower = (file.name || '').toLowerCase();
+    const isHeic =
+      mimeLower.includes('heic') ||
+      mimeLower.includes('heif') ||
+      nameLower.endsWith('.heic') ||
+      nameLower.endsWith('.heif');
 
-    try {
-      const originalWidth = bitmap.width;
-      const originalHeight = bitmap.height;
+    // 1. Transcodificar HEIC/HEIF a JPEG si es necesario
+    if (isHeic) {
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.8, // Calidad intermedia antes de la compresión final
+      });
 
-      // 5S image maximum side length is 1600px
-      const MAX_SIDE = 1600;
-      let targetWidth = originalWidth;
-      let targetHeight = originalHeight;
+      // heic2any puede devolver un array de blobs, tomamos el primero
+      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
 
-      if (originalWidth > MAX_SIDE || originalHeight > MAX_SIDE) {
-        if (originalWidth > originalHeight) {
-          targetWidth = MAX_SIDE;
-          targetHeight = Math.round((originalHeight * MAX_SIDE) / originalWidth);
-        } else {
-          targetHeight = MAX_SIDE;
-          targetWidth = Math.round((originalWidth * MAX_SIDE) / originalHeight);
-        }
-      }
-
-      // Initialize canvas
-      let canvas;
-      let ctx;
-      if (typeof window.OffscreenCanvas !== 'undefined') {
-        canvas = new window.OffscreenCanvas(targetWidth, targetHeight);
-        ctx = canvas.getContext('2d');
-      } else {
-        canvas = document.createElement('canvas');
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        ctx = canvas.getContext('2d');
-      }
-
-      if (!ctx) {
-        bitmap.close();
-        return file;
-      }
-
-      // Draw bitmap inside canvas with new dimensions
-      ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
-      bitmap.close();
-
-      // Convert canvas to blob (preferably webp, falling back to original mime type)
-      const outputMime = 'image/webp';
-      const outputQuality = 0.80;
-
-      if (typeof canvas.convertToBlob === 'function') {
-        const blob = await canvas.convertToBlob({ type: outputMime, quality: outputQuality });
-        const nameWebp = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-        return new File([blob], nameWebp, { type: outputMime, lastModified: Date.now() });
-      } else {
-        return new Promise((resolve) => {
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                resolve(file);
-                return;
-              }
-              const nameWebp = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-              const optimizedFile = new File([blob], nameWebp, {
-                type: blob.type || outputMime,
-                lastModified: Date.now(),
-              });
-              resolve(optimizedFile);
-            },
-            outputMime,
-            outputQuality
-          );
-        });
-      }
-    } catch (innerErr) {
-      if (bitmap && typeof bitmap.close === 'function') {
-        bitmap.close();
-      }
-      return file;
+      // Reconstruir el archivo
+      const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+      fileToCompress = new File([blob], newName, { type: 'image/jpeg' });
     }
-  } catch (err) {
-    // If decoding or creating ImageBitmap fails, fallback gracefully to original file
+
+    // 2. Compresión Agresiva y control de dimensiones
+    const options = {
+      maxSizeMB: 0.3, // Máximo 300KB por foto (ideal para redes lentas)
+      maxWidthOrHeight: 1600, // Evita fotos de 4K
+      useWebWorker: true, // No bloquea la interfaz de usuario
+      fileType: 'image/webp', // Formato de última generación
+      initialQuality: 0.8,
+    };
+
+    const compressedBlob = await imageCompression(fileToCompress, options);
+
+    // Devolver como objeto File
+    const finalName = fileToCompress.name.replace(/\.[^/.]+$/, '.webp');
+    return new File([compressedBlob], finalName, { type: 'image/webp' });
+  } catch (error) {
+    console.error('Error al procesar la imagen:', error);
+    // Si la compresión falla, fallback devolviendo el archivo original
     return file;
   }
-}
+};

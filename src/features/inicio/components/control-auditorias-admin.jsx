@@ -1,24 +1,23 @@
 import { Card, CardBody } from '@/components/ui/card';
 import { ResultadoScore } from '@/features/resultados/components/shared/resultado-score';
-import { obtenerEstadoVisualAuditoria, esReabiertaActiva } from '@/features/auditorias/shared/utils/estados-auditoria';
-
 import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 
-function PeriodoCell({ periodoData, auditorNombre }) {
+function PeriodoMiniBadge({ periodoData, label }) {
   if (!periodoData || !periodoData.programada) {
-    return <span className="text-slate-300 font-bold">—</span>;
+    return (
+      <span className="inline-flex items-center justify-center text-[10px] font-bold text-slate-300 w-6 h-5">
+        —
+      </span>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center gap-0.5 py-0.5">
-      <EstadoBadge estado={periodoData} />
-      {auditorNombre ? (
-        <span className="text-[10px] font-medium text-slate-500 truncate max-w-[110px]" title={auditorNombre}>
-          {auditorNombre}
-        </span>
-      ) : (
-        <span className="text-[10px] font-semibold text-rose-600">Sin auditor</span>
-      )}
+    <div className="inline-flex items-center gap-1">
+      {label && <span className="text-[9px] font-black uppercase text-slate-400">{label}</span>}
+      <EstadoBadge
+        estado={periodoData}
+        className="px-2 py-0 text-[10px] font-bold tracking-tight shadow-none h-5"
+      />
     </div>
   );
 }
@@ -26,177 +25,152 @@ function PeriodoCell({ periodoData, auditorNombre }) {
 export function ControlAuditoriasAdmin({
   etiquetaMesControl,
   mostrarMesAnterior = false,
-  etiquetaMesAnterior,
+  etiquetaMesAnterior = 'Agosto',
   controlFilas = [],
 }) {
   return (
     <Card className="border-slate-200/80 bg-white shadow-sm overflow-hidden space-y-0">
-      <div className="border-b border-slate-100 p-3 sm:p-4">
-        <p className="text-[10px] font-black uppercase tracking-wider text-marca-acento">Seguimiento</p>
-        <h2 className="text-base font-black text-slate-950 uppercase">Control de auditorías</h2>
-        <p className="text-[11px] font-semibold text-slate-500">{etiquetaMesControl}</p>
+      <div className="border-b border-slate-100 px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-wider text-marca-acento leading-none">Seguimiento</p>
+          <h2 className="text-sm font-black text-slate-950 uppercase mt-0.5 leading-tight">Control de auditorías</h2>
+        </div>
+        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+          {etiquetaMesControl}
+        </span>
       </div>
 
-      <CardBody className="p-0">
-        {/* Vista Escritorio: Tabla Matriz */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                <th className="py-2.5 px-4 pl-5">Área</th>
-                {mostrarMesAnterior && etiquetaMesAnterior && (
-                  <th className="py-2.5 px-4 text-center border-l border-slate-100 bg-amber-50/30 text-amber-900">
-                    {etiquetaMesAnterior}
-                  </th>
-                )}
-                <th className="py-2.5 px-4 text-center border-l border-slate-100">
-                  {etiquetaMesControl}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {controlFilas.map((row) => {
-                const auditorPrincipal = row.auditorMensual?.nombre;
+      <CardBody className="p-2.5 sm:p-4">
+        {controlFilas.length === 0 ? (
+          <div className="py-6 text-center text-xs font-medium text-slate-400">
+            No hay áreas asignadas para control.
+          </div>
+        ) : (
+          <div className="max-h-[500px] overflow-y-auto custom-scrollbar flex flex-col gap-2.5 pr-2">
+            {controlFilas.map((row) => {
+              const auditorActualNombre =
+                row.auditorMensual?.nombre ||
+                row.mesActual?.auditorMensual?.nombre ||
+                row.periodos?.p1?.auditorEfectivo?.nombre ||
+                row.periodos?.p2?.auditorEfectivo?.nombre ||
+                row.mesActual?.periodos?.p1?.auditorEfectivo?.nombre ||
+                row.mesActual?.periodos?.p2?.auditorEfectivo?.nombre ||
+                'Sin asignar';
 
+              const auditorAntNombre =
+                row.auditorAnterior?.nombre ||
+                row.mesAnterior?.auditor?.nombre ||
+                row.mesAnterior?.periodoAnterior?.auditorNombre ||
+                row.mesAnterior?.periodos?.p1?.auditorEfectivo?.nombre ||
+                row.mesAnterior?.periodos?.p2?.auditorEfectivo?.nombre ||
+                'Sin asignar';
+
+              if (!mostrarMesAnterior) {
                 return (
-                  <tr key={row.area.id} className="hover:bg-slate-50/80 transition">
-                    {/* ÁREA */}
-                    <td className="py-2 px-4 pl-5 align-middle">
-                      <p className="font-black text-slate-900 uppercase text-xs">{row.area.nombre}</p>
-                    </td>
-
-                    {/* MES ANTERIOR (Solo si mostrarMesAnterior es true) */}
-                    {mostrarMesAnterior && etiquetaMesAnterior && (
-                      <td className="py-1.5 px-3 border-l border-slate-100 align-middle">
-                        {row.mesAnterior ? (
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-4 flex-1 justify-around">
-                              <div className="text-center">
-                                <span className="block text-[9px] font-bold text-slate-400 uppercase">P1</span>
-                                <PeriodoCell
-                                  periodoData={row.mesAnterior.periodos?.p1}
-                                  auditorNombre={row.mesAnterior.periodoAnterior?.auditorNombre || auditorPrincipal}
-                                />
-                              </div>
-                              <div className="text-center">
-                                <span className="block text-[9px] font-bold text-slate-400 uppercase">P2</span>
-                                <PeriodoCell
-                                  periodoData={row.mesAnterior.periodos?.p2}
-                                  auditorNombre={row.mesAnterior.periodoAnterior?.auditorNombre || auditorPrincipal}
-                                />
-                              </div>
-                            </div>
-                            <div className="pl-2 border-l border-slate-200/40 text-center min-w-[65px]">
-                              <ResultadoScore value={row.mesAnterior?.resultado} />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center text-slate-300 font-bold">—</div>
-                        )}
-                      </td>
-                    )}
-
-                    {/* MES ACTUAL */}
-                    <td className="py-1.5 px-3 border-l border-slate-100 align-middle">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-4 flex-1 justify-around">
-                          <div className="text-center">
-                            <span className="block text-[9px] font-bold text-slate-400 uppercase">P1</span>
-                            <PeriodoCell
-                              periodoData={row.mesActual?.periodos?.p1}
-                              auditorNombre={auditorPrincipal}
-                            />
-                          </div>
-                          <div className="text-center">
-                            <span className="block text-[9px] font-bold text-slate-400 uppercase">P2</span>
-                            <PeriodoCell
-                              periodoData={row.mesActual?.periodos?.p2}
-                              auditorNombre={auditorPrincipal}
-                            />
-                          </div>
-                        </div>
-                        <div className="pl-2 border-l border-slate-200/40 text-center min-w-[65px]">
-                          <ResultadoScore value={row.mesActual?.resultado} />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Vista Móvil: Tarjetas por Área */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {controlFilas.map((row) => {
-            const auditorPrincipal = row.auditorMensual?.nombre;
-
-            return (
-              <div key={row.area.id} className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-black text-slate-900 uppercase text-xs">{row.area.nombre}</h3>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Card MES ANTERIOR (Móvil) */}
-                  {mostrarMesAnterior && etiquetaMesAnterior && row.mesAnterior && (
-                    <div className="bg-amber-50/40 p-3 rounded-lg border border-amber-100/80 space-y-2">
-                      <div className="flex items-center justify-between border-b border-amber-200/50 pb-1.5">
-                        <span className="text-[10px] font-black uppercase text-amber-900">
-                          {etiquetaMesAnterior}
-                        </span>
-                        <ResultadoScore value={row.mesAnterior?.resultado} />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-center">
-                        <div className="bg-white/80 p-1.5 rounded border border-slate-100">
-                          <span className="block text-[9px] font-bold text-slate-400 uppercase">1er Periodo</span>
-                          <PeriodoCell
-                            periodoData={row.mesAnterior.periodos?.p1}
-                            auditorNombre={row.mesAnterior.periodoAnterior?.auditorNombre || auditorPrincipal}
-                          />
-                        </div>
-                        <div className="bg-white/80 p-1.5 rounded border border-slate-100">
-                          <span className="block text-[9px] font-bold text-slate-400 uppercase">2do Periodo</span>
-                          <PeriodoCell
-                            periodoData={row.mesAnterior.periodos?.p2}
-                            auditorNombre={row.mesAnterior.periodoAnterior?.auditorNombre || auditorPrincipal}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Card MES ACTUAL (Móvil) */}
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                      <span className="text-[10px] font-black uppercase text-slate-700">
-                        {etiquetaMesControl}
+                  <div
+                    key={row.area.id}
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2.5 px-3.5 bg-white rounded-xl border border-slate-200 shadow-sm transition-colors hover:border-slate-300"
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-black text-slate-800 truncate leading-snug">
+                        {row.area.nombre}
                       </span>
-                      <ResultadoScore value={row.mesActual?.resultado} />
+                      <span className="text-xs font-medium text-slate-500 truncate mt-0.5">
+                        {auditorActualNombre}
+                      </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-center">
-                      <div className="bg-white p-1.5 rounded border border-slate-100">
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">1er Periodo</span>
-                        <PeriodoCell
-                          periodoData={row.mesActual?.periodos?.p1}
-                          auditorNombre={auditorPrincipal}
+                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400">P1</span>
+                        <PeriodoMiniBadge
+                          periodoData={row.mesActual?.periodos?.p1 || row.periodos?.p1}
                         />
                       </div>
-                      <div className="bg-white p-1.5 rounded border border-slate-100">
-                        <span className="block text-[9px] font-bold text-slate-400 uppercase">2do Periodo</span>
-                        <PeriodoCell
-                          periodoData={row.mesActual?.periodos?.p2}
-                          auditorNombre={auditorPrincipal}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400">P2</span>
+                        <PeriodoMiniBadge
+                          periodoData={row.mesActual?.periodos?.p2 || row.periodos?.p2}
+                        />
+                      </div>
+                      <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
+                      <div className="w-12 text-right">
+                        <ResultadoScore
+                          value={row.mesActual?.resultado ?? null}
+                          className="text-xs font-black"
                         />
                       </div>
                     </div>
                   </div>
+                );
+              }
+
+              return (
+                <div
+                  key={row.area.id}
+                  className="flex flex-col gap-2.5 py-3 px-3.5 bg-white rounded-xl border border-slate-200 shadow-sm"
+                >
+                  {/* Parte Superior: Solo nombre del Departamento en grande */}
+                  <div>
+                    <p className="font-black text-slate-900 uppercase text-xs sm:text-sm truncate leading-tight" title={row.area.nombre}>
+                      {row.area.nombre}
+                    </p>
+                  </div>
+
+                  {/* Parte Inferior (Meses): Apilamiento inteligente en móvil/tablet y fila en xl */}
+                  <div className="flex flex-col xl:flex-row gap-2 xl:gap-4 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
+                    {/* Bloque Mes Anterior */}
+                    {mostrarMesAnterior && etiquetaMesAnterior && (
+                      <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">
+                            MES ANT.
+                          </span>
+                          <span className="text-slate-300 shrink-0">•</span>
+                          <span className="text-xs text-slate-500 font-medium truncate max-w-[130px] sm:max-w-[180px]" title={auditorAntNombre}>
+                            {auditorAntNombre}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {row.mesAnterior ? (
+                            <>
+                              <PeriodoMiniBadge periodoData={row.mesAnterior.periodos?.p1} label="P1" />
+                              <PeriodoMiniBadge periodoData={row.mesAnterior.periodos?.p2} label="P2" />
+                              <div className="w-12 text-right pl-1 border-l border-slate-200/60">
+                                <ResultadoScore value={row.mesAnterior?.resultado} className="text-xs font-black" />
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-slate-300 font-bold text-xs">—</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bloque Mes Actual */}
+                    <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">
+                          MES ACT.
+                        </span>
+                        <span className="text-slate-300 shrink-0">•</span>
+                        <span className="text-xs text-slate-500 font-medium truncate max-w-[130px] sm:max-w-[180px]" title={auditorActualNombre}>
+                          {auditorActualNombre}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <PeriodoMiniBadge periodoData={row.mesActual?.periodos?.p1} label="P1" />
+                        <PeriodoMiniBadge periodoData={row.mesActual?.periodos?.p2} label="P2" />
+                        <div className="w-12 text-right pl-1 border-l border-slate-200/60">
+                          <ResultadoScore value={row.mesActual?.resultado} className="text-xs font-black" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardBody>
     </Card>
   );

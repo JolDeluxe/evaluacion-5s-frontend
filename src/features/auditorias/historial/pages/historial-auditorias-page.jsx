@@ -124,7 +124,7 @@ function EstadoAuditoriaHistorial({
     const label = `${realizadaATiempo ? 'Realizada' : 'Realizada Tarde'} · ${pct}`;
     const badgeClass = realizadaATiempo
       ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold'
-      : 'bg-rose-50 border-rose-200 text-rose-700 font-bold';
+      : 'bg-amber-50 border-amber-200 text-amber-700 font-bold';
 
     return (
       <div className={containerClass}>

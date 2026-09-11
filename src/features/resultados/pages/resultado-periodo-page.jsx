@@ -23,6 +23,7 @@ export function ResultadoPeriodoPage() {
         <ResultadoBackLink
           fallbackRoute={`/resultados/areas/${areaId}?mes=${mes}`}
           defaultLabel="Volver a Área"
+          useHistoryBack
         />
       </div>
 
