@@ -45,9 +45,16 @@ export function ResultadoAreaMobile({ data, mes }) {
         {data.periodos.map((periodo) => (
           <Card key={periodo.periodo} variant="glass" className="shadow-sm border-app-border bg-white">
             <CardHeader className="flex flex-row items-center justify-between gap-3 bg-white/45 p-4">
-              <h4 className="text-sm font-black uppercase text-slate-900">
-                {formatPeriodLabel(periodo.periodo)}
-              </h4>
+              <div>
+                <h4 className="text-sm font-black uppercase text-slate-900">
+                  {formatPeriodLabel(periodo.periodo)}
+                </h4>
+                {periodo.auditorEjecutor?.etiqueta && (
+                  <span className="block mt-0.5 text-[10px] font-medium text-slate-400 truncate">
+                    {periodo.auditorEjecutor.etiqueta}
+                  </span>
+                )}
+              </div>
               <EstadoPeriodoValor periodo={periodo} />
             </CardHeader>
             <CardBody className="p-4 pt-3 space-y-3">

@@ -55,6 +55,11 @@ export function PeriodosAreaTable({ areaId, mes, periodos = [] }) {
                       {formatShortDate(p.finalizadoEn)}
                     </span>
                   )}
+                  {p.auditorEjecutor?.etiqueta && (
+                    <span className="block text-[10px] font-medium text-slate-400">
+                      {p.auditorEjecutor.etiqueta}
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-3.5 text-center">
                   <ResultadoPeriodoCelda periodo={p} />

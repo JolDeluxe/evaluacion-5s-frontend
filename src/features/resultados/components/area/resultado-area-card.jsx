@@ -88,12 +88,19 @@ export function ResultadoAreaCard({ item, mes, rango }) {
             className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-3 py-2 text-xs border border-slate-100"
           >
             <div className="min-w-0 flex-1">
-              <span className="font-black uppercase text-slate-800">
-                {formatPeriodLabel(periodo.periodo)}
-              </span>
-              {periodo.completado && (
-                <span className="ml-2 text-[10px] font-medium text-slate-400">
-                  {periodo.hallazgos} hallazgos
+              <div className="flex items-center">
+                <span className="font-black uppercase text-slate-800">
+                  {formatPeriodLabel(periodo.periodo)}
+                </span>
+                {periodo.completado && (
+                  <span className="ml-2 text-[10px] font-medium text-slate-400">
+                    {periodo.hallazgos} hallazgos
+                  </span>
+                )}
+              </div>
+              {periodo.auditorEjecutor?.etiqueta && (
+                <span className="block mt-0.5 text-[10px] font-medium text-slate-400 truncate">
+                  {periodo.auditorEjecutor.etiqueta}
                 </span>
               )}
             </div>

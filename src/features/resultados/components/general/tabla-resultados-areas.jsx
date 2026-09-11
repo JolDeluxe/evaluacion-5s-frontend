@@ -19,12 +19,22 @@ function PeriodoCell({ periodo }) {
 
     return (
       <td className="px-5 py-3.5 text-center">
-        <div className="inline-flex items-center gap-1.5 justify-center">
-          <span className="text-slate-800 font-bold">
-            {formatPercentTrunc(periodo.porcentaje)}
-          </span>
-          {esTarde && (
-            <EstadoBadge estado="REALIZADA_TARDE" className="text-[10px] px-2 py-0" />
+        <div className="flex flex-col items-center">
+          <div className="inline-flex items-center gap-1.5 justify-center">
+            <span className="text-slate-800 font-bold">
+              {formatPercentTrunc(periodo.porcentaje)}
+            </span>
+            {esTarde && (
+              <EstadoBadge estado="REALIZADA_TARDE" className="text-[10px] px-2 py-0" />
+            )}
+          </div>
+          {periodo.auditorEjecutor?.etiqueta && (
+            <span
+              className="mt-0.5 block text-[10px] font-medium text-slate-400 truncate max-w-[130px]"
+              title={periodo.auditorEjecutor.etiqueta}
+            >
+              {periodo.auditorEjecutor.etiqueta}
+            </span>
           )}
         </div>
       </td>

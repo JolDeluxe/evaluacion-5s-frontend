@@ -20,6 +20,11 @@ export function ResumenPeriodoHeader({ data }) {
           <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
             {formatPeriodLabel(data.periodo)}
           </p>
+          {data.resultado?.auditorEjecutor?.etiqueta && (
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {data.resultado.auditorEjecutor.etiqueta}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center border-t border-slate-100 pt-3 md:border-0 md:pt-0">
