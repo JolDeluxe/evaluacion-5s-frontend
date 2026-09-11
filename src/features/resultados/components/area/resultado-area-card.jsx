@@ -54,12 +54,19 @@ export function ResultadoAreaCard({ item, mes, rango }) {
   const fromLabel = isGeneral ? 'General' : 'Áreas';
   const tipoRango = rango?.tipo || 'mes';
 
+  const valorResultado = item.resultadoRango ?? item.resultadoMensual;
+  const tieneResultado = valorResultado !== null && valorResultado !== undefined && valorResultado !== '';
+  const todosNoRealizada = (item.periodos || []).length > 0 &&
+    (item.periodos || []).every((p) => obtenerEstadoVisualAuditoria(p) === 'NO_REALIZADA');
+  const estaInactiva = !tieneResultado || todosNoRealizada;
+
   return (
     <Card
       variant="glass"
       className={cn(
-        'shadow-[0_4px_16px_rgba(15,23,42,0.04)] border-app-border bg-white overflow-hidden',
+        'shadow-[0_4px_16px_rgba(15,23,42,0.04)] border-app-border bg-white overflow-hidden transition',
         item.area.esPropia && 'border-amber-200/80 bg-amber-50/20',
+        estaInactiva && 'opacity-60 bg-slate-50/50',
       )}
     >
       <div className="flex items-start justify-between gap-2.5 p-3.5 sm:p-4 bg-slate-50/50 border-b border-app-border">

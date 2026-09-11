@@ -6,6 +6,7 @@ import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-ap
 import { setAuditUploadActive } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
 import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
 import { procesarImagen } from '@/utils/procesar-imagen';
+import { optimizarCloudinaryUrl } from '@/utils/cloudinary';
 
 const MAX_EVIDENCIAS = 3;
 
@@ -388,7 +389,12 @@ export function EvidenciaField({
                   className="h-full w-full cursor-zoom-in"
                   aria-label={`Ver ${evidencia.label}`}
                 >
-                  <img src={evidencia.src} alt={evidencia.label} className="h-full w-full object-cover" />
+                  <img
+                    src={optimizarCloudinaryUrl(evidencia.src, 'w_400,c_scale,q_auto,f_auto')}
+                    alt={evidencia.label}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 </button>
                 <button
                   type="button"

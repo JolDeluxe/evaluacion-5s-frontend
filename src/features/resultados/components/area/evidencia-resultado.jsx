@@ -1,10 +1,14 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { optimizarCloudinaryUrl } from '@/utils/cloudinary';
 
 export function EvidenciaResultado({ evidencia, index, onOpen }) {
   const [showPreview, setShowPreview] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, placement: 'top' });
   const thumbRef = useRef(null);
+
+  const thumbUrl = optimizarCloudinaryUrl(evidencia.url, 'w_400,c_scale,q_auto,f_auto');
+  const previewUrl = optimizarCloudinaryUrl(evidencia.url, 'w_600,c_scale,q_auto,f_auto');
 
   const handleMouseEnter = () => {
     if (!thumbRef.current) return;
@@ -46,7 +50,7 @@ export function EvidenciaResultado({ evidencia, index, onOpen }) {
         aria-label={`Ver evidencia ${index + 1}`}
       >
         <img
-          src={evidencia.url}
+          src={thumbUrl}
           alt={`Evidencia ${index + 1}`}
           className="h-full w-full object-cover"
           loading="lazy"
@@ -63,9 +67,10 @@ export function EvidenciaResultado({ evidencia, index, onOpen }) {
             className="fixed z-[9990] hidden md:block pointer-events-none w-60 h-60 rounded-xl overflow-hidden border border-slate-700/30 bg-slate-950/90 p-1.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
           >
             <img
-              src={evidencia.url}
+              src={previewUrl}
               alt={`Vista previa evidencia ${index + 1}`}
               className="h-full w-full object-contain rounded-lg"
+              loading="lazy"
             />
           </div>,
           document.body,

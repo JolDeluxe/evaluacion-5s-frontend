@@ -34,7 +34,7 @@ export function ResultadoAreaMobile({ data, mes }) {
   const location = useLocation();
 
   return (
-    <div className="space-y-4">
+    <div className="min-h-full flex flex-col space-y-4 pb-24">
       <ResumenAreaHeader data={data} mes={mes} />
 
       <div className="space-y-3">

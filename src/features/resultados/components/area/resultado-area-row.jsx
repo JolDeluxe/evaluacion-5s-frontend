@@ -77,8 +77,20 @@ export function ResultadoAreaRow({ item, mes }) {
   const { user } = useAuth();
   const canViewDetail = canViewAreaDetail(user?.rol);
 
+  const valorResultado = item.resultadoMensual;
+  const tieneResultado = valorResultado !== null && valorResultado !== undefined && valorResultado !== '';
+  const todosNoRealizada = (item.periodos || []).length > 0 &&
+    (item.periodos || []).every((p) => obtenerEstadoVisualAuditoria(p) === 'NO_REALIZADA');
+  const estaInactiva = !tieneResultado || todosNoRealizada;
+
   return (
-    <tr className={cn('bg-white transition hover:bg-slate-50/70', item.area.esPropia && 'bg-amber-50/35 hover:bg-amber-50/55')}>
+    <tr
+      className={cn(
+        'bg-white transition hover:bg-slate-50/70',
+        item.area.esPropia && 'bg-amber-50/35 hover:bg-amber-50/55',
+        estaInactiva && 'opacity-60 bg-slate-50/50 hover:bg-slate-100/50'
+      )}
+    >
       <td className="px-5 py-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-black uppercase text-slate-900">{item.area.nombre}</p>

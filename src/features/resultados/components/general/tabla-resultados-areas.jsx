@@ -164,20 +164,34 @@ export function TablaResultadosAreas({ areas = [], rango }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-app-border bg-white">
-            {areasConPosicion.map((item) => (
-              <tr key={item.area.id} className="transition hover:bg-slate-50/70">
-                <td className="w-12 px-4 py-3.5 text-center text-xs font-semibold text-slate-400">
-                  {item.posicion !== null ? item.posicion : ''}
-                </td>
-                <td className="px-5 py-3.5">
-                  <p className="font-black uppercase text-slate-900">{item.area.nombre}</p>
-                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                    {item.area.tipo || 'DESCONOCIDO'}
-                  </p>
-                </td>
-                {renderRowCells(item)}
-              </tr>
-            ))}
+            {areasConPosicion.map((item) => {
+              const valorResultado = item.resultadoRango ?? item.resultadoMensual;
+              const tieneResultado = valorResultado !== null && valorResultado !== undefined && valorResultado !== '';
+              const todosNoRealizada = (item.periodos || []).length > 0 &&
+                (item.periodos || []).every((p) => obtenerEstadoVisualAuditoria(p) === 'NO_REALIZADA');
+              const estaInactiva = !tieneResultado || todosNoRealizada;
+
+              return (
+                <tr
+                  key={item.area.id}
+                  className={cn(
+                    'transition hover:bg-slate-50/70',
+                    estaInactiva && 'opacity-60 bg-slate-50/50 hover:bg-slate-100/50'
+                  )}
+                >
+                  <td className="w-12 px-4 py-3.5 text-center text-xs font-semibold text-slate-400">
+                    {item.posicion !== null ? item.posicion : ''}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <p className={cn('font-black uppercase text-slate-900', estaInactiva && 'text-slate-600')}>{item.area.nombre}</p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                      {item.area.tipo || 'DESCONOCIDO'}
+                    </p>
+                  </td>
+                  {renderRowCells(item)}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

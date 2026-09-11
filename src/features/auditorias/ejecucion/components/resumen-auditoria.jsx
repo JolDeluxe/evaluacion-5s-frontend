@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { ImageViewer } from '@/components/ui/image-viewer';
+import { optimizarCloudinaryUrl } from '@/utils/cloudinary';
 
 export function ResumenAuditoria({
   criterios = [],
@@ -74,7 +75,8 @@ export function ResumenAuditoria({
                   <div className="space-y-1.5">
                     <div className="flex gap-2 overflow-x-auto py-1">
                       {respuesta.evidencias.slice(0, 3).map((foto, idx) => {
-                        const src = foto.url || foto.previewUrl;
+                        const rawSrc = foto.url || foto.previewUrl;
+                        const thumbSrc = optimizarCloudinaryUrl(rawSrc, 'w_400,c_scale,q_auto,f_auto');
                         return (
                           <button
                             key={foto.identificadorCliente || idx}
@@ -92,7 +94,12 @@ export function ResumenAuditoria({
                             }}
                             className="relative aspect-square w-16 h-16 shrink-0 overflow-hidden rounded-xl border border-rose-200/50 bg-slate-100 transition active:scale-95 shadow-sm cursor-zoom-in"
                           >
-                            <img src={src} alt={`Evidencia ${idx + 1}`} className="h-full w-full object-cover" />
+                            <img
+                              src={thumbSrc}
+                              alt={`Evidencia ${idx + 1}`}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
                           </button>
                         );
                       })}

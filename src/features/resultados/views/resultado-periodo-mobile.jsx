@@ -25,7 +25,7 @@ export function ResultadoPeriodoMobile({ data, areaId, mes }) {
   const totalHallazgos = hallazgos.length;
 
   return (
-    <div className="space-y-4">
+    <div className="min-h-full flex flex-col space-y-4 pb-24">
       <ResumenPeriodoHeader data={data} areaId={areaId} mes={mes} />
 
       {/* Stats Bar Compacta */}
