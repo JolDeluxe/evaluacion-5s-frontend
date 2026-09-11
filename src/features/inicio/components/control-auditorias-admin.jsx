@@ -1,84 +1,17 @@
 import { Card, CardBody } from '@/components/ui/card';
 import { ResultadoScore } from '@/features/resultados/components/shared/resultado-score';
+import { obtenerEstadoVisualAuditoria, esReabiertaActiva } from '@/features/auditorias/shared/utils/estados-auditoria';
 
-function StatusText({ estado, reabierta }) {
-  if (reabierta) {
-    return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[11px] text-rose-700">
-        ↻ Reabierta
-      </span>
-    );
-  }
-  if (estado === 'NO_REALIZADA') {
-    return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[11px] text-rose-700">
-        ● No realizada
-      </span>
-    );
-  }
-  if (estado === 'ATRASADA' || estado === 'ATRASADA_EN_GRACIA') {
-    return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[11px] text-orange-600">
-        ● Atrasada
-      </span>
-    );
-  }
-  if (estado === 'REALIZADA' || estado === 'COMPLETADA' || estado === 'REALIZADA_A_TIEMPO' || estado === 'REALIZADA_CON_ATRASO') {
-    return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[11px] text-emerald-700">
-        ✓ Realizada
-      </span>
-    );
-  }
-  if (estado === 'PENDIENTE') {
-    return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[11px] text-amber-600">
-        ● Pendiente
-      </span>
-    );
-  }
-  if (estado === 'SIN_AUDITOR') {
-    return (
-      <span className="inline-flex items-center gap-1 font-extrabold text-[11px] text-rose-600">
-        ! Sin auditor
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-slate-400">
-      ○ Aún no inicia
-    </span>
-  );
-}
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 
 function PeriodoCell({ periodoData, auditorNombre }) {
   if (!periodoData || !periodoData.programada) {
     return <span className="text-slate-300 font-bold">—</span>;
   }
 
-  // Si periodoData trae estado / estadoAuditoria explícito, respetarlo primeramente (p. ej. NO_REALIZADA de Resultados)
-  const estadoBase = periodoData.estado || periodoData.estadoAuditoria;
-  const esReabiertaActiva = Boolean(
-    periodoData.reabiertaHasta && new Date(periodoData.reabiertaHasta) > new Date()
-  );
-
-  const estado = periodoData.realizada
-    ? 'REALIZADA'
-    : periodoData.requiereAuditor
-    ? 'SIN_AUDITOR'
-    : estadoBase === 'NO_REALIZADA'
-    ? 'NO_REALIZADA'
-    : estadoBase === 'ATRASADA' || estadoBase === 'ATRASADA_EN_GRACIA'
-    ? 'ATRASADA'
-    : periodoData.vencida && !esReabiertaActiva
-    ? 'NO_REALIZADA'
-    : periodoData.vencida
-    ? 'ATRASADA'
-    : estadoBase || 'PENDIENTE';
-
   return (
-    <div className="flex flex-col items-center gap-0 py-0.5">
-      <StatusText estado={estado} reabierta={esReabiertaActiva} />
+    <div className="flex flex-col items-center gap-0.5 py-0.5">
+      <EstadoBadge estado={periodoData} />
       {auditorNombre ? (
         <span className="text-[10px] font-medium text-slate-500 truncate max-w-[110px]" title={auditorNombre}>
           {auditorNombre}

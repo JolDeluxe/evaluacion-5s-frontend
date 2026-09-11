@@ -17,4 +17,5 @@ export const asignacionesApi = {
   pendientes: async (options) => datos(await apiClient.get('/asignaciones/pendientes', options)),
   guardarMensual: async (areaId, body, options) => datos(await apiClient.put(`/asignaciones/mensual/${areaId}`, body, options)),
   reabrir: async (id, body, options) => datos(await apiClient.post(`/asignaciones/${id}/reabrir`, body, options)),
+  obtenerAlertas: async (params, options) => datos(await apiClient.get('/asignaciones/alertas-sin-asignar', { params, ...options })),
 };

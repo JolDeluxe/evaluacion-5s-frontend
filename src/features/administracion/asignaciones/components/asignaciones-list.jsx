@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PeriodoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 import { esFilaEditable, obtenerAuditorMensualDisplay, periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
 function AuditorMensualCell({ fila, anio, mes }) {
@@ -8,10 +9,9 @@ function AuditorMensualCell({ fila, anio, mes }) {
 
   if (display.tipo === 'ALERTA') {
     return (
-      <span className="inline-flex items-center gap-1 mt-0.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-extrabold text-amber-700">
-        <span>!</span>
-        <span>Sin auditor</span>
-      </span>
+      <div className="mt-0.5">
+        <EstadoBadge estado="SIN_AUDITOR" label="Sin auditor" />
+      </div>
     );
   }
 
@@ -19,7 +19,25 @@ function AuditorMensualCell({ fila, anio, mes }) {
     return <span className="text-slate-400 font-bold text-sm">—</span>;
   }
 
-  return <p className="text-sm font-bold text-slate-800">{display.texto}</p>;
+  const responsableCumplimiento = fila.responsableCumplimiento;
+  const auditorMensualId = fila.auditorMensual?.id;
+  const responsableCumplimientoId = fila.responsableCumplimientoId || responsableCumplimiento?.id;
+  const esDelegacion = Boolean(
+    responsableCumplimientoId &&
+    auditorMensualId &&
+    responsableCumplimientoId !== auditorMensualId
+  );
+
+  return (
+    <div>
+      <p className="text-sm font-bold text-slate-800">{display.texto}</p>
+      {esDelegacion && (
+        <span className="inline-block mt-0.5 rounded-md bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">
+          KPI Responsable: {responsableCumplimiento?.nombre || `Usuario #${responsableCumplimientoId}`}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function MobileCard({ fila, anio, mes, onEdit }) {

@@ -6,37 +6,34 @@ import { getResultadoHeatmapStyle } from '@/features/resultados/utils/resultado-
 import { mapAreasConPosicion } from '@/features/resultados/utils/posicion-areas';
 import { formatPercentTrunc } from '@/utils/format';
 import { cn } from '@/utils/cn';
+import { obtenerEstadoVisualAuditoria } from '@/features/auditorias/shared/utils/estados-auditoria';
+
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 
 function PeriodoCell({ periodo }) {
-  if (periodo.porcentaje !== null && periodo.porcentaje !== undefined && periodo.porcentaje !== '') {
+  const tienePorcentaje = periodo.porcentaje !== null && periodo.porcentaje !== undefined && periodo.porcentaje !== '';
+
+  if (tienePorcentaje) {
+    const estado = obtenerEstadoVisualAuditoria(periodo);
+    const esTarde = estado === 'REALIZADA_TARDE';
+
     return (
-      <td className="px-5 py-3.5 text-center text-slate-800 font-bold">
-        {formatPercentTrunc(periodo.porcentaje)}
+      <td className="px-5 py-3.5 text-center">
+        <div className="inline-flex items-center gap-1.5 justify-center">
+          <span className="text-slate-800 font-bold">
+            {formatPercentTrunc(periodo.porcentaje)}
+          </span>
+          {esTarde && (
+            <EstadoBadge estado="REALIZADA_TARDE" className="text-[10px] px-2 py-0" />
+          )}
+        </div>
       </td>
     );
   }
 
-  const estado = periodo.estado;
-  let dotColor = 'bg-slate-400';
-  let textColor = 'text-slate-500';
-  let label = 'Pendiente';
-
-  if (estado === 'ATRASADA') {
-    dotColor = 'bg-orange-500';
-    textColor = 'text-orange-700 font-bold';
-    label = 'Atrasada';
-  } else if (estado === 'NO_REALIZADA') {
-    dotColor = 'bg-rose-500';
-    textColor = 'text-rose-700 font-bold';
-    label = 'No realizada';
-  }
-
   return (
     <td className="px-5 py-3.5 text-center">
-      <span className={cn('inline-flex items-center gap-1.5 text-xs', textColor)}>
-        <span className={cn('h-1.5 w-1.5 rounded-full', dotColor)} />
-        {label}
-      </span>
+      <EstadoBadge estado={periodo} />
     </td>
   );
 }

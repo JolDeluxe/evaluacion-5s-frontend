@@ -19,6 +19,7 @@ export function AutoasignacionModal({
   const [auditoresDisponibles, setAuditoresDisponibles] = useState(auditores || []);
   const [resumen, setResumen] = useState(null);
   const [areasPendientes, setAreasPendientes] = useState(0);
+  const [advertencias, setAdvertencias] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [resultadoConfirmacion, setResultadoConfirmacion] = useState(null);
 
@@ -37,6 +38,7 @@ export function AutoasignacionModal({
         setSinCandidato(data.sinCandidato || []);
         setResumen(data.resumen || null);
         setAreasPendientes(data.areasPendientes || 0);
+        setAdvertencias(data.advertencias || data.warnings || []);
         if (data.auditoresDisponibles?.length) setAuditoresDisponibles(data.auditoresDisponibles);
         setStatus('review');
       } catch (err) {
@@ -204,6 +206,19 @@ export function AutoasignacionModal({
                 </div>
               )}
             </div>
+
+            {/* Alerta de omisiones por delegación múltiple */}
+            {(advertencias?.length > 0 || resultadoConfirmacion?.omitidasPorDelegacionMultiple > 0) && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3.5 space-y-1.5">
+                <div className="flex items-center gap-2 text-xs font-black text-amber-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-200 text-amber-900 font-black text-xs">!</span>
+                  <span>Atención: Asignación manual requerida</span>
+                </div>
+                <p className="text-xs font-medium text-amber-800">
+                  Algunas áreas requieren asignación manual porque el auditor sugerido posee múltiples responsables de KPI activos.
+                </p>
+              </div>
+            )}
 
             {/* Áreas sin candidato */}
             {sinCandidato.length > 0 && (

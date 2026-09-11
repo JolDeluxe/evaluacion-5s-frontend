@@ -523,6 +523,18 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
       />
 
       <main className="mx-auto w-full max-w-2xl space-y-8 px-0 pb-12 pt-4">
+        {contexto?.asignacion?.auditor && currentUser?.id && contexto?.asignacion?.auditorId !== currentUser.id && (
+          <div className="rounded-2xl border border-amber-200/90 bg-amber-50/80 p-3.5 shadow-sm space-y-0.5">
+            <div className="flex items-center gap-1.5 text-amber-800 text-xs font-black">
+              <Icon name="info" size="sm" />
+              <span>Auditoría asignada a otro auditor</span>
+            </div>
+            <p className="text-xs text-slate-600 font-medium">
+              Titular asignado: <strong className="text-slate-900 font-bold">{contexto.asignacion.auditor.nombre}</strong>
+            </p>
+          </div>
+        )}
+
         {draftRestored && <DraftNotice onClear={limpiarDraft} />}
 
         {envioError && (

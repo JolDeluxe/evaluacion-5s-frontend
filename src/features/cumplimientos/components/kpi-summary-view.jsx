@@ -112,11 +112,11 @@ export function KpiSummaryView({ usuariosKpi = [] }) {
                     </div>
                   </div>
 
-                  {/* Componentes de la Fórmula */}
+                    {/* Componentes de la Fórmula */}
                   <div className="grid grid-cols-2 gap-2.5 my-3.5">
                     <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                        50% Cumplimiento
+                        {hasAreas ? 'Cumplimiento (50%)' : 'Cumplimiento (100%)'}
                       </span>
                       <span className="text-base font-black text-slate-800 block mt-0.5">
                         {hasCumplimiento ? formatPercentTrunc(u.porcentajeCumplimiento) : 'N/A'}
@@ -128,7 +128,7 @@ export function KpiSummaryView({ usuariosKpi = [] }) {
 
                     <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                        50% Promedio Áreas
+                        {hasAreas ? 'Promedio Áreas (50%)' : 'Promedio Áreas (No aplica)'}
                       </span>
                       <span className="text-base font-black text-slate-800 block mt-0.5">
                         {hasAreas ? formatPercentTrunc(u.promedioAreas) : 'N/A'}
@@ -141,34 +141,35 @@ export function KpiSummaryView({ usuariosKpi = [] }) {
                 </div>
 
                 {/* Desglose de Áreas Evaluadas */}
+                {/* El backend devuelve detallesAreas con campos: areaId, nombre, tipo, resultado */}
                 <div className="border-t border-slate-100 pt-3">
                   <button
                     type="button"
-                    onClick={() => toggleExpand(u.usuarioId)}
+                    onClick={() => toggleExpand(userId)}
                     className="flex w-full items-center justify-between text-xs font-black text-slate-600 hover:text-slate-900 transition"
                   >
-                    <span>Áreas bajo su responsabilidad ({(u.areasDetalle || []).length})</span>
+                    <span>Áreas bajo su responsabilidad ({(u.detallesAreas || []).length})</span>
                     <Icon name={isExpanded ? 'expand_less' : 'expand_more'} size="xs" />
                   </button>
 
                   {isExpanded && (
                     <div className="mt-2.5 space-y-1.5 pt-1">
-                      {(u.areasDetalle || []).map((ad) => (
+                      {(u.detallesAreas || []).map((ad) => (
                         <div
                           key={ad.areaId}
                           className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs border border-slate-100"
                         >
                           <div className="min-w-0 pr-2">
                             <span className="font-black text-slate-800 block truncate">
-                              {ad.nombreArea}
+                              {ad.nombre}
                             </span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase">
-                              {ad.tipoArea}
+                              {ad.tipo}
                             </span>
                           </div>
                           <span className="font-black text-slate-800 text-xs shrink-0">
-                            {ad.resultadoMensual !== null && ad.resultadoMensual !== undefined
-                              ? formatPercentTrunc(ad.resultadoMensual)
+                            {ad.resultado !== null && ad.resultado !== undefined
+                              ? formatPercentTrunc(ad.resultado)
                               : 'Sin calif.'}
                           </span>
                         </div>

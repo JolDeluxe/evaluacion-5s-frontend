@@ -4,25 +4,29 @@ import { Button } from '@/components/ui/button';
 import { formatPeriodLabel, formatShortDate } from '@/features/resultados/utils/resultados-format';
 import { getResultadoColor } from '@/features/resultados/utils/resultado-colors';
 import { formatPercentTrunc } from '@/utils/format';
+import { obtenerEstadoVisualAuditoria } from '@/features/auditorias/shared/utils/estados-auditoria';
+
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 
 function ResultadoPeriodoCelda({ periodo }) {
   if (periodo.completado && periodo.porcentaje !== null && periodo.porcentaje !== undefined) {
     const semaforo = getResultadoColor(periodo.porcentaje);
+    const estadoVisual = obtenerEstadoVisualAuditoria(periodo);
+    const esTarde = estadoVisual === 'REALIZADA_TARDE';
+
     return (
-      <span className="text-sm font-black" style={{ color: semaforo?.textColor }}>
-        {formatPercentTrunc(periodo.porcentaje)}
-      </span>
+      <div className="inline-flex items-center gap-1.5 justify-center">
+        <span className="text-sm font-black" style={{ color: semaforo?.textColor }}>
+          {formatPercentTrunc(periodo.porcentaje)}
+        </span>
+        {esTarde && (
+          <EstadoBadge estado="REALIZADA_TARDE" className="text-[10px] px-2 py-0" />
+        )}
+      </div>
     );
   }
 
-  const estado = periodo.estado;
-  if (estado === 'NO_REALIZADA') {
-    return <span className="text-xs font-semibold text-rose-600">No realizada</span>;
-  }
-  if (estado === 'ATRASADA') {
-    return <span className="text-xs font-semibold text-amber-600">Atrasada</span>;
-  }
-  return <span className="text-xs font-semibold text-slate-400">Pendiente</span>;
+  return <EstadoBadge estado={periodo} />;
 }
 
 export function PeriodosAreaTable({ areaId, mes, periodos = [] }) {

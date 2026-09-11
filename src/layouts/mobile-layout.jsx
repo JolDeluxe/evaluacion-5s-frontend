@@ -4,6 +4,7 @@ import { MobileBottomNav } from '@/layouts/components/mobile-bottom-nav';
 import { MobileHeader } from '@/layouts/components/mobile-header';
 import { MobileSidebar } from '@/layouts/components/mobile-sidebar';
 import { FloatingScrollControls } from '@/components/ui/floating-scroll-controls';
+import { AlertaGlobalAsignaciones } from '@/components/alertas/AlertaGlobalAsignaciones';
 
 export function MobileLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,7 +14,8 @@ export function MobileLayout() {
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-cuadra-arena text-app-text">
       <MobileHeader isMenuOpen={menuOpen} onToggleMenu={toggleMenu} />
-      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto bg-transparent px-4 pt-0 pb-[calc(7rem+env(safe-area-inset-bottom))] custom-scrollbar">
+      <main className="relative z-10 min-h-0 flex-1 overflow-y-auto bg-transparent px-4 pt-3 pb-[calc(7rem+env(safe-area-inset-bottom))] custom-scrollbar flex flex-col gap-3">
+        <AlertaGlobalAsignaciones />
         <Outlet />
       </main>
       <FloatingScrollControls />

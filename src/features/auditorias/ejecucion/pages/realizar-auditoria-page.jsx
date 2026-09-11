@@ -16,6 +16,7 @@ import { buildPublicAppUrl, copyToClipboard } from '@/utils/share-url';
 
 function MobileRequired({
   contexto,
+  user,
   publicPath,
   qrLabel = 'Escanea para continuar esta auditoría en tu celular',
   canShareWithOther = false,
@@ -79,6 +80,18 @@ function MobileRequired({
               <p className="rounded-2xl bg-slate-100/80 px-4 py-3 text-sm font-black uppercase text-slate-900">
                 {contexto.area.nombre}
               </p>
+            )}
+
+            {contexto?.asignacion?.auditor && contexto?.asignacion?.auditorId !== user?.id && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-3.5 text-left space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-700 text-xs font-black">
+                  <Icon name="assignment" size="xs" />
+                  <span>Auditoría asignada a otro usuario</span>
+                </div>
+                <p className="text-xs text-slate-600 font-semibold">
+                  Auditor titular: <strong className="text-slate-900">{contexto.asignacion.auditor.nombre}</strong>
+                </p>
+              </div>
             )}
           </div>
 
@@ -324,6 +337,7 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
     return (
       <MobileRequired
         contexto={state.contexto}
+        user={user}
         publicPath={publicPath}
         qrLabel={modo === 'invitado' ? 'Escanea para abrir la invitación en tu celular' : 'Escanea para continuar esta auditoría en tu celular'}
         canShareWithOther={modo !== 'invitado'}

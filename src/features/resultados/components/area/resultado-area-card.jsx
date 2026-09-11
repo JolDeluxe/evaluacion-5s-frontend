@@ -8,33 +8,26 @@ import { getResultadoCenterGlowStyle } from '@/features/resultados/utils/resulta
 import { formatPercentTrunc } from '@/utils/format';
 import { cn } from '@/utils/cn';
 
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
+import { obtenerEstadoVisualAuditoria } from '@/features/auditorias/shared/utils/estados-auditoria';
+
 function EstadoPeriodoTexto({ periodo }) {
   const hasValue = periodo.porcentaje !== null && periodo.porcentaje !== undefined && periodo.porcentaje !== '';
   if (hasValue) {
-    return <span className="text-sm font-black text-slate-800">{formatPercentTrunc(periodo.porcentaje)}</span>;
+    const estadoVisual = obtenerEstadoVisualAuditoria(periodo);
+    const esTarde = estadoVisual === 'REALIZADA_TARDE';
+
+    return (
+      <div className="inline-flex items-center gap-1.5">
+        <span className="text-sm font-black text-slate-800">{formatPercentTrunc(periodo.porcentaje)}</span>
+        {esTarde && (
+          <EstadoBadge estado="REALIZADA_TARDE" className="text-[10px] px-1.5 py-0" />
+        )}
+      </div>
+    );
   }
 
-  const estado = periodo.estado;
-  let dotColor = 'bg-slate-400';
-  let textColor = 'text-slate-500';
-  let label = 'Pendiente';
-
-  if (estado === 'ATRASADA') {
-    dotColor = 'bg-orange-500';
-    textColor = 'text-orange-700 font-bold';
-    label = 'Atrasada';
-  } else if (estado === 'NO_REALIZADA') {
-    dotColor = 'bg-rose-500';
-    textColor = 'text-rose-700 font-bold';
-    label = 'No realizada';
-  }
-
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', textColor)}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', dotColor)} />
-      {label}
-    </span>
-  );
+  return <EstadoBadge estado={periodo} />;
 }
 
 function ResultadoMensualTag({ value }) {

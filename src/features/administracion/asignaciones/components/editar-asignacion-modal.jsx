@@ -4,13 +4,13 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/moda
 import { Label } from '@/components/form/label';
 import { Select } from '@/components/form/select';
 import { SelectAuditor } from '@/features/administracion/asignaciones/components/select-auditor';
+import { PeriodoBadge } from '@/features/administracion/asignaciones/components/estado-asignacion';
 import { ReabrirAsignacionModal } from '@/features/administracion/asignaciones/components/reabrir-asignacion-modal';
 import { delegacionesApi } from '@/features/administracion/delegaciones/api/delegaciones-api';
 import {
   buildGuardarAsignacionMensualPayload,
   MESES,
   periodoDetalleTexto,
-  periodoTexto,
 } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
 export function EditarAsignacionModal({
@@ -138,20 +138,7 @@ export function EditarAsignacionModal({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-slate-900">{label}</span>
-              <span
-                className={`inline-flex items-center gap-1 text-xs font-bold ${
-                  esCompletada
-                    ? 'text-emerald-700'
-                    : esReabiertaActiva
-                      ? 'text-rose-600 font-extrabold'
-                      : esVencida
-                        ? 'text-rose-600 font-extrabold'
-                        : 'text-slate-600'
-                }`}
-              >
-                <span>{esCompletada ? '✓' : esReabiertaActiva ? '↻' : esVencida ? '!' : '•'}</span>
-                <span>{periodoTexto(periodo, fila.auditorMensual?.nombre)}</span>
-              </span>
+              <PeriodoBadge periodo={periodo} auditorMensualNombre={fila.auditorMensual?.nombre} />
             </div>
             {detalleAuditor && <p className="text-xs font-semibold text-slate-400 mt-0.5">{detalleAuditor}</p>}
           </div>

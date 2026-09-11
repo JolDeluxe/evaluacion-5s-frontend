@@ -6,34 +6,28 @@ import { formatPeriodLabel } from '@/features/resultados/utils/resultados-format
 import { getResultadoCenterGlowStyle } from '@/features/resultados/utils/resultado-colors';
 import { formatPercentTrunc } from '@/utils/format';
 
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
+import { obtenerEstadoVisualAuditoria } from '@/features/auditorias/shared/utils/estados-auditoria';
+
 function EstadoPeriodoValor({ periodo }) {
   if (periodo.completado && periodo.porcentaje !== null && periodo.porcentaje !== undefined) {
     const glowStyle = getResultadoCenterGlowStyle(periodo.porcentaje);
+    const estadoVisual = obtenerEstadoVisualAuditoria(periodo);
+    const esTarde = estadoVisual === 'REALIZADA_TARDE';
+
     return (
-      <div className="rounded-lg px-2.5 py-1 text-center transition-colors" style={glowStyle}>
-        <span className="text-sm font-black">{formatPercentTrunc(periodo.porcentaje)}</span>
+      <div className="flex items-center gap-1.5">
+        <div className="rounded-lg px-2.5 py-1 text-center transition-colors" style={glowStyle}>
+          <span className="text-sm font-black">{formatPercentTrunc(periodo.porcentaje)}</span>
+        </div>
+        {esTarde && (
+          <EstadoBadge estado="REALIZADA_TARDE" className="text-[10px] px-1.5 py-0" />
+        )}
       </div>
     );
   }
 
-  const estado = periodo.estado;
-  if (estado === 'NO_REALIZADA') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600">
-        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-        No realizada
-      </span>
-    );
-  }
-  if (estado === 'ATRASADA') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-        Atrasada
-      </span>
-    );
-  }
-  return <span className="text-xs font-semibold text-slate-400">Pendiente</span>;
+  return <EstadoBadge estado={periodo} />;
 }
 
 export function ResultadoAreaMobile({ data, mes }) {

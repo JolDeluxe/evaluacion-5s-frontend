@@ -7,16 +7,31 @@ import { getResultadoCenterGlowStyle } from '@/features/resultados/utils/resulta
 import { formatPercentTrunc } from '@/utils/format';
 import { cn } from '@/utils/cn';
 
-export function CumplimientosTable({ filas = [] }) {
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('TODAS');
+export function CumplimientosTable({
+  filas = [],
+  busqueda: busquedaProp,
+  onBusquedaChange,
+  filtroTipo: filtroTipoProp,
+  onFiltroTipoChange,
+}) {
+  const [busquedaLocal, setBusquedaLocal] = useState('');
+  const [filtroTipoLocal, setFiltroTipoLocal] = useState('TODAS');
+
+  const busqueda = busquedaProp !== undefined ? busquedaProp : busquedaLocal;
+  const setBusqueda = onBusquedaChange || setBusquedaLocal;
+
+  const filtroTipo = filtroTipoProp !== undefined ? filtroTipoProp : filtroTipoLocal;
+  const setFiltroTipo = onFiltroTipoChange || setFiltroTipoLocal;
 
   const filasFiltradas = useMemo(() => {
     return filas.filter((fila) => {
-      const matchTipo = filtroTipo === 'TODAS' || fila.tipoArea === filtroTipo;
+      const matchTipo =
+        filtroTipo === 'TODAS' ||
+        filtroTipo === '' ||
+        fila.tipoArea?.toUpperCase() === filtroTipo?.toUpperCase();
       if (!matchTipo) return false;
 
-      if (!busqueda.trim()) return true;
+      if (!busqueda?.trim()) return true;
       const q = busqueda.toLowerCase().trim();
       const area = fila.nombreArea?.toLowerCase() || '';
       const codigo = fila.codigoArea?.toLowerCase() || '';
@@ -28,38 +43,43 @@ export function CumplimientosTable({ filas = [] }) {
     });
   }, [filas, busqueda, filtroTipo]);
 
+  // Solo mostrar barra de filtros interna si el padre NO controla los filtros
+  const showInternalFilters = busquedaProp === undefined && filtroTipoProp === undefined;
+
   return (
     <div className="space-y-4">
-      {/* Barra de Filtros */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-white/80 shadow-sm">
-        <div className="relative flex-1 max-w-md">
-          <Icon name="search" size="xs" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por área, auditor, responsable..."
-            className="pl-9 h-9 text-xs"
-          />
-        </div>
+      {/* Barra de Filtros (solo si el padre no controla los filtros via URL) */}
+      {showInternalFilters && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border border-white/80 shadow-sm">
+          <div className="relative flex-1 max-w-md">
+            <Icon name="search" size="xs" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por área, auditor, responsable..."
+              className="pl-9 h-9 text-xs"
+            />
+          </div>
 
-        <div className="flex items-center gap-1.5 self-end sm:self-auto">
-          {['TODAS', 'OPERATIVO', 'ADMINISTRATIVO'].map((tipo) => (
-            <button
-              key={tipo}
-              type="button"
-              onClick={() => setFiltroTipo(tipo)}
-              className={cn(
-                'rounded-xl px-3 py-1.5 text-xs font-bold transition',
-                filtroTipo === tipo
-                  ? 'bg-marca-secundario text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80',
-              )}
-            >
-              {tipo === 'TODAS' ? 'Todas' : tipo === 'OPERATIVO' ? 'Operativas' : 'Administrativas'}
-            </button>
-          ))}
+          <div className="flex items-center gap-1.5 self-end sm:self-auto">
+            {['TODAS', 'OPERATIVO', 'ADMINISTRATIVO'].map((tipo) => (
+              <button
+                key={tipo}
+                type="button"
+                onClick={() => setFiltroTipo(tipo)}
+                className={cn(
+                  'rounded-xl px-3 py-1.5 text-xs font-bold transition',
+                  filtroTipo === tipo
+                    ? 'bg-marca-secundario text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80',
+                )}
+              >
+                {tipo === 'TODAS' ? 'Todas' : tipo === 'OPERATIVO' ? 'Operativas' : 'Administrativas'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabla Desktop */}
       <div className="hidden md:block overflow-hidden rounded-2xl border border-white/80 bg-white/80 shadow-xl backdrop-blur-xl">
@@ -68,18 +88,16 @@ export function CumplimientosTable({ filas = [] }) {
             <thead className="border-b border-slate-200/70 bg-slate-50/80 text-[10px] font-black uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="px-4 py-3.5">Área</th>
-                <th className="px-4 py-3.5">Propietario(s)</th>
-                <th className="px-4 py-3.5">Auditor Asignado</th>
-                <th className="px-4 py-3.5">Responsable KPI</th>
-                <th className="px-4 py-3.5 text-center">Corte 1 (P1)</th>
-                <th className="px-4 py-3.5 text-center">Corte 2 (P2)</th>
-                <th className="px-4 py-3.5 text-center">Resultado Área</th>
+                <th className="px-4 py-3.5">Responsables</th>
+                <th className="px-4 py-3.5 text-center">Corte 1</th>
+                <th className="px-4 py-3.5 text-center">Corte 2</th>
+                <th className="px-4 py-3.5 text-center">Resultado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 font-semibold">
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400 font-semibold">
                     No se encontraron registros para el filtro seleccionado.
                   </td>
                 </tr>
@@ -96,50 +114,29 @@ export function CumplimientosTable({ filas = [] }) {
                         <div className="font-black text-slate-900 leading-snug">
                           {fila.nombreArea}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] font-bold text-slate-400">
-                            {fila.codigoArea}
-                          </span>
-                          <span className="text-slate-300">·</span>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                            {fila.tipoArea}
-                          </span>
-                        </div>
                       </td>
 
                       <td className="px-4 py-3.5">
-                        {fila.propietarios && fila.propietarios.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {fila.propietarios.map((p) => (
-                              <span
-                                key={p.id}
-                                className="inline-block bg-slate-100 border border-slate-200 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded-full"
-                              >
-                                {p.nombre}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <span className="font-bold text-slate-800 text-xs">
-                          {fila.auditorAsignado?.nombre || 'Sin auditor'}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <div className="flex flex-col items-start gap-1">
-                          <span className="font-bold text-slate-800 text-xs">
-                            {fila.responsableCumplimiento?.nombre || 'Sin responsable'}
-                          </span>
-                          {esDelegado && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-black text-indigo-700">
-                              <Icon name="swap_horiz" size="12px" />
-                              Delegación
+                        <div className="flex flex-col gap-1">
+                          {/* Auditor */}
+                          <div className="flex items-center gap-1.5">
+                            <Icon name="person_search" size="12px" className="text-slate-400 shrink-0" />
+                            <span className="font-bold text-slate-800 text-xs">
+                              {fila.auditorAsignado?.nombre || 'Sin auditor'}
                             </span>
+                          </div>
+                          {/* Responsable KPI — solo si es distinto al auditor (delegación) */}
+                          {esDelegado && (
+                            <div className="flex items-center gap-1.5">
+                              <Icon name="verified_user" size="12px" className="text-indigo-400 shrink-0" />
+                              <span className="font-bold text-indigo-700 text-xs">
+                                {fila.responsableCumplimiento?.nombre}
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 text-[9px] font-black text-indigo-700">
+                                <Icon name="swap_horiz" size="10px" />
+                                Del.
+                              </span>
+                            </div>
                           )}
                         </div>
                       </td>

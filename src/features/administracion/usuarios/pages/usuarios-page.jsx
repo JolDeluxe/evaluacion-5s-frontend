@@ -35,7 +35,13 @@ function EstadoUsuarioIndicator({ activo, rol, esComodin, puedeSerAsignadoAudito
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-500">
-      <span>{rolLabel}</span>
+      {isVis ? (
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-700 border border-slate-300">
+          Visualizador
+        </span>
+      ) : (
+        <span>{rolLabel}</span>
+      )}
       <span>·</span>
       <span className={cn('inline-flex items-center gap-1 font-bold', activo ? 'text-emerald-700' : 'text-slate-500')}>
         <span className={cn('h-1.5 w-1.5 rounded-full', activo ? 'bg-emerald-500' : 'bg-slate-400')} />
@@ -53,7 +59,7 @@ function EstadoUsuarioIndicator({ activo, rol, esComodin, puedeSerAsignadoAudito
       )}
       {seEvalua && (
         <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-700 border border-indigo-200">
-          KPI 50/50
+          KPI Activo
         </span>
       )}
     </div>
@@ -1427,28 +1433,38 @@ export function UsuariosPage() {
                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
                       />
                       <div>
-                        <span className="text-xs font-bold text-slate-800">Habilitado para asignaciones de auditoría</span>
+                        <span className="text-xs font-bold text-slate-800">Puede ser asignado a auditorías</span>
                         <p className="text-[11px] font-medium text-slate-500">
-                          Al desmarcar, se excluye de sugerencias y autoasignaciones sin afectar su histórico.
+                          Habilita al usuario para recibir asignaciones automáticas y manuales de auditoría en los periodos.
                         </p>
                       </div>
                     </label>
                   )}
 
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(form.seEvalua)}
-                      onChange={(e) => setForm({ ...form, seEvalua: e.target.checked })}
-                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-slate-800">Se evalúa con KPI 50/50</span>
-                      <p className="text-[11px] font-medium text-slate-500">
-                        Habilita el cálculo mensual: 50% cumplimiento a tiempo + 50% promedio de áreas a cargo. (Requiere al menos 1 área asignada).
-                      </p>
-                    </div>
-                  </label>
+                  <div className="space-y-1.5">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(form.seEvalua)}
+                        onChange={(e) => setForm({ ...form, seEvalua: e.target.checked })}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-slate-800">Se evalúa con KPI 50/50</span>
+                        <p className="text-[11px] font-medium text-slate-500">
+                          Incluye al usuario en el cálculo mensual del KPI 50/50 (50% cumplimiento individual + 50% promedio de áreas a cargo).
+                        </p>
+                      </div>
+                    </label>
+                    {form.seEvalua && form.areasResponsablesIds.length === 0 && (
+                      <div className="ml-6 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-[11px] font-semibold text-amber-800 flex items-start gap-2">
+                        <Icon name="warning" size="xs" className="text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          Para activar la evaluación de KPI 50/50, el usuario debe tener al menos un área asignada bajo su responsabilidad.
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

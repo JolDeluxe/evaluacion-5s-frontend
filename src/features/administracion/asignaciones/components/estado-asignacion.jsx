@@ -1,37 +1,31 @@
 import { cn } from '@/utils/cn';
-import { getPeriodoStatusConfig, periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
+import { obtenerEstadoVisualAuditoria } from '@/features/auditorias/shared/utils/estados-auditoria';
+import { periodoDetalleTexto } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
-export function EstadoBadge({ estado }) {
+export function EstadoBadgeAsignacion({ estado }) {
   const asignado = estado === 'ASIGNADO';
-
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold',
-        asignado
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-          : 'border-amber-200 bg-amber-50 text-amber-700 font-extrabold',
-      )}
-    >
-      <span>{asignado ? '✓' : '!'}</span>
-      <span>{asignado ? 'Asignado' : 'Sin auditor'}</span>
-    </span>
+    <EstadoBadge
+      estado={asignado ? 'ASIGNADO' : 'SIN_AUDITOR'}
+      label={asignado ? 'Asignado' : 'Sin auditor'}
+    />
   );
 }
 
 export function PeriodoBadge({ periodo, auditorMensualNombre }) {
-  const config = getPeriodoStatusConfig(periodo, auditorMensualNombre);
+  if (!periodo || periodo.programada === false) {
+    return <EstadoBadge estado="NO_PROGRAMADA" label="No programada" />;
+  }
+
+  const tieneAuditor = Boolean(periodo.auditorEfectivo?.nombre || auditorMensualNombre);
+  const estadoVisual = obtenerEstadoVisualAuditoria({
+    ...periodo,
+    auditorEfectivo: tieneAuditor ? (periodo.auditorEfectivo || { nombre: auditorMensualNombre }) : null,
+  });
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
-        config.badgeClass,
-      )}
-    >
-      <span>{config.icon}</span>
-      <span>{config.texto}</span>
-    </span>
+    <EstadoBadge estado={estadoVisual} />
   );
 }
 
@@ -57,3 +51,7 @@ export function PeriodosResumen({ fila }) {
     </div>
   );
 }
+
+// Compatibilidad hacia atrás si algún componente importa EstadoBadge desde aquí
+export { EstadoBadgeAsignacion as EstadoBadge };
+

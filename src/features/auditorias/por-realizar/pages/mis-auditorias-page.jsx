@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { SectionTabs } from '@/components/ui/section-tabs';
 
 import { AUDIT_EXECUTION_ROLES } from '@/config/navigation-config';
 import { CompartirAuditoriaModal } from '@/features/auditorias/shared/components/compartir-auditoria-modal';
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { apiClient } from '@/lib/api/api-client';
 
 const MESES = [
@@ -106,6 +110,7 @@ const leerBorrador = (asignacion) => {
 
 export function MisAuditoriasPage() {
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
 
   const canExecuteAudit =
     AUDIT_EXECUTION_ROLES.includes(
@@ -129,10 +134,17 @@ export function MisAuditoriasPage() {
     setLoading,
   ] = useState(true);
 
+  const navigate = useNavigate();
+
   const [
     asignacionCompartir,
     setAsignacionCompartir,
   ] = useState(null);
+
+  const [
+    comodinModal,
+    setComodinModal,
+  ] = useState(null); // null o asignacion seleccionada para intervenir
 
   /*
    * ============================================================
@@ -167,16 +179,19 @@ export function MisAuditoriasPage() {
               ? res
               : [];
 
-        setExecutables(list);
-
         if (resComodin) {
-          const comodinList =
+          const rawComodin =
             Array.isArray(resComodin?.datos)
               ? resComodin.datos
               : Array.isArray(resComodin)
                 ? resComodin
                 : [];
-          setComodinAudits(comodinList);
+          // Asegurar segmentación estricta
+          setExecutables(list.filter((asig) => !user?.id || asig.auditorId === user.id || asig.auditor?.id === user.id));
+          setComodinAudits(rawComodin.filter((asig) => !user?.id || (asig.auditorId !== user.id && asig.auditor?.id !== user.id)));
+        } else {
+          setExecutables(list);
+          setComodinAudits([]);
         }
       } catch (err) {
         console.error(
@@ -195,7 +210,7 @@ export function MisAuditoriasPage() {
     return () => {
       active = false;
     };
-  }, [esComodin]);
+  }, [esComodin, user?.id]);
 
   /*
    * ============================================================
@@ -228,16 +243,38 @@ export function MisAuditoriasPage() {
     }
 
     // Sort period groups chronologically: older first, then current
-    return [...map.values()].sort((a, b) => {
-      if (a.anio !== b.anio) return a.anio - b.anio;
-      if (a.mes !== b.mes) return a.mes - b.mes;
-      return a.periodo - b.periodo;
-    });
+    return [...map.values()]
+      .sort((a, b) => {
+        if (a.anio !== b.anio) return a.anio - b.anio;
+        if (a.mes !== b.mes) return a.mes - b.mes;
+        return a.periodo - b.periodo;
+      })
+      .map((grupo) => {
+        // Ordenar asignaciones: en curso (con borrador) primero, luego las demás
+        const asignacionesOrdenadas = [...grupo.asignaciones].sort((a, b) => {
+          const aEnCurso = leerBorrador(a) !== null ? 1 : 0;
+          const bEnCurso = leerBorrador(b) !== null ? 1 : 0;
+          return bEnCurso - aEnCurso;
+        });
+
+        return {
+          ...grupo,
+          asignaciones: asignacionesOrdenadas,
+        };
+      });
   }, [executables]);
 
   const porRealizarTotal = useMemo(() => {
     return executables.filter((asig) => asig.estado !== 'COMPLETADA' && asig.infoPeriodo?.realizable);
   }, [executables]);
+
+  const comodinAuditsOrdenadas = useMemo(() => {
+    return [...comodinAudits].sort((a, b) => {
+      const aEnCurso = leerBorrador(a) !== null ? 1 : 0;
+      const bEnCurso = leerBorrador(b) !== null ? 1 : 0;
+      return bEnCurso - aEnCurso;
+    });
+  }, [comodinAudits]);
 
   /*
    * ============================================================
@@ -305,9 +342,21 @@ export function MisAuditoriasPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* ==================================================
-              PERIODO ACTUAL
-          ================================================== */}
+          {esComodin && comodinAudits.length > 0 && (
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">
+                  Mis auditorías asignadas
+                </h2>
+                <p className="text-xs font-semibold text-slate-500">
+                  Auditorías bajo tu responsabilidad en el periodo actual.
+                </p>
+              </div>
+              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                {executables.length} asignadas
+              </span>
+            </div>
+          )}
 
           {/* ==================================================
               PERIODO COMPLETADO (SIN PENDIENTES)
@@ -398,12 +447,14 @@ export function MisAuditoriasPage() {
                 </div>
 
                 {/* VISTA MOBILE */}
-                <div className="block space-y-3 md:hidden">
+                {!isDesktop && (
+                <div className="space-y-3">
                   {pendientesGrupo.map((asig) => {
                     const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
                     const ind = asig.infoPeriodo;
                     const borrador = leerBorrador(asig);
                     const enCurso = borrador !== null;
+                    const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
 
                     return (
                       <div
@@ -411,6 +462,8 @@ export function MisAuditoriasPage() {
                         className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
                           enCurso
                             ? 'border-amber-200/80 bg-amber-50/25 shadow-[0_8px_24px_rgba(245,158,11,0.06)]'
+                            : esAtrasada
+                            ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
                             : 'border-white/90 bg-white/75 shadow-[0_8px_24px_rgba(15,23,42,0.06)]'
                         }`}
                       >
@@ -418,7 +471,7 @@ export function MisAuditoriasPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
-                              <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                              <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
                                 Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
                               </p>
                             </div>
@@ -433,15 +486,17 @@ export function MisAuditoriasPage() {
 
                           <div className="mt-1.5 flex flex-wrap items-center gap-2">
                             <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                              asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : 'text-slate-500'
+                              asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
                             }`}>
                               <span className={`h-1.5 w-1.5 rounded-full ${
-                                asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : 'bg-slate-400'
+                                asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
                               }`} />
                               {asig.bloqueoPeriodoAnterior
                                 ? 'Bloqueada por periodo anterior'
                                 : enCurso
                                 ? 'En curso'
+                                : esAtrasada
+                                ? 'Atrasada'
                                 : 'Pendiente'}
                             </span>
                           </div>
@@ -463,18 +518,7 @@ export function MisAuditoriasPage() {
                             </div>
                           ) : ind && (
                             <div className="mt-3">
-                              <span
-                                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${
-                                  ind.color === 'rojo'
-                                    ? 'border-rose-200 bg-rose-50 text-rose-700'
-                                    : ind.color === 'ambar'
-                                      ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                      : 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                }`}
-                              >
-                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                                {ind.texto}
-                              </span>
+                              <EstadoBadge estado={asig} label={ind.texto} />
                             </div>
                           )}
                         </div>
@@ -527,9 +571,11 @@ export function MisAuditoriasPage() {
                     );
                   })}
                 </div>
+                )}
 
                 {/* VISTA DESKTOP */}
-                <div className="hidden overflow-hidden rounded-2xl border border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl md:block">
+                {isDesktop && (
+                <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                   <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-100/90 bg-white/45 px-6 py-3">
                     <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Área</span>
                     <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Disponibilidad</span>
@@ -543,27 +589,36 @@ export function MisAuditoriasPage() {
                       const ind = asig.infoPeriodo;
                       const borrador = leerBorrador(asig);
                       const enCurso = borrador !== null;
+                      const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
 
                       return (
                         <div
                           key={asig.id}
                           className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
-                            asig.bloqueoPeriodoAnterior ? 'bg-slate-50/40' : enCurso ? 'bg-amber-50/10 hover:bg-amber-50/30' : 'hover:bg-slate-50/70'
+                            asig.bloqueoPeriodoAnterior
+                              ? 'bg-slate-50/40'
+                              : enCurso
+                              ? 'bg-amber-50/10 hover:bg-amber-50/30'
+                              : esAtrasada
+                              ? 'bg-rose-50/30 hover:bg-rose-50/50'
+                              : 'hover:bg-slate-50/70'
                           }`}
                         >
                           <div className="min-w-0">
                             <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
                             <div className="mt-1 flex flex-wrap items-center gap-2">
                               <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                                asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : 'text-slate-500'
+                                asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
                               }`}>
                                 <span className={`h-1.5 w-1.5 rounded-full ${
-                                  asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : 'bg-slate-400'
+                                  asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
                                 }`} />
                                 {asig.bloqueoPeriodoAnterior
                                   ? 'Bloqueada por periodo anterior'
                                   : enCurso
                                   ? 'En curso'
+                                  : esAtrasada
+                                  ? 'Atrasada'
                                   : 'Pendiente'}
                               </span>
                             </div>
@@ -576,22 +631,11 @@ export function MisAuditoriasPage() {
                                 <span className="truncate">Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
                               </span>
                             ) : ind && (
-                              <span
-                                className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${
-                                  ind.color === 'rojo'
-                                    ? 'border-rose-200/80 bg-rose-50/80 text-rose-700'
-                                    : ind.color === 'ambar'
-                                      ? 'border-amber-200/80 bg-amber-50/80 text-amber-700'
-                                      : 'border-emerald-200/80 bg-emerald-50/80 text-emerald-700'
-                                }`}
-                              >
-                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
-                                <span className="truncate">{ind.texto}</span>
-                              </span>
+                              <EstadoBadge estado={asig} label={ind.texto} />
                             )}
                           </div>
 
-                          <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                          <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
                             {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
                           </div>
 
@@ -647,117 +691,310 @@ export function MisAuditoriasPage() {
                     })}
                   </div>
                 </div>
+                )}
               </div>
             );
           })}
 
           {/* ==================================================
-              BANDEJA COMODÍN (PERIODO VIGENTE)
+              AUDITORÍAS PENDIENTES DE OTROS USUARIOS
           ================================================== */}
-          {esComodin && (
-            <div className="space-y-4 pt-6 border-t border-slate-200/90">
-              <div className="rounded-2xl border border-amber-300/90 bg-gradient-to-r from-amber-500/10 via-amber-100/40 to-white/70 p-5 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
-                      <Icon name="military_tech" size="md" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
-                          Rol Comodín Activo
-                        </span>
-                        <span className="inline-flex rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-black text-amber-900">
-                          {comodinAudits.length} disponibles
-                        </span>
-                      </div>
-                      <h2 className="text-lg font-black text-slate-900">
-                        Auditorías de apoyo en periodo vigente
-                      </h2>
-                    </div>
-                  </div>
+          {esComodin && comodinAudits.length > 0 && (
+            <div className="space-y-4 pt-4 border-t border-slate-200/80">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">
+                    Otras auditorías pendientes
+                  </h2>
+                  <p className="text-xs font-semibold text-slate-500">
+                    Auditorías asignadas a otros usuarios en el periodo actual que puedes apoyar a realizar.
+                  </p>
                 </div>
-                <p className="mt-2 text-xs font-medium text-slate-600 max-w-3xl">
-                  Puedes intervenir y realizar cualquiera de estas auditorías pendientes de la organización durante el periodo vigente.
-                  El KPI y la titularidad se acreditarán al auditor y responsable asignados, sin penalizar ni sumar a tus métricas personales.
-                </p>
+                <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                  {comodinAudits.length} pendientes
+                </span>
               </div>
 
-              {comodinAudits.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-white/60 p-6 text-center text-sm font-semibold text-slate-500">
-                  No hay auditorías pendientes de otros usuarios en el periodo vigente en este momento.
+              {/* VISTA MOBILE */}
+              {!isDesktop && (
+              <div className="space-y-3">
+                {comodinAuditsOrdenadas.map((asig) => {
+                  const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
+                  const auditorTitular = asig.auditor?.nombre || 'Sin asignar';
+                  const responsableKpi = asig.responsableCumplimiento?.nombre;
+                  const ind = asig.infoPeriodo;
+                  const borrador = leerBorrador(asig);
+                  const enCurso = borrador !== null;
+                  const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
+
+                  return (
+                    <div
+                      key={asig.id}
+                      className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
+                        enCurso
+                          ? 'border-amber-300/90 bg-amber-50/40 shadow-[0_8px_24px_rgba(245,158,11,0.08)]'
+                          : esAtrasada
+                          ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
+                          : 'border-slate-200/90 bg-slate-100/80 shadow-[0_8px_24px_rgba(15,23,42,0.04)]'
+                      }`}
+                    >
+                      <div className="p-4">
+                        {/* Banner titular */}
+                        <div className={`mb-2.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold ${
+                          enCurso
+                            ? 'border-amber-200/70 bg-amber-100/60 text-amber-900'
+                            : esAtrasada
+                            ? 'border-rose-200 bg-rose-100/60 text-rose-900'
+                            : 'border-slate-200 bg-slate-200/60 text-slate-700'
+                        }`}>
+                          <Icon name="person" size="13px" className={`shrink-0 ${enCurso ? 'text-amber-700' : esAtrasada ? 'text-rose-600' : 'text-slate-500'}`} />
+                          <span className="truncate">
+                            Asignada a: <strong className={`font-black ${enCurso ? 'text-amber-950' : esAtrasada ? 'text-rose-950' : 'text-slate-900'}`}>{auditorTitular}</strong>
+                          </span>
+                        </div>
+
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
+                            <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                              Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
+                            </p>
+                          </div>
+
+                          {borrador && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
+                              <Icon name="edit_note" size="12px" />
+                              {borrador.respondidas} de {borrador.total}
+                            </span>
+                          )}
+                        </div>
+
+                        {responsableKpi && responsableKpi !== auditorTitular && (
+                          <div className="mt-2 rounded-xl bg-slate-200/50 p-2 text-xs text-slate-600 flex items-center justify-between">
+                            <span className="font-semibold text-slate-500">Resp. KPI:</span>
+                            <span className="font-medium text-slate-700 truncate max-w-[180px]">{responsableKpi}</span>
+                          </div>
+                        )}
+
+                        {ind && (
+                          <div className="mt-3">
+                            <EstadoBadge
+                              estado={asig}
+                              label={ind.texto}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {canExecuteAudit && (
+                        <div className={`flex items-center justify-end gap-3 border-t px-4 py-2.5 backdrop-blur-md ${
+                          enCurso
+                            ? 'border-amber-100/70 bg-amber-50/40'
+                            : esAtrasada
+                            ? 'border-rose-100/70 bg-rose-50/30'
+                            : 'border-slate-200/70 bg-slate-100/60'
+                        }`}>
+                          <button
+                            type="button"
+                            onClick={() => setComodinModal(asig)}
+                            className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
+                              enCurso
+                                ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                                : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                            }`}
+                          >
+                            {enCurso ? 'Continuar' : 'Iniciar'}
+                            <Icon name="arrow_forward" size="14px" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              )}
+
+              {/* VISTA DESKTOP */}
+              {isDesktop && (
+              <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/70 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+                <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-200/80 bg-slate-100/80 px-6 py-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Área</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Disponibilidad</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Vence</span>
+                  <span className="text-right text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Acciones</span>
                 </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {comodinAudits.map((asig) => {
+
+                <div className="divide-y divide-slate-200/70">
+                  {comodinAuditsOrdenadas.map((asig) => {
                     const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
-                    const areaTipo = asig.objetivoAuditoria?.area?.tipo ?? asig.objetivoAuditoria?.tipoAreaSnapshot ?? '';
-                    const auditorNombre = asig.auditor?.nombre ?? 'Sin auditor';
-                    const responsableNombre = asig.responsableCumplimiento?.nombre;
-                    const esDelegado = Boolean(responsableNombre && responsableNombre !== auditorNombre);
+                    const auditorTitular = asig.auditor?.nombre || 'Sin asignar';
+                    const responsableKpi = asig.responsableCumplimiento?.nombre;
+                    const ind = asig.infoPeriodo;
+                    const borrador = leerBorrador(asig);
+                    const enCurso = borrador !== null;
+                    const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
 
                     return (
                       <div
                         key={asig.id}
-                        className="flex flex-col justify-between rounded-2xl border border-white/80 bg-white/80 p-4 shadow-[0_4px_20px_rgba(15,23,42,0.05)] backdrop-blur-xl transition hover:border-amber-300"
+                        className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
+                          enCurso
+                            ? 'bg-amber-50/25 hover:bg-amber-50/45'
+                            : esAtrasada
+                            ? 'bg-rose-50/30 hover:bg-rose-50/50'
+                            : 'bg-slate-100/50 hover:bg-slate-100/90'
+                        }`}
                       >
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                {areaTipo}
-                              </span>
-                              <h3 className="text-sm font-black uppercase text-slate-900 leading-tight">
-                                {areaNombre}
-                              </h3>
-                            </div>
-                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800">
-                              P{asig.objetivoAuditoria?.periodo} · {MESES_CORTOS[(asig.objetivoAuditoria?.mes ?? 1) - 1]}
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold border ${
+                              enCurso
+                                ? 'bg-amber-50/90 text-amber-900 border-amber-200/70'
+                                : esAtrasada
+                                ? 'bg-rose-50 text-rose-900 border-rose-200/80'
+                                : 'bg-slate-200/70 text-slate-700 border-slate-300/80'
+                            }`}>
+                              <Icon name="person" size="12px" className={enCurso ? 'text-amber-700' : esAtrasada ? 'text-rose-600' : 'text-slate-500'} />
+                              Asignada a: <strong className={`font-bold ${enCurso ? 'text-amber-950' : esAtrasada ? 'text-rose-950' : 'text-slate-900'}`}>{auditorTitular}</strong>
+                              {responsableKpi && responsableKpi !== auditorTitular && (
+                                <span className={enCurso ? 'text-amber-600/80 font-normal' : esAtrasada ? 'text-rose-600/80 font-normal' : 'text-slate-500 font-normal'}> (KPI: {responsableKpi})</span>
+                              )}
                             </span>
-                          </div>
-
-                          <div className="rounded-xl bg-slate-50 p-2.5 space-y-1 text-xs">
-                            <div className="flex items-center justify-between text-slate-600">
-                              <span className="text-[11px] font-bold text-slate-400">Auditor:</span>
-                              <span className="font-semibold text-slate-800 truncate max-w-[170px]" title={auditorNombre}>
-                                {auditorNombre}
+                            {enCurso && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                                <Icon name="edit_note" size="12px" />
+                                {borrador.respondidas}/{borrador.total}
                               </span>
-                            </div>
-                            {esDelegado && (
-                              <div className="flex items-center justify-between text-slate-600">
-                                <span className="text-[11px] font-bold text-slate-400">Resp. KPI:</span>
-                                <span className="font-semibold text-indigo-700 truncate max-w-[170px]" title={responsableNombre}>
-                                  {responsableNombre} (Delegado)
-                                </span>
-                              </div>
                             )}
-                            <div className="flex items-center justify-between text-slate-600">
-                              <span className="text-[11px] font-bold text-slate-400">Vence:</span>
-                              <span className="font-bold text-slate-700">
-                                {formatearFechaCorta(asig.venceEn)}
-                              </span>
-                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end">
-                          <Link
-                            to={`/auditorias/${asig.id}/realizar`}
-                            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 hover:bg-amber-100 transition"
-                          >
-                            <span>Realizar como comodín</span>
-                            <Icon name="arrow_forward" size="14px" />
-                          </Link>
+                        <div className="min-w-0">
+                          {ind && (
+                            <EstadoBadge
+                              estado={asig}
+                              label={ind.texto}
+                            />
+                          )}
                         </div>
+
+                        <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                          {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
+                        </div>
+
+                        {canExecuteAudit ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setComodinModal(asig)}
+                              className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
+                                enCurso
+                                  ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                                  : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                              }`}
+                            >
+                              {enCurso ? 'Continuar' : 'Iniciar'}
+                              <Icon name="arrow_forward" size="14px" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div />
+                        )}
                       </div>
                     );
                   })}
                 </div>
+              </div>
               )}
             </div>
           )}
         </div>
       )}
+
+      {/* Modal de confirmación para iniciar auditoría de otro usuario */}
+      <Modal
+        isOpen={Boolean(comodinModal)}
+        onClose={() => setComodinModal(null)}
+        className="max-w-md"
+      >
+        <ModalHeader onClose={() => setComodinModal(null)}>
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <Icon name="assignment" size="sm" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Auditoría asignada a otro usuario
+              </p>
+              <h2 className="text-base font-black text-slate-900">
+                Confirmar realización
+              </h2>
+            </div>
+          </div>
+        </ModalHeader>
+
+        <ModalBody className="space-y-3.5 pt-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-500">Área a evaluar:</span>
+              <span className="font-black text-slate-900 uppercase">
+                {comodinModal?.objetivoAuditoria?.area?.nombre ?? comodinModal?.objetivoAuditoria?.nombreAreaSnapshot}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-500">Auditor titular asignado:</span>
+              <span className="font-black text-slate-800">
+                {comodinModal?.auditor?.nombre || 'Sin auditor'}
+              </span>
+            </div>
+            {comodinModal?.responsableCumplimiento?.nombre && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-500">Responsable del KPI:</span>
+                <span className="font-bold text-slate-700">
+                  {comodinModal.responsableCumplimiento.nombre}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-500">Periodo:</span>
+              <span className="font-bold text-slate-700">
+                Periodo {comodinModal?.objetivoAuditoria?.periodo} ({MESES[(comodinModal?.objetivoAuditoria?.mes ?? 1) - 1]} {comodinModal?.objetivoAuditoria?.anio})
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold leading-relaxed text-slate-600">
+            Esta auditoría está asignada a <strong className="text-slate-900">{comodinModal?.auditor?.nombre || 'otro usuario'}</strong>. Al continuar, podrás responder y completar la evaluación correspondiente.
+          </p>
+
+          <p className="text-[11px] font-bold text-slate-500">
+            ¿Deseas continuar y realizar esta auditoría?
+          </p>
+        </ModalBody>
+
+        <ModalFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setComodinModal(null)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            icon="arrow_forward"
+            onClick={() => {
+              const id = comodinModal?.id;
+              setComodinModal(null);
+              navigate(`/auditorias/${id}/realizar`);
+            }}
+          >
+            Sí, continuar
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {asignacionCompartir && (
         <CompartirAuditoriaModal

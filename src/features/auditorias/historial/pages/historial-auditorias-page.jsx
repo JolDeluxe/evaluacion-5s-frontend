@@ -6,9 +6,8 @@ import { Card, CardBody } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { SectionTabs } from '@/components/ui/section-tabs';
 import { SelectorMesNavegacion } from '@/components/ui/selector-mes-navegacion';
-import { ResultadoBadge } from '@/features/resultados/components/shared/resultado-badge';
 import { apiClient } from '@/lib/api/api-client';
-import { formatPercentTrunc } from '@/utils/format';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -52,129 +51,113 @@ const fechaCorta = (fechaStr) => {
   return `${d.getDate()} ${MESES_CORTOS[d.getMonth()].toLowerCase()}`;
 };
 
-// ─── Period Cell Component ────────────────────────────────────────────────────
+const obtenerCierrePeriodo = (anio, mes, periodo) => {
+  if (!anio || !mes || !periodo) return null;
+
+  const ultimoDiaMes = new Date(anio, mes, 0).getDate();
+  const diaCierre = periodo === 1 ? 15 : ultimoDiaMes;
+
+  return new Date(anio, mes - 1, diaCierre, 23, 59, 59, 999);
+};
 
 // ─── Period Cell Component ────────────────────────────────────────────────────
 
-function EstadoAuditoriaHistorial({ asig, align = 'center' }) {
+// ─── Period Cell Component ────────────────────────────────────────────────────
+
+import { obtenerEstadoVisualAuditoria } from '@/features/auditorias/shared/utils/estados-auditoria';
+
+import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
+
+function EstadoAuditoriaHistorial({
+  asig,
+  align = 'center',
+  programado = false,
+  periodo,
+  anio,
+  mes,
+}) {
   const isStart = align === 'start';
   const containerClass = isStart ? 'flex flex-col items-start text-left gap-0.5' : 'flex flex-col items-center text-center gap-0.5';
-  const realizadaRowClass = isStart ? 'flex flex-wrap items-center justify-start gap-2' : 'flex flex-wrap items-center justify-center gap-2';
 
   if (!asig) {
+    if (programado) {
+      const cierrePeriodo = obtenerCierrePeriodo(anio, mes, periodo);
+      const estaCerrado = cierrePeriodo ? new Date() > cierrePeriodo : false;
+      const label = estaCerrado ? 'No realizada' : 'Pendiente';
+      const badgeClass = estaCerrado
+        ? 'bg-rose-50 border-rose-200 text-rose-700 font-bold'
+        : 'bg-slate-50 border-slate-200 text-slate-600 font-bold';
+
+      return (
+        <div className={containerClass}>
+          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none ${badgeClass}`}>
+            {label}
+          </span>
+        </div>
+      );
+    }
+
     return <span className="text-xs font-bold text-slate-300">—</span>;
   }
 
-  const { estado, infoPeriodo, objetivoAuditoria } = asig;
+  const { infoPeriodo, objetivoAuditoria } = asig;
   const envio = objetivoAuditoria?.envioResultado;
+  const realizada = asig.realizada === true || Boolean(envio && !envio.invalidadoEn);
+  const realizadaATiempo = Boolean(
+    asig.realizadaATiempo ??
+    (envio?.realizadaATiempo ?? (
+      envio?.verificadoEn && objetivoAuditoria?.terminaEn
+        ? new Date(envio.verificadoEn) <= new Date(objetivoAuditoria.terminaEn)
+        : false
+    )),
+  );
+  const porcentaje = asig.porcentaje ?? envio?.porcentaje;
+  const pct = porcentaje != null && !Number.isNaN(Number(porcentaje))
+    ? `${Number(porcentaje).toFixed(2)}%`
+    : '0.00%';
+  const ejecutadoPorApoyo = asig.ejecutadoPorApoyo === true;
+  const esInvitado = asig.esInvitado === true || Boolean(envio?.enlaceInvitadoId);
+  const nombreEjecutor = asig.nombreEjecutor || envio?.enviadoPorUsuario?.nombre || 'Sin nombre';
 
-  // 1. REALIZADA
-  if (estado === 'COMPLETADA' || envio) {
-    const pct = envio?.porcentaje != null ? Number(envio.porcentaje) : 100;
+  if (realizada) {
     const fecha = fechaCorta(asig.completadoEn || envio?.verificadoEn);
-    const realizadoPor = envio?.enlaceInvitadoId ? 'Invitado' : null;
+    const label = `${realizadaATiempo ? 'Realizada' : 'Realizada Tarde'} · ${pct}`;
+    const badgeClass = realizadaATiempo
+      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold'
+      : 'bg-rose-50 border-rose-200 text-rose-700 font-bold';
 
     return (
       <div className={containerClass}>
-        <div className={realizadaRowClass}>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs font-bold text-emerald-700">
-            <span>✓</span>
-            <span>Realizada</span>
-          </span>
-          <span className="text-xs font-bold text-slate-700">
-            {formatPercentTrunc(pct)}
-          </span>
-        </div>
-        <p className="text-[11px] font-semibold text-slate-400">
-          {realizadoPor ? `${realizadoPor} · ${fecha}` : (fecha || 'Completada')}
-        </p>
-      </div>
-    );
-  }
-
-  // 2. OTROS ESTADOS
-  const status = infoPeriodo?.status;
-  const texto = infoPeriodo?.texto ?? 'Pendiente';
-
-  if (status === 'AUN_NO_INICIA') {
-    const iniciaFmt = objetivoAuditoria?.iniciaEn ? fechaCorta(objetivoAuditoria.iniciaEn) : null;
-    const terminaFmt = objetivoAuditoria?.terminaEn ? fechaCorta(objetivoAuditoria.terminaEn) : null;
-    return (
-      <div className={containerClass}>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-500">
-          <span>○</span>
-          <span>Aún no inicia</span>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none ${badgeClass}`}>
+          {label}
         </span>
-        {iniciaFmt && terminaFmt && (
-          <p className="text-[11px] font-semibold text-slate-400">
-            {iniciaFmt} – {terminaFmt}
+        {ejecutadoPorApoyo && (
+          <p className="text-[11px] font-semibold text-slate-500">
+            (Apoyo: {nombreEjecutor})
           </p>
+        )}
+        {esInvitado && (
+          <p className="text-[11px] font-semibold text-slate-500">
+            (Enlace invitado)
+          </p>
+        )}
+        {!ejecutadoPorApoyo && !esInvitado && fecha && (
+          <p className="text-[11px] font-semibold text-slate-400">{fecha}</p>
         )}
       </div>
     );
   }
 
-  if (status === 'PENDIENTE') {
-    const esUltimoDia = texto === 'ÚLTIMO DÍA PARA REALIZAR';
-    return (
-      <div className={containerClass}>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
-            esUltimoDia
-              ? 'border-rose-200 bg-rose-50 text-rose-700 font-black'
-              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
-          }`}
-        >
-          <span>{esUltimoDia ? '!' : '•'}</span>
-          <span>{esUltimoDia ? 'Último día' : 'Pendiente'}</span>
-        </span>
-      </div>
-    );
-  }
-
-  if (status === 'REABIERTA') {
-    const esUltimoDia = texto === 'ÚLTIMO DÍA PARA REALIZAR';
-    return (
-      <div className={containerClass}>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">
-          <span>↻</span>
-          <span>{esUltimoDia ? 'Último día' : 'Reabierta · vencida'}</span>
-        </span>
-      </div>
-    );
-  }
-
-  if (status === 'VENCIDA') {
-    const esUltimoDia = texto === 'ÚLTIMO DÍA PARA REALIZAR';
-    return (
-      <div className={containerClass}>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">
-          <span>!</span>
-          <span>{esUltimoDia ? 'Último día' : 'Atrasada'}</span>
-        </span>
-      </div>
-    );
-  }
-
-  if (status === 'CERRADA' || !infoPeriodo?.realizable) {
-    return (
-      <div className={containerClass}>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50/70 px-2.5 py-1 text-xs font-bold text-rose-700">
-          <span>✕</span>
-          <span>No realizada</span>
-        </span>
-        <p className="text-[11px] font-semibold text-slate-400">
-          Periodo cerrado
-        </p>
-      </div>
-    );
-  }
+  const estaCerrado = infoPeriodo?.status === 'CERRADA' || infoPeriodo?.status === 'NO_REALIZADA';
+  const label = estaCerrado ? 'No realizada' : 'Pendiente';
+  const badgeClass = estaCerrado
+    ? 'bg-rose-50 border-rose-200 text-rose-700 font-bold'
+    : 'bg-slate-50 border-slate-200 text-slate-600 font-bold';
 
   return (
     <div className={containerClass}>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-        <span>•</span>
-        <span>{texto}</span>
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none ${badgeClass}`}>
+        {label}
       </span>
     </div>
   );
@@ -183,6 +166,7 @@ function EstadoAuditoriaHistorial({ asig, align = 'center' }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function HistorialAuditoriasPage() {
+  const isDesktop = useIsDesktop();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const ahora = new Date();
@@ -286,21 +270,18 @@ export function HistorialAuditoriasPage() {
   const totalAreas = areaMap.length;
 
   const realizadas = historial.filter(
-    (a) => a.estado === 'COMPLETADA' || a.objetivoAuditoria?.envioResultado,
+    (a) => obtenerEstadoVisualAuditoria(a) === 'REALIZADA',
   ).length;
 
   const pendientes = historial.filter(
-    (a) =>
-      a.estado !== 'COMPLETADA' &&
-      !a.objetivoAuditoria?.envioResultado &&
-      (a.infoPeriodo?.status === 'PENDIENTE' || a.infoPeriodo?.status === 'AUN_NO_INICIA' || a.infoPeriodo?.realizable),
+    (a) => {
+      const est = obtenerEstadoVisualAuditoria(a);
+      return est === 'PENDIENTE' || est === 'AUN_NO_INICIA' || est === 'REABIERTA' || est === 'ATRASADA';
+    },
   ).length;
 
   const noRealizadas = historial.filter(
-    (a) =>
-      a.estado !== 'COMPLETADA' &&
-      !a.objetivoAuditoria?.envioResultado &&
-      (a.infoPeriodo?.status === 'CERRADA' || !a.infoPeriodo?.realizable),
+    (a) => obtenerEstadoVisualAuditoria(a) === 'NO_REALIZADA',
   ).length;
 
   const periodoTituloLabel = `${MESES[filtroMes - 1].toUpperCase()} ${filtroAnio}`;
@@ -376,17 +357,20 @@ export function HistorialAuditoriasPage() {
       ) : (
         <Card className="overflow-hidden border-app-border bg-white shadow-sm">
           {/* DESKTOP HEADER */}
-          <div className="hidden md:grid md:grid-cols-[40%_30%_30%] items-center border-b border-app-border bg-slate-50/70 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+          {isDesktop && (
+          <div className="grid grid-cols-[40%_30%_30%] items-center border-b border-app-border bg-slate-50/70 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
             <div className="px-6">Área</div>
             <div className="px-5 text-center">{labelP1}</div>
             <div className="px-5 text-center">{labelP2}</div>
           </div>
+          )}
 
           <div className="divide-y divide-app-border">
             {areaMap.map(({ nombre, p1, p2 }) => (
               <div key={nombre}>
                 {/* DESKTOP ROW */}
-                <div className="hidden md:grid md:grid-cols-[40%_30%_30%] items-center py-4 transition hover:bg-slate-50/70">
+                {isDesktop ? (
+                <div className="grid grid-cols-[40%_30%_30%] items-center py-4 transition hover:bg-slate-50/70">
                   <div className="min-w-0 px-6">
                     <div className="text-sm font-black uppercase leading-5 text-slate-900">
                       {nombre}
@@ -394,28 +378,55 @@ export function HistorialAuditoriasPage() {
                   </div>
 
                   <div className="flex min-w-0 justify-center px-5">
-                    <EstadoAuditoriaHistorial asig={p1} />
+                    <EstadoAuditoriaHistorial
+                      asig={p1}
+                      programado={Boolean(p1 || p2)}
+                      periodo={1}
+                      anio={filtroAnio}
+                      mes={filtroMes}
+                    />
                   </div>
 
                   <div className="flex min-w-0 justify-center px-5">
-                    <EstadoAuditoriaHistorial asig={p2} />
+                    <EstadoAuditoriaHistorial
+                      asig={p2}
+                      programado={Boolean(p1 || p2)}
+                      periodo={2}
+                      anio={filtroAnio}
+                      mes={filtroMes}
+                    />
                   </div>
                 </div>
-
-                {/* MOBILE CARD */}
-                <div className="space-y-3 p-4 md:hidden border-b border-slate-100 last:border-0">
+                ) : (
+                /* MOBILE CARD */
+                <div className="space-y-3 p-4 border-b border-slate-100 last:border-0">
                   <h3 className="text-sm font-black uppercase text-slate-900">{nombre}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="min-w-0 space-y-1">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">1er Periodo</p>
-                      <EstadoAuditoriaHistorial asig={p1} align="start" />
+                      <EstadoAuditoriaHistorial
+                        asig={p1}
+                        align="start"
+                        programado={Boolean(p1 || p2)}
+                        periodo={1}
+                        anio={filtroAnio}
+                        mes={filtroMes}
+                      />
                     </div>
                     <div className="min-w-0 space-y-1">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">2do Periodo</p>
-                      <EstadoAuditoriaHistorial asig={p2} align="start" />
+                      <EstadoAuditoriaHistorial
+                        asig={p2}
+                        align="start"
+                        programado={Boolean(p1 || p2)}
+                        periodo={2}
+                        anio={filtroAnio}
+                        mes={filtroMes}
+                      />
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             ))}
           </div>
