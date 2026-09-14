@@ -108,6 +108,21 @@ const leerBorrador = (asignacion) => {
   return null;
 };
 
+const COLA_PENDIENTE_KEY = 'encuestas-5s:cola-pendiente-envio';
+
+const leerColaPendiente = (asignacionId) => {
+  if (!asignacionId) return false;
+  try {
+    const raw = localStorage.getItem(COLA_PENDIENTE_KEY);
+    if (!raw) return false;
+    const cola = JSON.parse(raw);
+    if (!Array.isArray(cola)) return false;
+    return cola.some((e) => e.asignacionId === String(asignacionId));
+  } catch {
+    return false;
+  }
+};
+
 export function MisAuditoriasPage() {
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
@@ -454,13 +469,16 @@ export function MisAuditoriasPage() {
                     const ind = asig.infoPeriodo;
                     const borrador = leerBorrador(asig);
                     const enCurso = borrador !== null;
+                    const enColaOffline = leerColaPendiente(asig.id);
                     const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
 
                     return (
                       <div
                         key={asig.id}
                         className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
-                          enCurso
+                          enColaOffline
+                            ? 'border-blue-200/80 bg-blue-50/30 shadow-[0_8px_24px_rgba(59,130,246,0.06)]'
+                            : enCurso
                             ? 'border-amber-200/80 bg-amber-50/25 shadow-[0_8px_24px_rgba(245,158,11,0.06)]'
                             : esAtrasada
                             ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
@@ -476,7 +494,12 @@ export function MisAuditoriasPage() {
                               </p>
                             </div>
 
-                            {borrador && (
+                            {enColaOffline ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2.5 py-0.5 text-[10px] font-black text-blue-800">
+                                <Icon name="cloud_off" size="12px" />
+                                Pendiente de envío
+                              </span>
+                            ) : borrador && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
                                 <Icon name="edit_note" size="12px" />
                                 {borrador.respondidas} de {borrador.total}
@@ -486,13 +509,15 @@ export function MisAuditoriasPage() {
 
                           <div className="mt-1.5 flex flex-wrap items-center gap-2">
                             <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                              asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
+                              asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enColaOffline ? 'text-blue-600' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
                             }`}>
                               <span className={`h-1.5 w-1.5 rounded-full ${
-                                asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
+                                asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enColaOffline ? 'bg-blue-500' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
                               }`} />
                               {asig.bloqueoPeriodoAnterior
                                 ? 'Bloqueada por periodo anterior'
+                                : enColaOffline
+                                ? 'Completa — esperando señal para enviar'
                                 : enCurso
                                 ? 'En curso'
                                 : esAtrasada
@@ -501,7 +526,12 @@ export function MisAuditoriasPage() {
                             </span>
                           </div>
 
-                          {asig.bloqueoPeriodoAnterior ? (
+                          {enColaOffline ? (
+                            <div className="mt-2.5 rounded-xl border border-blue-200/70 bg-blue-50/60 p-2.5 text-xs text-blue-900 font-semibold flex items-center gap-2">
+                              <Icon name="cloud_off" size="14px" className="text-blue-600 shrink-0" />
+                              <span>Auditoría completa. Se enviará automáticamente cuando haya señal.</span>
+                            </div>
+                          ) : asig.bloqueoPeriodoAnterior ? (
                             <div className="mt-2.5 rounded-xl border border-amber-200/70 bg-amber-50/60 p-2.5 text-xs text-amber-900 font-semibold flex items-center justify-between gap-2">
                               <span className="flex items-center gap-1.5">
                                 <Icon name="lock" size="14px" className="text-amber-600 shrink-0" />
@@ -534,7 +564,15 @@ export function MisAuditoriasPage() {
                               Compartir
                             </button>
 
-                            {asig.bloqueoPeriodoAnterior ? (
+                            {enColaOffline ? (
+                              <Link
+                                to={`/auditorias/${asig.id}/realizar`}
+                                className="inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3.5 text-xs font-black text-blue-700 backdrop-blur-md transition"
+                              >
+                                <Icon name="cloud_off" size="14px" />
+                                Ver estado
+                              </Link>
+                            ) : asig.bloqueoPeriodoAnterior ? (
                               asig.bloqueoPeriodoAnterior.asignacionId ? (
                                 <Link
                                   to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
@@ -589,6 +627,7 @@ export function MisAuditoriasPage() {
                       const ind = asig.infoPeriodo;
                       const borrador = leerBorrador(asig);
                       const enCurso = borrador !== null;
+                      const enColaOffline = leerColaPendiente(asig.id);
                       const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
 
                       return (
@@ -597,6 +636,8 @@ export function MisAuditoriasPage() {
                           className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
                             asig.bloqueoPeriodoAnterior
                               ? 'bg-slate-50/40'
+                              : enColaOffline
+                              ? 'bg-blue-50/20 hover:bg-blue-50/40'
                               : enCurso
                               ? 'bg-amber-50/10 hover:bg-amber-50/30'
                               : esAtrasada
@@ -608,24 +649,37 @@ export function MisAuditoriasPage() {
                             <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
                             <div className="mt-1 flex flex-wrap items-center gap-2">
                               <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                                asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
+                                asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enColaOffline ? 'text-blue-600' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
                               }`}>
                                 <span className={`h-1.5 w-1.5 rounded-full ${
-                                  asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
+                                  asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enColaOffline ? 'bg-blue-500' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
                                 }`} />
                                 {asig.bloqueoPeriodoAnterior
                                   ? 'Bloqueada por periodo anterior'
+                                  : enColaOffline
+                                  ? 'Esperando señal'
                                   : enCurso
                                   ? 'En curso'
                                   : esAtrasada
                                   ? 'Atrasada'
                                   : 'Pendiente'}
                               </span>
+                              {enColaOffline && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2 py-0.5 text-[10px] font-black text-blue-800">
+                                  <Icon name="cloud_off" size="11px" />
+                                  Pendiente de envío
+                                </span>
+                              )}
                             </div>
                           </div>
 
                           <div className="min-w-0">
-                            {asig.bloqueoPeriodoAnterior ? (
+                            {enColaOffline ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 px-3 py-1 text-xs font-black uppercase text-blue-800 tracking-wide">
+                                <Icon name="cloud_off" size="13px" className="shrink-0 text-blue-600" />
+                                <span className="truncate">Completa — sin señal</span>
+                              </span>
+                            ) : asig.bloqueoPeriodoAnterior ? (
                               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-3 py-1 text-xs font-black uppercase text-amber-800 tracking-wide">
                                 <Icon name="lock" size="13px" className="shrink-0 text-amber-600" />
                                 <span className="truncate">Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
@@ -650,7 +704,16 @@ export function MisAuditoriasPage() {
                                 <Icon name="share" size="15px" />
                               </button>
 
-                              {asig.bloqueoPeriodoAnterior ? (
+                              {enColaOffline ? (
+                                <Link
+                                  to={`/auditorias/${asig.id}/realizar`}
+                                  className="inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 text-xs font-black text-blue-700 backdrop-blur-md transition"
+                                  title="Ver estado de envío"
+                                >
+                                  <Icon name="cloud_off" size="14px" />
+                                  Ver estado
+                                </Link>
+                              ) : asig.bloqueoPeriodoAnterior ? (
                                 asig.bloqueoPeriodoAnterior.asignacionId ? (
                                   <Link
                                     to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}

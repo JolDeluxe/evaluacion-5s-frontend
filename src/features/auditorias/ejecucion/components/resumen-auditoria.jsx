@@ -11,6 +11,7 @@ export function ResumenAuditoria({
   onBackToCapture,
   isSubmitting,
   error,
+  enColaPendiente = false,
 }) {
   const [viewer, setViewer] = useState(null);
 
@@ -131,19 +132,22 @@ export function ResumenAuditoria({
           className="w-full rounded-2xl min-h-[3.5rem] text-base font-black"
           onClick={onSubmit}
           isLoading={isSubmitting}
+          icon={enColaPendiente ? 'wifi' : undefined}
         >
-          Finalizar auditoría
+          {enColaPendiente ? 'Reintentar envío' : 'Finalizar auditoría'}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full rounded-2xl min-h-[3.5rem] text-base font-bold"
-          onClick={onBackToCapture}
-          disabled={isSubmitting}
-        >
-          Volver a la captura
-        </Button>
+        {!enColaPendiente && onBackToCapture && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full rounded-2xl min-h-[3.5rem] text-base font-bold"
+            onClick={onBackToCapture}
+            disabled={isSubmitting}
+          >
+            Volver a la captura
+          </Button>
+        )}
       </div>
 
       <ImageViewer

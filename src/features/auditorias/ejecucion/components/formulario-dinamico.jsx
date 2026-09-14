@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -16,6 +16,12 @@ import {
 import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-api';
 import { getAuditRuntimeStatus, markAuditDraftDirty, markAuditDraftSaved } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
 import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
+import {
+  eliminarDeCola,
+  encolarAuditoriaPendiente,
+  marcarColaFallida,
+  obtenerPendienteDeAsignacion,
+} from '@/features/auditorias/ejecucion/utils/auditoria-cola-pendiente';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -125,6 +131,35 @@ function AuditoriaHeader({ contexto, respondidas, total, onExit, savedAt }) {
   );
 }
 
+function OfflinePendingBanner({ onReintentar, reintentando }) {
+  return (
+    <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 px-4 py-3 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 mt-0.5">
+          <Icon name="cloud_off" size="sm" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-black text-blue-900">Auditoría guardada — en espera de conexión</p>
+          <p className="mt-0.5 text-xs font-semibold text-blue-700">
+            Tus respuestas están seguras en este dispositivo. Cuando tengas señal, se enviará automáticamente.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          icon="refresh"
+          isLoading={reintentando}
+          onClick={onReintentar}
+          className="shrink-0 hover:translate-y-0 hover:shadow-none text-blue-700 hover:bg-blue-100 hover:text-blue-900"
+        >
+          Reintentar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function DraftNotice({ onClear }) {
   return (
     <div className="rounded-2xl border border-marca-secundario/20 bg-white/80 px-4 py-3 shadow-sm">
@@ -155,6 +190,9 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   const [draftHydrated, setDraftHydrated] = useState(preview);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState(null);
+  const [enColaPendiente, setEnColaPendiente] = useState(false);
+  const [reintentandoOffline, setReintentandoOffline] = useState(false);
+  const reintentarOfflineRef = useRef(null);
 
   const bloques = useMemo(() => obtenerBloques(contexto.versionFormulario), [contexto.versionFormulario]);
   const secciones = useMemo(() => agruparSecciones(bloques), [bloques]);
@@ -167,6 +205,12 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     const versionId = contexto.versionFormulario?.id ?? 'version';
     return `encuestas-5s:auditoria-draft:${modo}:${auditoriaId}:${versionId}`;
   }, [contexto.area?.id, contexto.asignacion?.id, contexto.invitacion?.id, contexto.objetivo?.id, contexto.versionFormulario?.id, modo]);
+
+  const auditoriaIdActual = useMemo(() => {
+    return modo === 'invitado'
+      ? contexto.invitacion?.id ?? contexto.asignacion?.id ?? 'invitado'
+      : contexto.asignacion?.id ?? contexto.objetivo?.id ?? contexto.area?.id ?? 'auditoria';
+  }, [contexto.area?.id, contexto.asignacion?.id, contexto.invitacion?.id, contexto.objetivo?.id, modo]);
 
   const totalPreguntas = criterios.length;
   const respondidas = useMemo(() => criterios.filter((criterio) => respuestas[criterio.id]?.opcionFormularioIds?.length > 0).length, [criterios, respuestas]);
@@ -302,11 +346,33 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     return { isValid: Object.keys(nuevosErrores).length === 0, faltantes: Object.keys(nuevosErrores).length };
   };
 
-  const auditoriaIdActual = useMemo(() => {
-    return modo === 'invitado'
-      ? contexto.invitacion?.id ?? contexto.asignacion?.id ?? 'invitado'
-      : contexto.asignacion?.id ?? contexto.objetivo?.id ?? contexto.area?.id ?? 'auditoria';
-  }, [contexto.area?.id, contexto.asignacion?.id, contexto.invitacion?.id, contexto.objetivo?.id, modo]);
+  // Verificar al montar si hay una cola pendiente para esta auditoría
+  useEffect(() => {
+    if (preview) return;
+    const asignacionId = contexto.asignacion?.id;
+    if (!asignacionId) return;
+    const pendiente = obtenerPendienteDeAsignacion(asignacionId);
+    if (pendiente) {
+      setEnColaPendiente(true);
+      setFase('revision');
+    }
+  // Solo en el montaje inicial
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reintentar automáticamente cuando vuelve la conexión
+  useEffect(() => {
+    if (preview) return undefined;
+
+    const handleOnline = () => {
+      if (reintentarOfflineRef.current) {
+        reintentarOfflineRef.current();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [preview]);
 
   const handleIntentarFinalizar = async () => {
     // 1. Validar si hay subidas activas a Cloudinary en curso
@@ -338,28 +404,30 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
 
   const [showConfirmQrModal, setShowConfirmQrModal] = useState(false);
 
-  const enviar = async (codigoConfirmado) => {
-    // 1. Validar que no haya subidas activas
-    const runtimeStatus = getAuditRuntimeStatus();
-    if (runtimeStatus.uploadsInProgress > 0) {
-      setEnvioError('Aún hay evidencias fotográficas subiéndose. Por favor espera.');
-      return;
-    }
-
-    // 2. Validar que no queden evidencias pendientes en IndexedDB
-    try {
-      const fotosPendientes = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
-      if (fotosPendientes?.length > 0) {
-        setEnvioError(`No se puede enviar: Tienes ${fotosPendientes.length} evidencia(s) pendiente(s) de subir. Verifica tu conexión a internet.`);
+  const enviar = async (codigoConfirmado, { desdeColaOffline = false } = {}) => {
+    // 1. Validar que no haya subidas activas (solo si no viene de la cola)
+    if (!desdeColaOffline) {
+      const runtimeStatus = getAuditRuntimeStatus();
+      if (runtimeStatus.uploadsInProgress > 0) {
+        setEnvioError('Aún hay evidencias fotográficas subiéndose. Por favor espera.');
         return;
       }
-    } catch {
-      // noop
-    }
 
-    // Double check just in case, before sending
-    const { isValid } = validarTodo();
-    if (!isValid) return;
+      // 2. Validar que no queden evidencias pendientes en IndexedDB
+      try {
+        const fotosPendientes = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
+        if (fotosPendientes?.length > 0) {
+          setEnvioError(`No se puede enviar: Tienes ${fotosPendientes.length} evidencia(s) pendiente(s) de subir. Verifica tu conexión a internet.`);
+          return;
+        }
+      } catch {
+        // noop
+      }
+
+      // Double check just in case, before sending
+      const { isValid } = validarTodo();
+      if (!isValid) return;
+    }
 
     setIsSubmitting(true);
     setEnvioError('');
@@ -373,37 +441,96 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
 
       const codigoFinal = codigoConfirmado || verificacionArea?.codigoQr || verificacionArea?.codigoVerificacion || contexto.area?.codigoVerificacion || '';
 
-      const payload = {
-        identificadorCliente,
-        asignacionAuditoriaId: modo === 'invitado' ? (contexto.asignacion?.id ?? null) : contexto.asignacion?.id,
-        nombreAuditorSnapshot: currentUser?.nombre ?? nombreInvitado ?? contexto.nombreAuditor ?? 'Auditor',
-        finalizadoEn: new Date().toISOString(),
-        codigoVerificacion: codigoFinal,
-        respuestas: criterios.map((item) => {
-          const respuesta = respuestas[item.id] ?? crearRespuestaInicial(item);
-          return {
-            preguntaFormularioId: item.preguntaFormularioId ?? item.id,
-            cumple: respuesta.cumple === true,
-            hallazgo: respuesta.hallazgo?.trim() || null,
-            fotos: (respuesta.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
-          };
-        }),
-      };
+      // Si viene de la cola offline, recuperar el payload guardado
+      let payload;
+      if (desdeColaOffline) {
+        const entrada = obtenerPendienteDeAsignacion(contexto.asignacion?.id);
+        if (!entrada) {
+          // La cola se limpió por otra vía — marcar como enviado sin saber resultado
+          setEnColaPendiente(false);
+          setFase('captura');
+          return;
+        }
+        payload = entrada.payload;
+      } else {
+        payload = {
+          identificadorCliente,
+          asignacionAuditoriaId: modo === 'invitado' ? (contexto.asignacion?.id ?? null) : contexto.asignacion?.id,
+          nombreAuditorSnapshot: currentUser?.nombre ?? nombreInvitado ?? contexto.nombreAuditor ?? 'Auditor',
+          finalizadoEn: new Date().toISOString(),
+          codigoVerificacion: codigoFinal,
+          respuestas: criterios.map((item) => {
+            const respuesta = respuestas[item.id] ?? crearRespuestaInicial(item);
+            return {
+              preguntaFormularioId: item.preguntaFormularioId ?? item.id,
+              cumple: respuesta.cumple === true,
+              hallazgo: respuesta.hallazgo?.trim() || null,
+              fotos: (respuesta.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
+            };
+          }),
+        };
+      }
 
       const response = modo === 'invitado'
         ? await auditoriasApi.enviarAuditoriaInvitado(token, payload)
         : await auditoriasApi.enviarAuditoria(payload);
 
+      // Éxito: limpiar draft, cola offline y evidencias locales
       try {
         localStorage.removeItem(draftKey);
         markAuditDraftSaved();
         await evidenciasOffline.limpiarAuditoria(auditoriaIdActual);
+        eliminarDeCola(payload.identificadorCliente ?? identificadorCliente);
       } catch {
         // noop
       }
+      setEnColaPendiente(false);
       setEnvioCreado(response?.envio ?? response);
       setFase('enviado');
     } catch (err) {
+      // Distinguir error de red vs. error de negocio/validación
+      const esErrorDeRed = err?.isNetworkError === true
+        || !navigator.onLine
+        || err?.name === 'TypeError'
+        || err?.message?.toLowerCase().includes('failed to fetch')
+        || err?.message?.toLowerCase().includes('network');
+
+      if (esErrorDeRed && !desdeColaOffline) {
+        // Guardar en cola offline para reenvío automático
+        const codigoFinal = codigoConfirmado || verificacionArea?.codigoQr || verificacionArea?.codigoVerificacion || contexto.area?.codigoVerificacion || '';
+        const payloadParaCola = {
+          identificadorCliente,
+          asignacionAuditoriaId: modo === 'invitado' ? (contexto.asignacion?.id ?? null) : contexto.asignacion?.id,
+          nombreAuditorSnapshot: currentUser?.nombre ?? nombreInvitado ?? contexto.nombreAuditor ?? 'Auditor',
+          finalizadoEn: new Date().toISOString(),
+          codigoVerificacion: codigoFinal,
+          respuestas: criterios.map((item) => {
+            const respuesta = respuestas[item.id] ?? crearRespuestaInicial(item);
+            return {
+              preguntaFormularioId: item.preguntaFormularioId ?? item.id,
+              cumple: respuesta.cumple === true,
+              hallazgo: respuesta.hallazgo?.trim() || null,
+              fotos: (respuesta.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
+            };
+          }),
+        };
+        encolarAuditoriaPendiente({
+          id: identificadorCliente,
+          asignacionId: contexto.asignacion?.id,
+          modo,
+          token,
+          payload: payloadParaCola,
+        });
+        setEnColaPendiente(true);
+        setEnvioError('');
+        return;
+      }
+
+      if (desdeColaOffline) {
+        marcarColaFallida(identificadorCliente, err?.message);
+        setReintentandoOffline(false);
+      }
+
       const details = Array.isArray(err?.detalles)
         ? ' ' + err.detalles.map((d) => `${d.path ? (Array.isArray(d.path) ? d.path.join('.') : d.path) : ''}: ${d.message || d.mensaje}`).join(', ')
         : '';
@@ -412,6 +539,17 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
       setIsSubmitting(false);
     }
   };
+
+  // Función de reintento offline que se conecta al listener window.online
+  const handleReintentarOffline = async () => {
+    setReintentandoOffline(true);
+    await enviar(undefined, { desdeColaOffline: true });
+    setReintentandoOffline(false);
+  };
+
+  // Registrar la función de reintento en el ref para el listener online
+  reintentarOfflineRef.current = handleReintentarOffline;
+
 
   const handleSolicitarSubmit = () => {
     if (preview) {
@@ -536,13 +674,20 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           savedAt={draftSavedAt}
         />
         <main className="mx-auto w-full max-w-2xl space-y-8 px-4 pb-12 pt-4">
+          {enColaPendiente && (
+            <OfflinePendingBanner
+              reintentando={reintentandoOffline || isSubmitting}
+              onReintentar={handleReintentarOffline}
+            />
+          )}
           <ResumenAuditoria
             criterios={criterios}
             respuestas={respuestas}
-            onSubmit={handleSolicitarSubmit}
-            onBackToCapture={() => setFase('captura')}
-            isSubmitting={isSubmitting}
+            onSubmit={enColaPendiente ? handleReintentarOffline : handleSolicitarSubmit}
+            onBackToCapture={enColaPendiente ? null : () => setFase('captura')}
+            isSubmitting={isSubmitting || reintentandoOffline}
             error={envioError}
+            enColaPendiente={enColaPendiente}
           />
         </main>
 
