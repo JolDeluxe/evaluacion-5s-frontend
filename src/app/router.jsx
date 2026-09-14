@@ -48,8 +48,7 @@ const adminChildren = [
   { path: 'formularios/:formularioId/versiones/:versionId/editar', element: <FormularioEditorPage /> },
   { path: 'areas', element: <AreasPage /> },
   { path: 'areas/qr/imprimir', element: <AreaQrPrintPage /> },
-  { path: 'areas/:id', element: <AdministracionPlaceholderPage type="areaDetalle" section="admin" /> },
-  { path: 'usuarios', element: <UsuariosPage /> },
+  { path: 'usuarios', element: <Navigate to="/usuarios" replace /> },
   { path: 'delegaciones', element: <DelegacionesPage /> },
   { path: 'resultados', element: <Navigate to="/resultados" replace /> },
   { path: 'aprobaciones', element: <Navigate to="/admin" replace /> },
@@ -136,6 +135,11 @@ export const router = createBrowserRouter([
                 children: adminChildren,
               },
             ],
+          },
+          {
+            path: '/usuarios',
+            element: <RequireRole roles={BUSINESS_ADMIN_ROLES} />,
+            children: [{ index: true, element: <UsuariosPage /> }],
           },
           {
             path: '/sistema',

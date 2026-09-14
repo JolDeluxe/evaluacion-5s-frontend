@@ -13,7 +13,6 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import { areasApi } from '@/features/administracion/areas/api/areas-api';
 import { AreaMultiSelect } from '@/features/administracion/usuarios/components/area-multi-select';
 import { ImpactoUsuarioModal } from '@/features/administracion/usuarios/components/impacto-usuario-modal';
-import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { cn } from '@/utils/cn';
 import { obtenerCatalogoCompleto } from '@/utils/catalogo-completo';
@@ -1073,7 +1072,7 @@ export function UsuariosPage() {
       {/* Encabezado */}
       <div>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marca-acento leading-none">
-          ADMINISTRACIÓN
+          SISTEMA
         </p>
         <h1 className="fuente-titulos text-2xl sm:text-3xl font-normal uppercase leading-tight text-marca-primario mt-0.5">
           Usuarios

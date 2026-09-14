@@ -19,7 +19,10 @@ export const ROUTES = {
   areas: '/admin/areas',
   area: (id) => generatePath('/admin/areas/:id', { id }),
   
-  usuarios: '/admin/usuarios',
+  delegaciones: '/admin/delegaciones',
+
+  // Usuarios (Módulo Independiente)
+  usuarios: '/usuarios',
 
   // Resultados
   resultados: '/resultados',

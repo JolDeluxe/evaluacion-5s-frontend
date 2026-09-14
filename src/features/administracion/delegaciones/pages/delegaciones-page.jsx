@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
-import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { delegacionesApi } from '@/features/administracion/delegaciones/api/delegaciones-api';
 import { usuariosApi } from '@/features/administracion/usuarios/api/usuarios-api';
 import { notify } from '@/components/notification/adaptive-notify';
@@ -113,8 +112,6 @@ export function DelegacionesPage() {
 
   return (
     <div className="space-y-6">
-      <AdministracionNav />
-
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight">

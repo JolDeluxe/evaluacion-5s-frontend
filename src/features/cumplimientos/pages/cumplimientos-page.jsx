@@ -88,9 +88,16 @@ export function CumplimientosPage() {
     }
   };
 
+  // Filtrar estrictamente solo áreas activas (no eliminadas/inactivas)
+  const filasActivas = useMemo(() => {
+    return (data.filas || []).filter(
+      (fila) => fila.activo !== false && fila.activa !== false && fila.area?.activo !== false,
+    );
+  }, [data.filas]);
+
   // Filtrado en memoria para las filas operativas
   const filasFiltradas = useMemo(() => {
-    return (data.filas || []).filter((fila) => {
+    return filasActivas.filter((fila) => {
       const matchTipo =
         filtroTipo === 'TODAS' ||
         !filtroTipo ||
@@ -107,7 +114,7 @@ export function CumplimientosPage() {
 
       return area.includes(q) || codigo.includes(q) || auditor.includes(q) || resp.includes(q) || prop;
     });
-  }, [data.filas, filtroTipo, searchLocal]);
+  }, [filasActivas, filtroTipo, searchLocal]);
 
   // Filtrado en memoria para los usuarios KPI
   const usuariosKpiFiltrados = useMemo(() => {
@@ -124,14 +131,50 @@ export function CumplimientosPage() {
     });
   }, [data.usuariosKpi, searchLocal]);
 
-  // Métricas rápidas de cabecera (basadas en datos del periodo actual)
-  const totalAreas = data.filas.length;
-  const aTiempoP1 = data.filas.filter((f) => f.p1?.chip === 'A_TIEMPO').length;
-  const aTiempoP2 = data.filas.filter((f) => f.p2?.chip === 'A_TIEMPO').length;
-  const totalATiempo = aTiempoP1 + aTiempoP2;
-  const comodinCount = data.filas.filter(
-    (f) => f.p1?.esComodin || f.p1?.ejecutadoPor?.esComodin || f.p2?.esComodin || f.p2?.ejecutadoPor?.esComodin,
-  ).length;
+  // Métricas de Total General discretas con desglose de origen (P1 y P2)
+  const metricasResumen = useMemo(() => {
+    const filas = filasActivas;
+    const totalAreas = filas.length;
+
+    const contarPorPeriodo = (periodoKey) => {
+      let aTiempo = 0;
+      let tarde = 0;
+      let noRealizada = 0;
+
+      filas.forEach((fila) => {
+        const estado = fila[periodoKey]?.chip || fila[periodoKey]?.estadoChip;
+        if (estado === 'A_TIEMPO') aTiempo++;
+        else if (estado === 'TARDE') tarde++;
+        else if (estado === 'NO_REALIZADA') noRealizada++;
+      });
+
+      return {
+        total: totalAreas,
+        aTiempo,
+        tarde,
+        noRealizada,
+      };
+    };
+
+    const p1 = contarPorPeriodo('p1');
+    const p2 = contarPorPeriodo('p2');
+
+    return {
+      totalAreas,
+      totalAuditorias: p1.total + p2.total,
+      p1Total: p1.total,
+      p2Total: p2.total,
+      totalATiempo: p1.aTiempo + p2.aTiempo,
+      p1ATiempo: p1.aTiempo,
+      p2ATiempo: p2.aTiempo,
+      totalTarde: p1.tarde + p2.tarde,
+      p1Tarde: p1.tarde,
+      p2Tarde: p2.tarde,
+      totalNoRealizada: p1.noRealizada + p2.noRealizada,
+      p1NoRealizada: p1.noRealizada,
+      p2NoRealizada: p2.noRealizada,
+    };
+  }, [filasActivas]);
 
   return (
     <section className="space-y-6 pt-4 sm:pt-0">
@@ -162,51 +205,104 @@ export function CumplimientosPage() {
               size="sm"
               icon="refresh"
               onClick={handleRecalcular}
-              loading={recalculating}
-              className="bg-white/80 backdrop-blur-md hover:bg-white"
+              isLoading={recalculating}
+              title="Ejecuta la evaluación de KPI en el servidor, consolida el cierre de periodos y refresca el cálculo de cumplimientos"
+              className="bg-white/80 backdrop-blur-md hover:bg-white text-xs font-bold"
             >
-              Recalcular mes
+              {recalculating ? 'Recalculando mes...' : 'Recalcular mes'}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Tarjetas de Resumen Numérico */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-white/80 bg-white/70 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-            Áreas Monitoreadas
-          </span>
-          <span className="text-2xl font-black text-slate-900 block mt-1">
-            {totalAreas}
-          </span>
-        </div>
+      {/* Barra de Resumen Global Discreta (Total de Planta con indicador de origen P1 y P2) */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-3 sm:p-3.5 shadow-sm backdrop-blur-md">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+          {/* Total Auditorías */}
+          <div className="flex flex-col justify-center rounded-xl bg-slate-50/90 px-3 py-2 border border-slate-100 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate shrink min-w-0">
+                Total Auditorías
+              </span>
+              <span className="text-[9px] font-semibold text-slate-400 bg-slate-100/80 px-1 py-0.5 rounded shrink-0">
+                P1: {metricasResumen.p1Total} · P2: {metricasResumen.p2Total}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl font-black text-slate-900 leading-none shrink-0">
+                {metricasResumen.totalAuditorias}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 truncate min-w-0">
+                {metricasResumen.totalAreas} áreas
+              </span>
+            </div>
+          </div>
 
-        <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
-            Auditorías a Tiempo
-          </span>
-          <span className="text-2xl font-black text-emerald-800 block mt-1">
-            {totalATiempo}
-          </span>
-        </div>
+          {/* A tiempo */}
+          <div className="flex flex-col justify-center rounded-xl bg-emerald-50/60 px-3 py-2 border border-emerald-100 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider truncate shrink min-w-0">
+                A tiempo
+              </span>
+              <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-100/70 px-1 py-0.5 rounded shrink-0">
+                P1: {metricasResumen.p1ATiempo} · P2: {metricasResumen.p2ATiempo}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl font-black text-emerald-800 leading-none shrink-0">
+                {metricasResumen.totalATiempo}
+              </span>
+              {metricasResumen.totalAuditorias > 0 && (
+                <span className="text-[10px] font-bold text-emerald-600 shrink-0">
+                  {Math.round((metricasResumen.totalATiempo / metricasResumen.totalAuditorias) * 100)}%
+                </span>
+              )}
+            </div>
+          </div>
 
-        <div className="rounded-2xl border border-purple-200/60 bg-purple-50/40 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 block">
-            Intervención Comodín
-          </span>
-          <span className="text-2xl font-black text-purple-800 block mt-1">
-            {comodinCount}
-          </span>
-        </div>
+          {/* Tarde */}
+          <div className="flex flex-col justify-center rounded-xl bg-amber-50/60 px-3 py-2 border border-amber-100 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider truncate shrink min-w-0">
+                Tarde
+              </span>
+              <span className="text-[9px] font-semibold text-amber-600 bg-amber-100/70 px-1 py-0.5 rounded shrink-0">
+                P1: {metricasResumen.p1Tarde} · P2: {metricasResumen.p2Tarde}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl font-black text-amber-800 leading-none shrink-0">
+                {metricasResumen.totalTarde}
+              </span>
+              {metricasResumen.totalAuditorias > 0 && (
+                <span className="text-[10px] font-bold text-amber-600 shrink-0">
+                  {Math.round((metricasResumen.totalTarde / metricasResumen.totalAuditorias) * 100)}%
+                </span>
+              )}
+            </div>
+          </div>
 
-        <div className="rounded-2xl border border-indigo-200/60 bg-indigo-50/40 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 block">
-            Personal Evaluado
-          </span>
-          <span className="text-2xl font-black text-indigo-800 block mt-1">
-            {data.usuariosKpi.length}
-          </span>
+          {/* No realizadas */}
+          <div className="flex flex-col justify-center rounded-xl bg-rose-50/60 px-3 py-2 border border-rose-100 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+              <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider truncate shrink min-w-0">
+                No realizadas
+              </span>
+              <span className="text-[9px] font-semibold text-rose-600 bg-rose-100/70 px-1 py-0.5 rounded shrink-0">
+                P1: {metricasResumen.p1NoRealizada} · P2: {metricasResumen.p2NoRealizada}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl font-black text-rose-800 leading-none shrink-0">
+                {metricasResumen.totalNoRealizada}
+              </span>
+              {metricasResumen.totalAuditorias > 0 && (
+                <span className="text-[10px] font-bold text-rose-600 shrink-0">
+                  {Math.round((metricasResumen.totalNoRealizada / metricasResumen.totalAuditorias) * 100)}%
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -13,14 +13,17 @@ export const RESULTS_ROLES = ACCOUNT_ROLES;
 export const SYSTEM_ROLES = [ROLES.SUPER_ADMIN];
 
 const mobileBottomByRole = {
-  [ROLES.AUDITOR]: ['inicio', 'mis-auditorias', 'cumplimientos', 'resultados'],
-  [ROLES.ADMINISTRADOR]: ['inicio', 'mis-auditorias', 'cumplimientos', 'resultados', 'admin'],
-  [ROLES.SUPER_ADMIN]: ['inicio', 'mis-auditorias', 'cumplimientos', 'resultados'],
-  [ROLES.VISUALIZADOR]: ['inicio', 'cumplimientos', 'resultados'],
+  [ROLES.AUDITOR]: ['inicio', 'mis-auditorias', 'resultados'],
+  [ROLES.ADMINISTRADOR]: ['inicio', 'mis-auditorias', 'resultados'],
+  [ROLES.SUPER_ADMIN]: ['inicio', 'mis-auditorias', 'resultados'],
+  [ROLES.VISUALIZADOR]: ['inicio', 'mis-auditorias', 'resultados'],
 };
 
 const mobileMoreByRole = {
-  [ROLES.SUPER_ADMIN]: ['admin', 'sistema'],
+  [ROLES.AUDITOR]: ['cumplimientos'],
+  [ROLES.ADMINISTRADOR]: ['cumplimientos', 'admin', 'usuarios'],
+  [ROLES.SUPER_ADMIN]: ['cumplimientos', 'admin', 'usuarios', 'sistema'],
+  [ROLES.VISUALIZADOR]: ['cumplimientos'],
 };
 
 export const NAVIGATION_CONFIG = [
@@ -43,22 +46,49 @@ export const NAVIGATION_CONFIG = [
     mobilePriority: 2,
   },
   {
-    id: 'cumplimientos',
-    name: 'Cumplimientos',
-    icon: 'task_alt',
-    route: '/cumplimientos',
-    allowedRoles: ACCOUNT_ROLES,
-    placement: ['desktop'],
-    mobilePriority: 3,
-  },
-  {
     id: 'resultados',
     name: 'Resultados',
     icon: 'analytics',
     route: '/resultados',
     allowedRoles: RESULTS_ROLES,
     placement: ['desktop'],
+    mobilePriority: 3,
+  },
+  {
+    id: 'cumplimientos',
+    name: 'Cumplimientos',
+    icon: 'task_alt',
+    route: '/cumplimientos',
+    allowedRoles: ACCOUNT_ROLES,
+    placement: ['desktop'],
     mobilePriority: 4,
+  },
+  {
+    id: 'admin',
+    name: 'Gestión',
+    icon: 'tune',
+    route: '/admin',
+    allowedRoles: BUSINESS_ADMIN_ROLES,
+    placement: ['desktop'],
+    mobilePriority: 5,
+  },
+  {
+    id: 'usuarios',
+    name: 'Usuarios',
+    icon: 'group',
+    route: '/usuarios',
+    allowedRoles: BUSINESS_ADMIN_ROLES,
+    placement: ['desktop'],
+    mobilePriority: 6,
+  },
+  {
+    id: 'sistema',
+    name: 'Configuración',
+    icon: 'settings',
+    route: '/sistema',
+    allowedRoles: SYSTEM_ROLES,
+    placement: ['desktop'],
+    mobilePriority: 7,
   },
   {
     id: 'notificaciones',
@@ -67,26 +97,8 @@ export const NAVIGATION_CONFIG = [
     route: '/notificaciones',
     allowedRoles: [ROLES.AUDITOR, ROLES.ADMINISTRADOR],
     placement: ['desktop'],
-    mobilePriority: 4,
+    mobilePriority: 8,
     hideInMenu: true,
-  },
-  {
-    id: 'admin',
-    name: 'Administración',
-    icon: 'tune',
-    route: '/admin',
-    allowedRoles: BUSINESS_ADMIN_ROLES,
-    placement: ['desktop'],
-    mobilePriority: 4,
-  },
-  {
-    id: 'sistema',
-    name: 'Sistema',
-    icon: 'settings',
-    route: '/sistema',
-    allowedRoles: SYSTEM_ROLES,
-    placement: ['desktop'],
-    mobilePriority: 5,
   },
   {
     id: 'perfil',
@@ -122,10 +134,10 @@ export const ADMIN_NAVIGATION = [
     allowedRoles: BUSINESS_ADMIN_ROLES,
   },
   {
-    id: 'admin-usuarios',
-    name: 'Usuarios',
-    icon: 'group',
-    route: '/admin/usuarios',
+    id: 'admin-delegaciones',
+    name: 'Delegaciones',
+    icon: 'swap_horiz',
+    route: '/admin/delegaciones',
     allowedRoles: BUSINESS_ADMIN_ROLES,
   },
 ];
@@ -158,6 +170,7 @@ export const ROUTE_META = [
   ...NAVIGATION_CONFIG,
   ...ADMIN_NAVIGATION,
   ...SYSTEM_NAVIGATION,
+  { id: 'admin-usuarios-redirect', name: 'Usuarios', route: '/admin/usuarios', allowedRoles: BUSINESS_ADMIN_ROLES },
   { id: 'admin-resultados-redirect', name: 'Resultados', route: '/admin/resultados', allowedRoles: BUSINESS_ADMIN_ROLES },
   { id: 'admin-aprobaciones-redirect', name: 'Administración', route: '/admin/aprobaciones', allowedRoles: BUSINESS_ADMIN_ROLES },
   { id: 'admin-notificaciones-redirect', name: 'Administración', route: '/admin/notificaciones', allowedRoles: BUSINESS_ADMIN_ROLES },

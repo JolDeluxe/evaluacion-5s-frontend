@@ -10,7 +10,7 @@ export function MobileBottomNav({ isMenuOpen, onOpenMore }) {
   const bottomItems = getNavigationByRole(user?.rol, 'mobile-bottom');
   const moreItems = getNavigationByRole(user?.rol, 'mobile-more').filter((item) => !item.isDivider);
   const showMore = moreItems.length > 0;
-  const items = showMore ? bottomItems.slice(0, 3) : bottomItems.slice(0, 5);
+  const items = bottomItems.slice(0, 3);
   const isMoreActive = isMenuOpen || moreItems.some((item) => (
     location.pathname === item.route || location.pathname.startsWith(`${item.route}/`)
   ));

@@ -38,7 +38,9 @@ export function CumplimientoChip({ corteInfo }) {
   const estado = corteInfo.chip || corteInfo.estadoChip;
   const calificacion = corteInfo.calificacion !== undefined ? corteInfo.calificacion : corteInfo.porcentaje;
   const ejecutor = corteInfo.ejecutadoPor || corteInfo.ejecutorReal;
-  const esComodinEjecutor = Boolean(corteInfo.esComodin || ejecutor?.esComodin);
+  const esApoyoEjecutor = Boolean(corteInfo.esComodin || corteInfo.esApoyo || ejecutor?.esComodin || ejecutor?.esApoyo);
+  const nombreEjecutor = ejecutor?.nombre;
+  const textoApoyo = nombreEjecutor ? `Apoyo: ${nombreEjecutor}` : 'Auditor de apoyo';
 
   const config = CONFIG_CHIP[estado] || CONFIG_CHIP.PENDIENTE;
 
@@ -53,36 +55,39 @@ export function CumplimientoChip({ corteInfo }) {
     tooltipTexto = 'Pendiente de realizar';
   }
 
-  const tooltipComodin = esComodinEjecutor
-    ? (ejecutor?.nombre ? `Ejecutada por Comodín: ${ejecutor.nombre}` : 'Ejecutada por Comodín')
+  const tooltipApoyo = esApoyoEjecutor
+    ? (nombreEjecutor ? `Realizada por auditor de apoyo: ${nombreEjecutor}` : 'Realizada por auditor de apoyo')
     : null;
 
   return (
-    <div className="flex flex-col items-center gap-1" title={tooltipComodin ? `${tooltipTexto} · ${tooltipComodin}` : tooltipTexto}>
+    <div
+      className="flex flex-col items-center gap-1 whitespace-nowrap"
+      title={tooltipApoyo ? `${tooltipTexto} · ${tooltipApoyo}` : tooltipTexto}
+    >
       <span
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-tight shadow-sm cursor-default',
+          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-tight shadow-sm cursor-default whitespace-nowrap shrink-0',
           config.classes,
         )}
         title={tooltipTexto}
       >
-        <Icon name={config.icon} size="xs" />
-        <span>{config.label}</span>
+        <Icon name={config.icon} size="xs" className="shrink-0" />
+        <span className="whitespace-nowrap">{config.label}</span>
         {calificacion !== null && calificacion !== undefined && (
-          <span className="ml-1 border-l border-current/30 pl-1.5 font-black">
+          <span className="ml-1 border-l border-current/30 pl-1.5 font-black whitespace-nowrap">
             {formatPercentTrunc(calificacion)}
           </span>
         )}
       </span>
 
-      {esComodinEjecutor && (
-        <span
-          className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-black text-purple-700 border border-purple-200 cursor-default"
-          title={tooltipComodin}
+      {esApoyoEjecutor && (
+        <div
+          className="flex items-center justify-center gap-1 text-xs text-slate-500 font-medium cursor-default max-w-[150px] truncate whitespace-nowrap mt-0.5"
+          title={tooltipApoyo}
         >
-          <Icon name="military_tech" size="12px" />
-          <span>{ejecutor?.nombre ? `Comodín: ${ejecutor.nombre}` : 'Comodín'}</span>
-        </span>
+          <Icon name="support_agent" size="12px" className="shrink-0 text-slate-400" />
+          <span className="truncate">{textoApoyo}</span>
+        </div>
       )}
     </div>
   );

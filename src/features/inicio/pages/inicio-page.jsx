@@ -48,6 +48,7 @@ export function InicioPage() {
         <ResultadoGlobalCard
           resultadoGlobal={data.resultadoGlobal}
           resultadoMisAreas={data.resultadoMisAreas}
+          esAdmin={esAdmin}
         />
       )}
 

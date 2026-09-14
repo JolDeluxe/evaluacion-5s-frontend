@@ -8,7 +8,7 @@ const formatPct = (value) => {
   return `${value.toFixed(1)}%`;
 };
 
-export function ResultadoGlobalCard({ resultadoGlobal, resultadoMisAreas }) {
+export function ResultadoGlobalCard({ resultadoGlobal, resultadoMisAreas, esAdmin = false }) {
   if (!resultadoGlobal) return null;
 
   const rule = getResultadoColor(resultadoGlobal.porcentaje);
@@ -48,7 +48,7 @@ export function ResultadoGlobalCard({ resultadoGlobal, resultadoMisAreas }) {
               </span>
             </div>
 
-            {resultadoMisAreas !== null && resultadoMisAreas !== undefined && (
+            {!esAdmin && resultadoMisAreas !== null && resultadoMisAreas !== undefined && (
               <p className="text-xs sm:text-sm font-semibold text-slate-600">
                 Promedio de tus áreas:{' '}
                 <span

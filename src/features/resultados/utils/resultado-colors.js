@@ -23,9 +23,13 @@ export function getResultadoHeatmapStyle(value) {
   const [r, g, b] = semaforo.rgb;
 
   return {
-    background: `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, 0.03) 0%, rgba(${r}, ${g}, ${b}, 0.10) 45%, rgba(${r}, ${g}, ${b}, 0.22) 100%)`,
+    background: `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, 0) 0%, rgba(${r}, ${g}, ${b}, 0.05) 45%, rgba(${r}, ${g}, ${b}, 0.20) 100%)`,
     color: semaforo.textColor,
   };
+}
+
+export function getResultadoRightGlowStyle(value) {
+  return getResultadoHeatmapStyle(value);
 }
 
 export function getResultadoCenterGlowStyle(value) {

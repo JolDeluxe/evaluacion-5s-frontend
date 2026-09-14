@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/form/input';
 import { CumplimientoChip } from '@/features/cumplimientos/components/cumplimiento-chip';
-import { getResultadoCenterGlowStyle } from '@/features/resultados/utils/resultado-colors';
+import { getResultadoHeatmapStyle } from '@/features/resultados/utils/resultado-colors';
 import { formatPercentTrunc } from '@/utils/format';
 import { cn } from '@/utils/cn';
 
@@ -89,9 +89,9 @@ export function CumplimientosTable({
               <tr>
                 <th className="px-4 py-3.5">Área</th>
                 <th className="px-4 py-3.5">Responsables</th>
-                <th className="px-4 py-3.5 text-center">Corte 1</th>
-                <th className="px-4 py-3.5 text-center">Corte 2</th>
-                <th className="px-4 py-3.5 text-center">Resultado</th>
+                <th className="px-2 sm:px-3 py-3.5 text-center whitespace-nowrap">Corte 1</th>
+                <th className="px-2 sm:px-3 py-3.5 text-center whitespace-nowrap">Corte 2</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center whitespace-nowrap">Resultado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -105,7 +105,7 @@ export function CumplimientosTable({
                 filasFiltradas.map((fila) => {
                   const esDelegado = fila.responsableCumplimiento?.esDelegado;
                   const resStyle = fila.resultadoMensual !== null && fila.resultadoMensual !== undefined
-                    ? getResultadoCenterGlowStyle(fila.resultadoMensual)
+                    ? getResultadoHeatmapStyle(fila.resultadoMensual)
                     : {};
 
                   return (
@@ -141,17 +141,17 @@ export function CumplimientosTable({
                         </div>
                       </td>
 
-                      <td className="px-4 py-3.5 text-center">
+                      <td className="px-2 sm:px-3 py-3 text-center whitespace-nowrap">
                         <CumplimientoChip corteInfo={fila.p1} />
                       </td>
 
-                      <td className="px-4 py-3.5 text-center">
+                      <td className="px-2 sm:px-3 py-3 text-center whitespace-nowrap">
                         <CumplimientoChip corteInfo={fila.p2} />
                       </td>
 
-                      <td className="px-4 py-3.5 text-center font-black" style={resStyle}>
+                      <td className="px-3 sm:px-4 py-3 text-center font-black whitespace-nowrap" style={resStyle}>
                         {fila.resultadoMensual !== null && fila.resultadoMensual !== undefined ? (
-                          <span className="text-sm font-black text-slate-800">
+                          <span className="text-sm font-black text-slate-800 whitespace-nowrap">
                             {formatPercentTrunc(fila.resultadoMensual)}
                           </span>
                         ) : (
@@ -189,7 +189,10 @@ export function CumplimientosTable({
                   </h2>
                 </div>
                 {fila.resultadoMensual !== null && fila.resultadoMensual !== undefined && (
-                  <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800 border border-emerald-200">
+                  <span
+                    className="rounded-lg px-2.5 py-1 text-xs font-black border border-slate-200/60 shadow-sm"
+                    style={getResultadoHeatmapStyle(fila.resultadoMensual)}
+                  >
                     {formatPercentTrunc(fila.resultadoMensual)}
                   </span>
                 )}
