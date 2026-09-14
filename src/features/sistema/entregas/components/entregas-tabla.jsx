@@ -31,13 +31,18 @@ const formatFecha = (fechaStr) => {
   if (!fechaStr) return '—';
   try {
     const d = new Date(fechaStr);
-    return d.toLocaleString('es-MX', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const anio = d.getFullYear();
+    
+    let horas = d.getHours();
+    const minutos = String(d.getMinutes()).padStart(2, '0');
+    const ampm = horas >= 12 ? 'p.m.' : 'a.m.';
+    horas = horas % 12;
+    horas = horas ? horas : 12;
+    const horasStr = String(horas).padStart(2, '0');
+
+    return `${dia}/${mes}/${anio}, ${horasStr}:${minutos} ${ampm}`;
   } catch {
     return '—';
   }
@@ -201,7 +206,7 @@ export function EntregasTabla({
                     </td>
 
                     {/* Canal / Destino */}
-                    <td className="py-3.5 px-4 space-y-1">
+                    <td className="py-3.5 px-4 space-y-1 min-w-[180px]">
                       <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
                         <CanalBadge canal={entrega.canal} />
                         <span className="font-mono text-[11px] text-slate-400">#{entrega.id}</span>
@@ -211,30 +216,42 @@ export function EntregasTabla({
                           </span>
                         )}
                       </div>
-                      <p className="font-bold text-slate-900 truncate max-w-[200px]" title={entrega.destinoSnapshot || ''}>
+                      <p className="font-bold text-slate-900 truncate max-w-[220px] sm:max-w-[280px]" title={entrega.destinoSnapshot || ''}>
                         {entrega.destinoSnapshot || '—'}
                       </p>
                     </td>
 
                     {/* Notificación / Título */}
-                    <td className="py-3.5 px-4 space-y-1">
+                    <td className="py-3.5 px-4 space-y-1 min-w-[200px]">
                       <span className="text-[10px] font-black uppercase tracking-wider text-marca-acento block">
                         {tipoEtiqueta}
                       </span>
-                      <p className="font-bold text-slate-800 line-clamp-1" title={entrega.notificacion?.titulo}>
+                      <p className="font-bold text-slate-800 line-clamp-1 max-w-[240px] sm:max-w-[300px]" title={entrega.notificacion?.titulo}>
                         {entrega.notificacion?.titulo || '—'}
                       </p>
                     </td>
 
                     {/* Estado */}
                     <td className="py-3.5 px-4 space-y-1">
-                      <Badge status={badgeInfo.status}>
-                        {badgeInfo.label}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge status={badgeInfo.status}>
+                          {entrega.estado === 'ENVIADA' ? 'Enviada' : entrega.estado === 'PENDIENTE' ? 'En Cola' : badgeInfo.label}
+                        </Badge>
+                      </div>
+                      {entrega.estado === 'ENVIADA' && (
+                        <span className="text-[10px] text-emerald-700 font-medium block leading-tight" title="El mensaje fue recibido y transmitido con éxito al servidor de correo.">
+                          Transmitido al servidor
+                        </span>
+                      )}
+                      {entrega.estado === 'PENDIENTE' && (
+                        <span className="text-[10px] text-sky-700 font-medium block leading-tight" title="En espera de la hora programada o del ciclo de despacho">
+                          {entrega.programadoEn ? `Sale: ${formatFecha(entrega.programadoEn)}` : 'En espera'}
+                        </span>
+                      )}
                       {entrega.ultimoError && (() => {
                         const { mensajeOperativo } = interpretarErrorEntrega(entrega.ultimoError, entrega.estado);
                         return (
-                          <p className="text-[10px] font-normal text-rose-600 line-clamp-2 max-w-[220px]" title={mensajeOperativo}>
+                          <p className="text-[10px] font-medium text-rose-600 line-clamp-2 max-w-[220px]" title={mensajeOperativo}>
                             {mensajeOperativo}
                           </p>
                         );
@@ -254,13 +271,8 @@ export function EntregasTabla({
                     </td>
 
                     {/* Fecha */}
-                    <td className="py-3.5 px-4 text-slate-500 space-y-0.5">
-                      <div>{formatFecha(entrega.enviadoEn || entrega.creadoEn)}</div>
-                      {entrega.enviadoEn && (
-                        <span className="text-[10px] text-emerald-600 font-bold block">
-                          Enviado
-                        </span>
-                      )}
+                    <td className="py-3.5 px-4 text-slate-500 font-medium whitespace-nowrap text-xs">
+                      {formatFecha(entrega.enviadoEn || entrega.creadoEn)}
                     </td>
 
                     {/* Acciones */}

@@ -454,6 +454,24 @@ export function useEntregas() {
     }
   };
 
+  // Despacho inmediato bajo demanda de la cola pendiente
+  const [despachandoCola, setDespachandoCola] = useState(false);
+
+  const despacharCola = async () => {
+    setDespachandoCola(true);
+    try {
+      const res = await entregasApi.despacharCola();
+      notify.success(
+        res?.mensaje || `Cola despachada: ${res?.procesadas ?? 0} entrega(s) procesadas.`
+      );
+      await recargarTodo();
+    } catch (err) {
+      notify.error(err?.message || 'Error al despachar la cola de entregas');
+    } finally {
+      setDespachandoCola(false);
+    }
+  };
+
   return {
     resumen,
     estadoSistema,
@@ -532,6 +550,9 @@ export function useEntregas() {
     // Prueba Canario de Cola
     probandoCola,
     probarCola: ejecutarPruebaCola,
+    // Despacho Inmediato de Cola
+    despachandoCola,
+    despacharCola,
     // Filtros y Recarga
     cambiarFiltros,
     recargarTodo,

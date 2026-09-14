@@ -79,16 +79,6 @@ export function CumplimientoChip({ corteInfo }) {
           </span>
         )}
       </span>
-
-      {esApoyoEjecutor && (
-        <div
-          className="flex items-center justify-center gap-1 text-xs text-slate-500 font-medium cursor-default max-w-[150px] truncate whitespace-nowrap mt-0.5"
-          title={tooltipApoyo}
-        >
-          <Icon name="support_agent" size="12px" className="shrink-0 text-slate-400" />
-          <span className="truncate">{textoApoyo}</span>
-        </div>
-      )}
     </div>
   );
 }

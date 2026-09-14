@@ -9,10 +9,6 @@ export function EntregasEstadoBanner({
   onAbrirControlOperativo,
   onAbrirSimulacion,
   onAbrirConexionMicrosoft,
-  onProbarCola,
-  probandoCola,
-  onRecargar,
-  cargando,
 }) {
   if (!estado) return null;
 
@@ -126,71 +122,46 @@ export function EntregasEstadoBanner({
             >
               Simular Envíos
             </Button>
-
-            {testActivo && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                icon="biotech"
-                onClick={onProbarCola}
-                disabled={cargando || probandoCola}
-                className="text-xs font-bold text-sky-800 border-sky-200 bg-sky-50/50 hover:bg-sky-100/70"
-                title="Crea 1 entrega real en cola (estado PENDIENTE) dirigida a tu correo de Super Admin"
-              >
-                {probandoCola ? 'Creando...' : 'Probar cola'}
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon="refresh"
-              onClick={onRecargar}
-              disabled={cargando || probandoCola}
-              className="text-xs font-bold"
-            >
-              Actualizar
-            </Button>
           </div>
         </div>
 
         {/* Panel comparativo de los tres estados clave */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 rounded-2xl border border-slate-200/80 bg-slate-50/60 p-3">
-          {/* 1. Interruptor Servidor (.env) */}
-          <div className="flex items-center justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-xs">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Interruptor Servidor (.env)
+          {/* 1. Servidor Principal */}
+          <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-100 shadow-xs">
+            <div className="space-y-0.5 min-w-0 pr-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block truncate">
+                Servidor de Correos
               </span>
-              <p className="text-xs font-bold text-slate-700">EMAIL_ENABLED</p>
+              <p className="text-xs font-bold text-slate-700 truncate">
+                {esServidorHabilitado ? 'Habilitado globalmente' : 'Deshabilitado globalmente'}
+              </p>
             </div>
             <span
               className={cn(
-                'rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wider border',
+                'rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider border shrink-0',
                 esServidorHabilitado
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-slate-100 text-slate-600 border-slate-200'
               )}
             >
-              {esServidorHabilitado ? 'HABILITADO' : 'DESHABILITADO'}
+              {esServidorHabilitado ? 'SI' : 'NO'}
             </span>
           </div>
 
-          {/* 2. Control Operativo (BD) */}
-          <div className="flex items-center justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-xs">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Control Operativo (BD)
+          {/* 2. Control Manual */}
+          <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-100 shadow-xs">
+            <div className="space-y-0.5 min-w-0 pr-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block truncate">
+                Interruptor de Envíos
               </span>
-              <p className="text-xs font-bold text-slate-700 truncate max-w-[140px]" title={controlOperativo?.motivo || ''}>
-                {controlOperativo?.motivo || (esControlActivo ? 'Envíos autorizados' : 'Envíos detenidos')}
+              <p className="text-xs font-bold text-slate-700 truncate" title={controlOperativo?.motivo || ''}>
+                {esControlActivo ? 'Autorizado para enviar' : 'Detenido manualmente'}
               </p>
             </div>
             <span
               className={cn(
-                'rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wider border',
+                'rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider border shrink-0',
                 esControlActivo
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-amber-50 text-amber-700 border-amber-200'
@@ -201,18 +172,18 @@ export function EntregasEstadoBanner({
           </div>
 
           {/* 3. Estado Efectivo */}
-          <div className="flex items-center justify-between rounded-xl bg-white p-2.5 border border-slate-100 shadow-xs">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Estado Efectivo
+          <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-100 shadow-xs">
+            <div className="space-y-0.5 min-w-0 pr-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block truncate">
+                Estado Actual
               </span>
-              <p className="text-xs font-bold text-slate-700">
-                {estadoEfectivoActivo ? 'Despachando correos' : 'Envíos en espera'}
+              <p className="text-xs font-bold text-slate-700 truncate">
+                {estadoEfectivoActivo ? 'Enviando correos' : 'Envíos en espera'}
               </p>
             </div>
             <span
               className={cn(
-                'rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider border',
+                'rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider border shrink-0',
                 estadoEfectivoActivo
                   ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                   : 'bg-amber-100 text-amber-800 border-amber-300'

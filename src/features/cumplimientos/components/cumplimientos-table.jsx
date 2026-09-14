@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/form/input';
 import { CumplimientoChip } from '@/features/cumplimientos/components/cumplimiento-chip';
@@ -89,8 +88,8 @@ export function CumplimientosTable({
               <tr>
                 <th className="px-4 py-3.5">Área</th>
                 <th className="px-4 py-3.5">Responsables</th>
-                <th className="px-2 sm:px-3 py-3.5 text-center whitespace-nowrap">Corte 1</th>
-                <th className="px-2 sm:px-3 py-3.5 text-center whitespace-nowrap">Corte 2</th>
+                <th className="px-2 sm:px-3 py-3.5 text-center whitespace-nowrap">Periodo 1</th>
+                <th className="px-2 sm:px-3 py-3.5 text-center whitespace-nowrap">Periodo 2</th>
                 <th className="px-3 sm:px-4 py-3.5 text-center whitespace-nowrap">Resultado</th>
               </tr>
             </thead>
@@ -120,7 +119,6 @@ export function CumplimientosTable({
                         <div className="flex flex-col gap-1">
                           {/* Auditor */}
                           <div className="flex items-center gap-1.5">
-                            <Icon name="person_search" size="12px" className="text-slate-400 shrink-0" />
                             <span className="font-bold text-slate-800 text-xs">
                               {fila.auditorAsignado?.nombre || 'Sin auditor'}
                             </span>
@@ -188,12 +186,16 @@ export function CumplimientosTable({
                     {fila.nombreArea}
                   </h2>
                 </div>
-                {fila.resultadoMensual !== null && fila.resultadoMensual !== undefined && (
+                {fila.resultadoMensual !== null && fila.resultadoMensual !== undefined ? (
                   <span
                     className="rounded-lg px-2.5 py-1 text-xs font-black border border-slate-200/60 shadow-sm"
                     style={getResultadoHeatmapStyle(fila.resultadoMensual)}
                   >
                     {formatPercentTrunc(fila.resultadoMensual)}
+                  </span>
+                ) : (
+                  <span className="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-400 bg-slate-50 border border-slate-200/60 shadow-sm">
+                    —
                   </span>
                 )}
               </div>
@@ -218,11 +220,11 @@ export function CumplimientosTable({
 
               <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2.5">
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Corte 1 (P1)</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Periodo 1 (P1)</span>
                   <CumplimientoChip corteInfo={fila.p1} />
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Corte 2 (P2)</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Periodo 2 (P2)</span>
                   <CumplimientoChip corteInfo={fila.p2} />
                 </div>
               </div>

@@ -144,17 +144,17 @@ export const ADMIN_NAVIGATION = [
 
 export const SYSTEM_NAVIGATION = [
   {
-    id: 'sistema-sesiones',
-    name: 'Sesiones',
-    icon: 'devices',
-    route: '/sistema/sesiones',
-    allowedRoles: SYSTEM_ROLES,
-  },
-  {
     id: 'sistema-entregas',
     name: 'Entregas',
     icon: 'outbox',
     route: '/sistema/entregas',
+    allowedRoles: SYSTEM_ROLES,
+  },
+  {
+    id: 'sistema-sesiones',
+    name: 'Sesiones',
+    icon: 'devices',
+    route: '/sistema/sesiones',
     allowedRoles: SYSTEM_ROLES,
   },
   {

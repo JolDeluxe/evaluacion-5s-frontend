@@ -83,4 +83,8 @@ export const entregasApi = {
   // Prueba canario de cola y worker
   probarCola: async (options) =>
     datos(await apiClient.post('/sistema/correos/probar-cola', {}, options)),
+
+  // Despacho manual inmediato de la cola
+  despacharCola: async (options) =>
+    datos(await apiClient.post('/sistema/correos/despachar-cola', {}, options)),
 };

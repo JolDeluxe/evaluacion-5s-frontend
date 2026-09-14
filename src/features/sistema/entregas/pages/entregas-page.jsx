@@ -80,6 +80,9 @@ export function EntregasPage() {
     // Prueba Canario de Cola
     probandoCola,
     probarCola,
+    // Despacho Inmediato de Cola
+    despachandoCola,
+    despacharCola,
     // Reenvío de Entrega
     modalReenviarAbierto,
     entregaAReenviar,
@@ -101,9 +104,9 @@ export function EntregasPage() {
         <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">
           Sistema · Operación Técnica
         </p>
-        <h1 className="text-3xl font-black text-slate-950">Entregas de Notificaciones</h1>
+        <h1 className="text-3xl font-black text-slate-950">Panel de Control de Envíos</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Monitoreo técnico de envíos de correo, control operativo seguro, cola de entregas y trazabilidad.
+          Monitoreo técnico de envíos de correo, control operativo seguro, cola de entregas y trazabilidad en tiempo real.
         </p>
       </div>
 
@@ -114,19 +117,16 @@ export function EntregasPage() {
         onAbrirControlOperativo={abrirModalControlOperativo}
         onAbrirSimulacion={() => setModalSimulacionAbierto(true)}
         onAbrirConexionMicrosoft={() => setModalMicrosoftAbierto(true)}
-        onProbarCola={probarCola}
-        probandoCola={probandoCola}
-        onRecargar={recargarTodo}
-        cargando={cargando}
       />
 
       {/* Tarjetas KPI de Resumen */}
       <EntregasResumenCards resumen={resumen} />
 
-      {/* Barra de Filtros */}
+      {/* Barra de Filtros y Vistas Rápidas */}
       <EntregasFiltros
         filtros={filtros}
         onCambiarFiltros={cambiarFiltros}
+        resumen={resumen}
         cargando={cargandoTabla}
       />
 

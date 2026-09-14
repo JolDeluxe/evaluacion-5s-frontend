@@ -9,7 +9,7 @@ import { KpiSummaryView } from '@/features/cumplimientos/components/kpi-summary-
 import { cumplimientosApi } from '@/features/cumplimientos/api/cumplimientos-api';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useUrlState, parseMonthParam, parseYearParam } from '@/hooks/use-url-state';
-import { notify } from '@/components/notification/adaptive-notify';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import { cn } from '@/utils/cn';
 
 const URL_DEFAULTS_CUMPLIMIENTOS = {
@@ -22,7 +22,7 @@ const URL_DEFAULTS_CUMPLIMIENTOS = {
 
 export function CumplimientosPage() {
   const { user } = useAuth();
-  const canRecalculate = ['SUPER_ADMIN', 'ADMINISTRADOR'].includes(user?.rol);
+  const isSuperAdmin = user?.rol === 'SUPER_ADMIN';
 
   const { params, setParam, setParams, setSearch } = useUrlState(URL_DEFAULTS_CUMPLIMIENTOS);
 
@@ -189,6 +189,8 @@ export function CumplimientosPage() {
           </h1>
         </div>
 
+        
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="w-full sm:w-auto">
             <SelectorMesNavegacion
@@ -197,34 +199,39 @@ export function CumplimientosPage() {
               onChange={handleMonthChange}
             />
           </div>
-
-          {canRecalculate && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon="refresh"
-              onClick={handleRecalcular}
-              isLoading={recalculating}
-              title="Ejecuta la evaluación de KPI en el servidor, consolida el cierre de periodos y refresca el cálculo de cumplimientos"
-              className="bg-white/80 backdrop-blur-md hover:bg-white text-xs font-bold"
-            >
-              {recalculating ? 'Recalculando mes...' : 'Recalcular mes'}
-            </Button>
-          )}
         </div>
       </div>
+
+      {/* Navegación por Pestañas (Sticky) */}
+      <SectionTabs
+        tabs={[
+          {
+            id: 'matriz',
+            label: `Cumplimiento por Área (${filasFiltradas.length})`,
+            to: `?${new URLSearchParams({ ...params, vista: 'matriz' }).toString()}`,
+          },
+          ...(isSuperAdmin
+            ? [
+                {
+                  id: 'kpi',
+                  label: `KPI Personal (${usuariosKpiFiltrados.length})`,
+                  to: `?${new URLSearchParams({ ...params, vista: 'kpi' }).toString()}`,
+                },
+              ]
+            : []),
+        ]}
+      />
 
       {/* Barra de Resumen Global Discreta (Total de Planta con indicador de origen P1 y P2) */}
       <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-3 sm:p-3.5 shadow-sm backdrop-blur-md">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
           {/* Total Auditorías */}
           <div className="flex flex-col justify-center rounded-xl bg-slate-50/90 px-3 py-2 border border-slate-100 min-w-0 overflow-hidden">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0 truncate">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate shrink min-w-0">
                 Total Auditorías
               </span>
-              <span className="text-[9px] font-semibold text-slate-400 bg-slate-100/80 px-1 py-0.5 rounded shrink-0">
+              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100/80 px-1.5 py-0.5 rounded shrink-0">
                 P1: {metricasResumen.p1Total} · P2: {metricasResumen.p2Total}
               </span>
             </div>
@@ -240,11 +247,11 @@ export function CumplimientosPage() {
 
           {/* A tiempo */}
           <div className="flex flex-col justify-center rounded-xl bg-emerald-50/60 px-3 py-2 border border-emerald-100 min-w-0 overflow-hidden">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0 truncate">
               <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider truncate shrink min-w-0">
                 A tiempo
               </span>
-              <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-100/70 px-1 py-0.5 rounded shrink-0">
+              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100/70 px-1.5 py-0.5 rounded shrink-0">
                 P1: {metricasResumen.p1ATiempo} · P2: {metricasResumen.p2ATiempo}
               </span>
             </div>
@@ -262,11 +269,11 @@ export function CumplimientosPage() {
 
           {/* Tarde */}
           <div className="flex flex-col justify-center rounded-xl bg-amber-50/60 px-3 py-2 border border-amber-100 min-w-0 overflow-hidden">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0 truncate">
               <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider truncate shrink min-w-0">
                 Tarde
               </span>
-              <span className="text-[9px] font-semibold text-amber-600 bg-amber-100/70 px-1 py-0.5 rounded shrink-0">
+              <span className="text-[10px] font-semibold text-amber-600 bg-amber-100/70 px-1.5 py-0.5 rounded shrink-0">
                 P1: {metricasResumen.p1Tarde} · P2: {metricasResumen.p2Tarde}
               </span>
             </div>
@@ -284,11 +291,11 @@ export function CumplimientosPage() {
 
           {/* No realizadas */}
           <div className="flex flex-col justify-center rounded-xl bg-rose-50/60 px-3 py-2 border border-rose-100 min-w-0 overflow-hidden">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mb-1 min-w-0 truncate">
               <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider truncate shrink min-w-0">
                 No realizadas
               </span>
-              <span className="text-[9px] font-semibold text-rose-600 bg-rose-100/70 px-1 py-0.5 rounded shrink-0">
+              <span className="text-[10px] font-semibold text-rose-600 bg-rose-100/70 px-1.5 py-0.5 rounded shrink-0">
                 P1: {metricasResumen.p1NoRealizada} · P2: {metricasResumen.p2NoRealizada}
               </span>
             </div>
@@ -344,43 +351,6 @@ export function CumplimientosPage() {
             );
           })}
         </div>
-      </div>
-
-      {/* Navegación por Pestañas */}
-      <div className="flex items-center gap-2 border-b border-slate-200/70 pb-2">
-        <button
-          type="button"
-          onClick={() => setParam('vista', 'matriz')}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition',
-            vista === 'TABLA'
-              ? 'bg-marca-secundario text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100',
-          )}
-        >
-          <Icon name="table_chart" size="xs" />
-          <span>Matriz Operativa de Cumplimiento</span>
-          <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
-            {filasFiltradas.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setParam('vista', 'kpi')}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition',
-            vista === 'KPI'
-              ? 'bg-marca-secundario text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100',
-          )}
-        >
-          <Icon name="verified" size="xs" />
-          <span>KPI 50/50 de Personal Evaluado</span>
-          <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
-            {usuariosKpiFiltrados.length}
-          </span>
-        </button>
       </div>
 
       {/* Contenido Dinámico */}
