@@ -22,6 +22,7 @@ import {
   marcarColaFallida,
   obtenerPendienteDeAsignacion,
 } from '@/features/auditorias/ejecucion/utils/auditoria-cola-pendiente';
+import { sincronizarEvidenciasDexie } from '@/features/auditorias/ejecucion/utils/cloudinary-evidencias';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -375,22 +376,13 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   }, [preview]);
 
   const handleIntentarFinalizar = async () => {
-    // 1. Validar si hay subidas activas a Cloudinary en curso
-    const runtimeStatus = getAuditRuntimeStatus();
-    if (runtimeStatus.uploadsInProgress > 0) {
-      setFeedbackIncompleto('Hay evidencias subiéndose. Espera a que finalicen antes de revisar.');
-      return;
-    }
-
-    // 2. Validar si hay fotos pendientes en Dexie (offline/error)
-    try {
-      const fotosPendientes = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
-      if (fotosPendientes?.length > 0) {
-        setFeedbackIncompleto(`Hay ${fotosPendientes.length} foto(s) pendiente(s) de subida. Conéctate a internet y reintenta la subida antes de finalizar.`);
+    // Si estamos con internet y hay subidas activas, dar un breve momento
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      const runtimeStatus = getAuditRuntimeStatus();
+      if (runtimeStatus.uploadsInProgress > 0) {
+        setFeedbackIncompleto('Hay evidencias subiéndose. Espera un momento antes de revisar.');
         return;
       }
-    } catch {
-      // noop
     }
 
     const { isValid, faltantes } = validarTodo();
@@ -405,29 +397,9 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   const [showConfirmQrModal, setShowConfirmQrModal] = useState(false);
 
   const enviar = async (codigoConfirmado, { desdeColaOffline = false } = {}) => {
-    // 1. Validar que no haya subidas activas (solo si no viene de la cola)
-    if (!desdeColaOffline) {
-      const runtimeStatus = getAuditRuntimeStatus();
-      if (runtimeStatus.uploadsInProgress > 0) {
-        setEnvioError('Aún hay evidencias fotográficas subiéndose. Por favor espera.');
-        return;
-      }
-
-      // 2. Validar que no queden evidencias pendientes en IndexedDB
-      try {
-        const fotosPendientes = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
-        if (fotosPendientes?.length > 0) {
-          setEnvioError(`No se puede enviar: Tienes ${fotosPendientes.length} evidencia(s) pendiente(s) de subir. Verifica tu conexión a internet.`);
-          return;
-        }
-      } catch {
-        // noop
-      }
-
-      // Double check just in case, before sending
-      const { isValid } = validarTodo();
-      if (!isValid) return;
-    }
+    // Validar que las preguntas requeridas estén respondidas
+    const { isValid } = validarTodo();
+    if (!isValid) return;
 
     setIsSubmitting(true);
     setEnvioError('');
@@ -441,17 +413,82 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
 
       const codigoFinal = codigoConfirmado || verificacionArea?.codigoQr || verificacionArea?.codigoVerificacion || contexto.area?.codigoVerificacion || '';
 
-      // Si viene de la cola offline, recuperar el payload guardado
+      // 1. Sincronizar evidencias pendientes desde Dexie si hay internet disponible
+      let respuestasActuales = respuestas;
+      const hayFotosEnDexie = (await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual)).length > 0;
+
+      if (hayFotosEnDexie && typeof navigator !== 'undefined' && navigator.onLine) {
+        try {
+          const syncResultado = await sincronizarEvidenciasDexie(auditoriaIdActual, modo, token, respuestasActuales);
+          if (syncResultado.exito || Object.keys(syncResultado.respuestas || {}).length > 0) {
+            respuestasActuales = syncResultado.respuestas;
+            setRespuestas(respuestasActuales);
+          }
+        } catch (syncErr) {
+          console.warn('[OfflineSync] Error sincronizando Dexie a Cloudinary:', syncErr);
+        }
+      }
+
+      // 2. Verificar si aún quedan fotos pendientes en Dexie o si estamos sin internet
+      const fotosAunEnDexie = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
+      const sinConexion = typeof navigator !== 'undefined' && !navigator.onLine;
+
+      if (sinConexion || fotosAunEnDexie.length > 0) {
+        // ENCOLAR: Guardar auditoría completa en cola offline para reenvío automático cuando haya señal
+        const entradaExistente = obtenerPendienteDeAsignacion(contexto.asignacion?.id);
+        const payloadParaCola = desdeColaOffline && entradaExistente?.payload
+          ? entradaExistente.payload
+          : {
+            identificadorCliente,
+            asignacionAuditoriaId: modo === 'invitado' ? (contexto.asignacion?.id ?? null) : contexto.asignacion?.id,
+            nombreAuditorSnapshot: currentUser?.nombre ?? nombreInvitado ?? contexto.nombreAuditor ?? 'Auditor',
+            finalizadoEn: new Date().toISOString(),
+            codigoVerificacion: codigoFinal,
+            respuestas: criterios.map((item) => {
+              const r = respuestasActuales[item.id] ?? crearRespuestaInicial(item);
+              return {
+                preguntaFormularioId: item.preguntaFormularioId ?? item.id,
+                cumple: r.cumple === true,
+                hallazgo: r.hallazgo?.trim() || null,
+                fotos: (r.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
+              };
+            }),
+          };
+
+        encolarAuditoriaPendiente({
+          id: identificadorCliente,
+          asignacionId: contexto.asignacion?.id,
+          modo,
+          token,
+          payload: payloadParaCola,
+        });
+
+        setEnColaPendiente(true);
+        setEnvioError('');
+        return;
+      }
+
+      // 3. Con conexión y todas las fotos en Cloudinary: enviar al backend
       let payload;
       if (desdeColaOffline) {
         const entrada = obtenerPendienteDeAsignacion(contexto.asignacion?.id);
         if (!entrada) {
-          // La cola se limpió por otra vía — marcar como enviado sin saber resultado
           setEnColaPendiente(false);
           setFase('captura');
           return;
         }
-        payload = entrada.payload;
+        payload = {
+          ...entrada.payload,
+          respuestas: criterios.map((item) => {
+            const r = respuestasActuales[item.id] ?? crearRespuestaInicial(item);
+            return {
+              preguntaFormularioId: item.preguntaFormularioId ?? item.id,
+              cumple: r.cumple === true,
+              hallazgo: r.hallazgo?.trim() || null,
+              fotos: (r.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
+            };
+          }),
+        };
       } else {
         payload = {
           identificadorCliente,
@@ -460,12 +497,12 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           finalizadoEn: new Date().toISOString(),
           codigoVerificacion: codigoFinal,
           respuestas: criterios.map((item) => {
-            const respuesta = respuestas[item.id] ?? crearRespuestaInicial(item);
+            const r = respuestasActuales[item.id] ?? crearRespuestaInicial(item);
             return {
               preguntaFormularioId: item.preguntaFormularioId ?? item.id,
-              cumple: respuesta.cumple === true,
-              hallazgo: respuesta.hallazgo?.trim() || null,
-              fotos: (respuesta.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
+              cumple: r.cumple === true,
+              hallazgo: r.hallazgo?.trim() || null,
+              fotos: (r.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
             };
           }),
         };
@@ -490,7 +527,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     } catch (err) {
       // Distinguir error de red vs. error de negocio/validación
       const esErrorDeRed = err?.isNetworkError === true
-        || !navigator.onLine
+        || (typeof navigator !== 'undefined' && !navigator.onLine)
         || err?.name === 'TypeError'
         || err?.message?.toLowerCase().includes('failed to fetch')
         || err?.message?.toLowerCase().includes('network');

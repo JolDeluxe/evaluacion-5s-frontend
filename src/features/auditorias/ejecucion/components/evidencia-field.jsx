@@ -7,43 +7,12 @@ import { setAuditUploadActive } from '@/features/auditorias/ejecucion/utils/audi
 import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
 import { procesarImagen } from '@/utils/procesar-imagen';
 import { optimizarCloudinaryUrl } from '@/utils/cloudinary';
+import {
+  mapearEvidenciaCloudinary,
+  subirACloudinary,
+} from '@/features/auditorias/ejecucion/utils/cloudinary-evidencias';
 
 const MAX_EVIDENCIAS = 3;
-
-async function subirACloudinary(file, firma) {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('api_key', firma.apiKey);
-  formData.append('timestamp', firma.timestamp);
-  formData.append('signature', firma.signature);
-  formData.append('public_id', firma.publicId);
-  formData.append('folder', firma.folder);
-
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${firma.cloudName}/image/upload`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || 'No se pudo subir la evidencia.');
-  return data;
-}
-
-function mapearEvidenciaCloudinary(data, file) {
-  return {
-    identificadorCliente: crypto.randomUUID(),
-    publicIdCloudinary: data.public_id,
-    assetIdCloudinary: data.asset_id ?? null,
-    formato: data.format ?? null,
-    tipoMime: file.type || data.resource_type || null,
-    bytes: data.bytes ?? file.size ?? null,
-    ancho: data.width ?? null,
-    alto: data.height ?? null,
-    capturadaEn: null,
-    subidaEn: new Date().toISOString(),
-    url: data.secure_url || data.url || '',
-  };
-}
 
 export function EvidenciaField({
   evidencias = [],
@@ -156,6 +125,18 @@ export function EvidenciaField({
         console.warn('No se pudo guardar la evidencia en IndexedDB:', dbErr);
       }
 
+      // Si no hay conexión a internet, guardar localmente sin bloquear ni fallar
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setColaSubidas((prev) =>
+          prev.map((t) =>
+            t.id === tarea.id
+              ? { ...t, file: fileParaSubir, preprocesado: true, estado: 'offline', errorMsg: 'Guardada localmente (sin internet)' }
+              : t
+          )
+        );
+        return;
+      }
+
       // Update state to uploading
       setColaSubidas((prev) =>
         prev.map((t) => (t.id === tarea.id ? { ...t, file: fileParaSubir, preprocesado: true, estado: 'subiendo' } : t))
@@ -199,7 +180,7 @@ export function EvidenciaField({
       const data = await subirACloudinary(fileParaSubir, firma);
 
       // 4. Map response to standard evidence schema
-      const nuevaEvidencia = mapearEvidenciaCloudinary(data, fileParaSubir);
+      const nuevaEvidencia = mapearEvidenciaCloudinary(data, fileParaSubir, tarea.id);
 
       // Update parent list
       onChange((actual) => {
@@ -217,8 +198,17 @@ export function EvidenciaField({
         return prev.filter((t) => t.id !== tarea.id);
       });
     } catch (err) {
+      const isOfflineError = !navigator.onLine || err?.name === 'TypeError' || err?.message?.toLowerCase().includes('failed to fetch');
       setColaSubidas((prev) =>
-        prev.map((t) => (t.id === tarea.id ? { ...t, estado: 'error', errorMsg: err?.message || 'Error de subida' } : t))
+        prev.map((t) =>
+          t.id === tarea.id
+            ? {
+                ...t,
+                estado: isOfflineError ? 'offline' : 'error',
+                errorMsg: isOfflineError ? 'Guardada localmente (sin internet)' : err?.message || 'Error de subida',
+              }
+            : t
+        )
       );
     } finally {
       activeUploadIdsRef.current.delete(tarea.id);
@@ -313,6 +303,8 @@ export function EvidenciaField({
   };
 
   const quitarCola = async (id) => {
+    activeUploadIdsRef.current.delete(id);
+    setAuditUploadActive(id, false);
     await evidenciasOffline.eliminar(id).catch(() => {});
     setColaSubidas((prev) => {
       const tarea = prev.find((t) => t.id === id);
@@ -324,6 +316,8 @@ export function EvidenciaField({
   };
 
   const quitar = async (identificadorCliente) => {
+    activeUploadIdsRef.current.delete(identificadorCliente);
+    setAuditUploadActive(identificadorCliente, false);
     await evidenciasOffline.eliminar(identificadorCliente).catch(() => {});
     onChange((actual) => {
       const seguro = Array.isArray(actual) ? actual : [];
@@ -429,7 +423,12 @@ export function EvidenciaField({
                   </div>
                 )}
 
-                {item.estado === 'error' && (
+                {(item.estado === 'offline' || (typeof navigator !== 'undefined' && !navigator.onLine && item.estado === 'error')) ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-blue-50/90 p-1 text-center">
+                    <Icon name="cloud_off" className="text-blue-600" size="xs" />
+                    <span className="text-[7px] font-black uppercase text-blue-800 leading-tight">Guardada</span>
+                  </div>
+                ) : item.estado === 'error' ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50/90 p-1 text-center">
                     <Icon name="error" className="text-red-500" size="xs" />
                     <button
@@ -440,7 +439,7 @@ export function EvidenciaField({
                       Reintentar
                     </button>
                   </div>
-                )}
+                ) : null}
 
                 <button
                   type="button"

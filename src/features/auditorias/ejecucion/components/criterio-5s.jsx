@@ -10,6 +10,7 @@ export function Criterio5S({
   modo,
   token,
   preview,
+  auditoriaId,
   onSelectOption,
   onChangeHallazgo,
   onChangeEvidencias,
@@ -53,6 +54,8 @@ export function Criterio5S({
           modo={modo}
           token={token}
           preview={preview}
+          criterioId={criterio.id}
+          auditoriaId={auditoriaId}
           error={errores?.evidencia}
         />
       )}
