@@ -8,6 +8,7 @@ import { SectionTabs } from '@/components/ui/section-tabs';
 import { SelectorMesNavegacion } from '@/components/ui/selector-mes-navegacion';
 import { apiClient } from '@/lib/api/api-client';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ function EstadoAuditoriaHistorial({
   periodo,
   anio,
   mes,
+  currentUserId,
 }) {
   const isStart = align === 'start';
   const containerClass = isStart ? 'flex flex-col items-start text-left gap-0.5' : 'flex flex-col items-center text-center gap-0.5';
@@ -119,6 +121,9 @@ function EstadoAuditoriaHistorial({
   const esInvitado = asig.esInvitado === true || Boolean(envio?.enlaceInvitadoId);
   const nombreEjecutor = asig.nombreEjecutor || envio?.enviadoPorUsuario?.nombre || 'Sin nombre';
 
+  const esOtroAuditor = asig.auditorId && currentUserId && asig.auditorId !== currentUserId;
+  const nombreAuditor = asig.auditor?.nombre;
+
   if (realizada) {
     const fecha = fechaCorta(asig.completadoEn || envio?.verificadoEn);
     const label = `${realizadaATiempo ? 'Realizada' : 'Realizada Tarde'} · ${pct}`;
@@ -131,6 +136,11 @@ function EstadoAuditoriaHistorial({
         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none ${badgeClass}`}>
           {label}
         </span>
+        {esOtroAuditor && nombreAuditor && (
+          <p className="text-[11px] font-semibold text-slate-500">
+            ({nombreAuditor})
+          </p>
+        )}
         {ejecutadoPorApoyo && (
           <p className="text-[11px] font-semibold text-slate-500">
             (Apoyo: {nombreEjecutor})
@@ -159,6 +169,11 @@ function EstadoAuditoriaHistorial({
       <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none ${badgeClass}`}>
         {label}
       </span>
+      {esOtroAuditor && nombreAuditor && (
+        <p className="text-[11px] font-semibold text-slate-400">
+          ({nombreAuditor})
+        </p>
+      )}
     </div>
   );
 }
@@ -167,6 +182,8 @@ function EstadoAuditoriaHistorial({
 
 export function HistorialAuditoriasPage() {
   const isDesktop = useIsDesktop();
+  const { user } = useAuth();
+  const currentUserId = user?.id;
   const [searchParams, setSearchParams] = useSearchParams();
 
   const ahora = new Date();
@@ -253,9 +270,13 @@ export function HistorialAuditoriasPage() {
       }
 
       if (corte === 1) {
-        map[nombre].p1 = item;
+        if (!map[nombre].p1 || item.realizada || item.estado === 'COMPLETADA') {
+          map[nombre].p1 = item;
+        }
       } else if (corte === 2) {
-        map[nombre].p2 = item;
+        if (!map[nombre].p2 || item.realizada || item.estado === 'COMPLETADA') {
+          map[nombre].p2 = item;
+        }
       }
     });
 
@@ -380,20 +401,22 @@ export function HistorialAuditoriasPage() {
                   <div className="flex min-w-0 justify-center px-5">
                     <EstadoAuditoriaHistorial
                       asig={p1}
-                      programado={Boolean(p1 || p2)}
+                      programado={Boolean(p1)}
                       periodo={1}
                       anio={filtroAnio}
                       mes={filtroMes}
+                      currentUserId={currentUserId}
                     />
                   </div>
 
                   <div className="flex min-w-0 justify-center px-5">
                     <EstadoAuditoriaHistorial
                       asig={p2}
-                      programado={Boolean(p1 || p2)}
+                      programado={Boolean(p2)}
                       periodo={2}
                       anio={filtroAnio}
                       mes={filtroMes}
+                      currentUserId={currentUserId}
                     />
                   </div>
                 </div>
@@ -407,10 +430,11 @@ export function HistorialAuditoriasPage() {
                       <EstadoAuditoriaHistorial
                         asig={p1}
                         align="start"
-                        programado={Boolean(p1 || p2)}
+                        programado={Boolean(p1)}
                         periodo={1}
                         anio={filtroAnio}
                         mes={filtroMes}
+                        currentUserId={currentUserId}
                       />
                     </div>
                     <div className="min-w-0 space-y-1">
@@ -418,10 +442,11 @@ export function HistorialAuditoriasPage() {
                       <EstadoAuditoriaHistorial
                         asig={p2}
                         align="start"
-                        programado={Boolean(p1 || p2)}
+                        programado={Boolean(p2)}
                         periodo={2}
                         anio={filtroAnio}
                         mes={filtroMes}
+                        currentUserId={currentUserId}
                       />
                     </div>
                   </div>
