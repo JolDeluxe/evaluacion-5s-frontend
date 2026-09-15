@@ -1351,7 +1351,7 @@ export function UsuariosPage() {
                   }
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Identificador único para inicio de sesión: solo letras minúsculas, sin espacios, números ni símbolos.
+                  Identificador único para inicio de sesión: letras minúsculas y puntos, sin espacios.
                 </p>
               </div>
 
@@ -1539,4 +1539,3 @@ export function UsuariosPage() {
     </section>
   );
 }
-

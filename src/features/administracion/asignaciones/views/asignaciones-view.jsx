@@ -280,7 +280,15 @@ export function AsignacionesView({
       )}
 
       {state.status === 'ready' && (
-        <AsignacionesList filas={data?.filas ?? []} anio={anio} mes={mes} onEdit={onEdit} />
+        <AsignacionesList
+          filas={data?.filas ?? []}
+          anio={anio}
+          mes={mes}
+          auditores={data?.auditores ?? []}
+          onEdit={onEdit}
+          onSaveAsignacion={onSaveAsignacion}
+          onSaved={onSaved}
+        />
       )}
 
       {editing && (
