@@ -1011,14 +1011,14 @@ export function MisAuditoriasPage() {
                 {comodinModal?.auditor?.nombre || 'Sin auditor'}
               </span>
             </div>
-            {comodinModal?.responsableCumplimiento?.nombre && (
+            {/* {comodinModal?.responsableCumplimiento?.nombre && (
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-500">Responsable del KPI:</span>
                 <span className="font-bold text-slate-700">
                   {comodinModal.responsableCumplimiento.nombre}
                 </span>
               </div>
-            )}
+            )} */}
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-slate-500">Periodo:</span>
               <span className="font-bold text-slate-700">
