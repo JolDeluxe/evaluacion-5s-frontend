@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { Card, CardBody } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 
 export function CargaMensual({ auditores }) {
+  const [abierta, setAbierta] = useState(false);
+
   if (!auditores.length) return null;
 
   const ordenados = [...auditores].sort((a, b) => (
@@ -15,18 +19,32 @@ export function CargaMensual({ auditores }) {
     <Card className="overflow-hidden border-app-border bg-white shadow-sm">
       <CardBody className="p-3.5 sm:p-4">
         {/* Header simple */}
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Carga de Auditoría ({auditores.length})
-          </p>
-          <div className="flex items-center gap-3 text-xs font-black">
-            <span className="text-emerald-700">{totalConCarga} asignados</span>
-            <span className="text-amber-600">{totalSinCarga} sin asignación</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              Carga de Auditoría ({auditores.length})
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs font-black">
+              <span className="text-emerald-700">{totalConCarga} asignados</span>
+              <span className="text-amber-600">{totalSinCarga} sin asignación</span>
+            </div>
           </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={abierta ? 'expand_less' : 'expand_more'}
+            onClick={() => setAbierta((actual) => !actual)}
+            className="h-8 self-start px-2.5 text-xs font-black text-slate-600 sm:self-auto"
+          >
+            {abierta ? 'Ocultar' : 'Mostrar'}
+          </Button>
         </div>
 
         {/* Grid de todos los auditores */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+        {abierta && (
+        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {ordenados.map((auditor) => {
             const initial = auditor.nombre ? auditor.nombre.charAt(0).toUpperCase() : 'U';
             const tieneCarga = auditor.areasAsignadas > 0;
@@ -70,6 +88,7 @@ export function CargaMensual({ auditores }) {
             );
           })}
         </div>
+        )}
       </CardBody>
     </Card>
   );

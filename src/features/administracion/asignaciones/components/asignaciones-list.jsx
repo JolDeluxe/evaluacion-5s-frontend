@@ -27,14 +27,14 @@ function buscarAuditores(auditores, busqueda, responsablesIds = [], selectedId =
         .join(' ')
         .toLowerCase();
       return texto.includes(q);
-    })
-    .slice(0, 8);
+    });
 }
 
 function AuditorInlineAssigner({ fila, auditores, anio, mes, onSaveAsignacion, onSaved }) {
   const auditorActual = fila.auditorMensual ?? null;
   const [busqueda, setBusqueda] = useState(auditorActual?.nombre ?? '');
   const [seleccionado, setSeleccionado] = useState(auditorActual);
+  const [abierto, setAbierto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const responsablesIds = useMemo(() => fila.area.responsablesIds ?? [], [fila.area.responsablesIds]);
@@ -82,16 +82,35 @@ function AuditorInlineAssigner({ fila, auditores, anio, mes, onSaveAsignacion, o
         <input
           type="search"
           value={busqueda}
+          onFocus={() => {
+            if (!seleccionado) setAbierto(true);
+          }}
+          onBlur={() => {
+            setTimeout(() => setAbierto(false), 150);
+          }}
           onChange={(event) => {
             setBusqueda(event.target.value);
             setSeleccionado(null);
+            setAbierto(true);
             setError('');
           }}
-          placeholder="Buscar auditor..."
-          className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-marca-secundario focus:ring-1 focus:ring-marca-secundario"
+          placeholder="Selecciona o busca auditor..."
+          className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-marca-secundario focus:ring-1 focus:ring-marca-secundario"
         />
-        {busqueda.trim() && !seleccionado && (
-          <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setSeleccionado(null);
+            setAbierto((actual) => !actual);
+          }}
+          className="absolute inset-y-0 right-2 flex items-center text-slate-400 hover:text-slate-600"
+          aria-label="Mostrar auditores disponibles"
+        >
+          ▾
+        </button>
+        {abierto && !seleccionado && (
+          <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-72 min-w-[260px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-2xl">
             {resultados.length === 0 ? (
               <p className="px-2 py-2 text-xs font-semibold text-slate-400">Sin coincidencias</p>
             ) : (
@@ -102,6 +121,7 @@ function AuditorInlineAssigner({ fila, auditores, anio, mes, onSaveAsignacion, o
                   onClick={() => {
                     setSeleccionado(auditor);
                     setBusqueda(auditor.nombre);
+                    setAbierto(false);
                   }}
                   className="block w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-slate-50"
                 >
@@ -138,6 +158,7 @@ function AuditorInlineAssigner({ fila, auditores, anio, mes, onSaveAsignacion, o
             onClick={() => {
               setSeleccionado(null);
               setBusqueda('');
+              setAbierto(true);
               setError('');
             }}
             className="h-8 px-2 text-xs text-slate-500"
@@ -260,7 +281,7 @@ export function AsignacionesList({
 }) {
   return (
     <>
-      <Card className="hidden overflow-hidden border-app-border bg-white shadow-sm md:block">
+      <Card className="hidden overflow-visible border-app-border bg-white shadow-sm md:block">
         <table className="w-full text-sm">
           <thead className="border-b border-app-border bg-slate-50/70 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
             <tr>
@@ -276,7 +297,7 @@ export function AsignacionesList({
               const asignado = fila.estado === 'ASIGNADO';
               const editable = esFilaEditable(fila, anio, mes);
               return (
-                <tr key={fila.area.id} className="transition hover:bg-slate-50/70">
+                <tr key={fila.area.id} className="relative transition hover:bg-slate-50/70">
                   <td className="px-5 py-4">
                     <p className="font-black uppercase text-slate-900 leading-tight">{fila.area.nombre}</p>
                   </td>
