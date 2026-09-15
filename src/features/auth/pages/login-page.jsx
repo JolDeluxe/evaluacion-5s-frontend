@@ -56,6 +56,11 @@ export function LoginPage() {
         <Card className="border-white/70 bg-white/70 shadow-2xl shadow-slate-950/10 backdrop-blur-2xl rounded-3xl">
           <CardBody className="p-6 sm:p-8">
             <div className="mb-8">
+              <img
+                src="/img/01_Cuadra.png"
+                alt="CUADRA"
+                className="mb-5 h-11 w-auto object-contain lg:hidden"
+              />
               <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">Auditorías 5S</p>
               <h2 className="text-2xl font-black text-slate-950">Iniciar sesión</h2>
             </div>
