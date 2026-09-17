@@ -32,14 +32,16 @@ export function HallazgoResultado({ hallazgo, numero, total }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-            Hallazgo
-          </p>
-          <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-800">
-            {hallazgo.hallazgo || 'Hallazgo sin descripción registrada.'}
-          </p>
-        </div>
+        {hallazgo.hallazgo?.trim() && (
+          <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+              Hallazgo
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-800">
+              {hallazgo.hallazgo}
+            </p>
+          </div>
+        )}
 
         {evidencias.length > 0 && (
           <div className="space-y-1.5">
