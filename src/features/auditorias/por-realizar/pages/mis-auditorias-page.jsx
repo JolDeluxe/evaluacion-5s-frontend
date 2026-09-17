@@ -279,9 +279,38 @@ export function MisAuditoriasPage() {
       });
   }, [executables]);
 
+  const esAsignacionAtrasada = useCallback((asig) => {
+    const ind = asig.infoPeriodo;
+    if (ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA') {
+      return true;
+    }
+    if (asig.venceEn && new Date(asig.venceEn) < new Date()) {
+      if (asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date()) {
+        return false;
+      }
+      return true;
+    }
+    const obj = asig.objetivoAuditoria;
+    if (obj?.terminaEn && new Date(obj.terminaEn) < new Date()) {
+      if (asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date()) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }, []);
+
   const porRealizarTotal = useMemo(() => {
     return executables.filter((asig) => asig.estado !== 'COMPLETADA' && asig.infoPeriodo?.realizable);
   }, [executables]);
+
+  const gruposAtrasados = useMemo(() => {
+    return gruposPorPeriodo.filter((grupo) => grupo.asignaciones.some(esAsignacionAtrasada));
+  }, [gruposPorPeriodo, esAsignacionAtrasada]);
+
+  const gruposActuales = useMemo(() => {
+    return gruposPorPeriodo.filter((grupo) => !grupo.asignaciones.some(esAsignacionAtrasada));
+  }, [gruposPorPeriodo, esAsignacionAtrasada]);
 
   const comodinAuditsOrdenadas = useMemo(() => {
     return [...comodinAudits].sort((a, b) => {
@@ -290,6 +319,14 @@ export function MisAuditoriasPage() {
       return bEnCurso - aEnCurso;
     });
   }, [comodinAudits]);
+
+  const comodinAtrasadas = useMemo(() => {
+    return comodinAuditsOrdenadas.filter(esAsignacionAtrasada);
+  }, [comodinAuditsOrdenadas, esAsignacionAtrasada]);
+
+  const comodinActuales = useMemo(() => {
+    return comodinAuditsOrdenadas.filter((a) => !esAsignacionAtrasada(a));
+  }, [comodinAuditsOrdenadas, esAsignacionAtrasada]);
 
   /*
    * ============================================================
@@ -319,6 +356,597 @@ export function MisAuditoriasPage() {
       },
       [],
     );
+
+  /*
+   * ============================================================
+   * RENDERIZADORES MODULARES PARA LOS BLOQUES DE AUDITORÍAS
+   * ============================================================
+   */
+
+  const renderGrupoAuditorias = (grupo) => {
+    const pendientesGrupo = grupo.asignaciones.filter((a) => a.estado !== 'COMPLETADA' && a.infoPeriodo?.realizable);
+    const completadasGrupo = grupo.asignaciones.filter((a) => a.estado === 'COMPLETADA');
+    const totalGrupo = grupo.asignaciones.length;
+
+    if (pendientesGrupo.length === 0 && completadasGrupo.length === 0) return null;
+
+    const esPeriodoAtrasado = grupo.asignaciones.some(esAsignacionAtrasada);
+
+    const periodoInfo = {
+      numeroCorte: grupo.periodo,
+      mes: grupo.mes,
+      anio: grupo.anio,
+    };
+
+    return (
+      <div key={grupo.key} className="space-y-4">
+        {/* TARJETA DE PERIODO */}
+        <div
+          className={`rounded-2xl border p-5 backdrop-blur-xl transition md:p-6 ${
+            esPeriodoAtrasado
+              ? 'border-rose-200/90 bg-rose-50/60 shadow-[0_8px_28px_rgba(225,29,72,0.05)]'
+              : 'border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)]'
+          }`}
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">
+                Periodo de auditoría
+              </p>
+              <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-black text-slate-950">
+                  {getPeriodLabel(periodoInfo).toUpperCase()}
+                </h2>
+                {esPeriodoAtrasado && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100/90 px-2.5 py-0.5 text-xs font-black text-rose-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
+                    Periodo atrasado
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                {formatRange(grupo.iniciaEn, grupo.terminaEn)}
+              </p>
+            </div>
+
+            <div className="flex min-w-[200px] flex-col items-start gap-1 md:items-end">
+              <span className="text-sm font-bold text-slate-700">
+                {completadasGrupo.length} realizadas · {pendientesGrupo.length} pendientes
+              </span>
+              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full bg-emerald-600 transition-all duration-300"
+                  style={{
+                    width: `${totalGrupo > 0 ? (completadasGrupo.length / totalGrupo) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* VISTA MOBILE */}
+        {!isDesktop && (
+        <div className="space-y-3">
+          {pendientesGrupo.map((asig) => {
+            const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
+            const ind = asig.infoPeriodo;
+            const borrador = leerBorrador(asig);
+            const enCurso = borrador !== null;
+            const enColaOffline = leerColaPendiente(asig.id);
+            const esAtrasada = esAsignacionAtrasada(asig);
+
+            return (
+              <div
+                key={asig.id}
+                className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
+                  enColaOffline
+                    ? 'border-blue-200/80 bg-blue-50/30 shadow-[0_8px_24px_rgba(59,130,246,0.06)]'
+                    : enCurso
+                    ? 'border-amber-200/80 bg-amber-50/25 shadow-[0_8px_24px_rgba(245,158,11,0.06)]'
+                    : esAtrasada
+                    ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
+                    : 'border-white/90 bg-white/75 shadow-[0_8px_24px_rgba(15,23,42,0.06)]'
+                }`}
+              >
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
+                      <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                        Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
+                      </p>
+                    </div>
+
+                    {enColaOffline ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2.5 py-0.5 text-[10px] font-black text-blue-800">
+                        <Icon name="cloud_off" size="12px" />
+                        Pendiente de envío
+                      </span>
+                    ) : borrador && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
+                        <Icon name="edit_note" size="12px" />
+                        {borrador.respondidas} de {borrador.total}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                      asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enColaOffline ? 'text-blue-600' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enColaOffline ? 'bg-blue-500' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
+                      }`} />
+                      {asig.bloqueoPeriodoAnterior
+                        ? 'Bloqueada por periodo anterior'
+                        : enColaOffline
+                        ? 'Completa — esperando señal para enviar'
+                        : enCurso
+                        ? 'En curso'
+                        : esAtrasada
+                        ? 'Atrasada'
+                        : 'Pendiente'}
+                    </span>
+                  </div>
+
+                  {enColaOffline ? (
+                    <div className="mt-2.5 rounded-xl border border-blue-200/70 bg-blue-50/60 p-2.5 text-xs text-blue-900 font-semibold flex items-center gap-2">
+                      <Icon name="cloud_off" size="14px" className="text-blue-600 shrink-0" />
+                      <span>Auditoría completa. Se enviará automáticamente cuando haya señal.</span>
+                    </div>
+                  ) : asig.bloqueoPeriodoAnterior ? (
+                    <div className="mt-2.5 rounded-xl border border-amber-200/70 bg-amber-50/60 p-2.5 text-xs text-amber-900 font-semibold flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="lock" size="14px" className="text-amber-600 shrink-0" />
+                        <span>Primero termina {asig.bloqueoPeriodoAnterior.periodo === 1 ? 'P1' : 'P2'} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
+                      </span>
+                      {asig.bloqueoPeriodoAnterior.asignacionId && (
+                        <Link
+                          to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
+                          className="inline-flex items-center gap-1 text-[11px] font-black text-amber-800 underline hover:text-amber-950 shrink-0"
+                        >
+                          Ir a P{asig.bloqueoPeriodoAnterior.periodo}
+                        </Link>
+                      )}
+                    </div>
+                  ) : ind && (
+                    <div className="mt-3">
+                      <EstadoBadge estado={asig} label={ind.texto} />
+                    </div>
+                  )}
+                </div>
+
+                {canExecuteAudit && (
+                  <div className="flex items-center justify-between gap-3 border-t border-white/70 bg-white/35 px-4 py-2.5 backdrop-blur-md">
+                    <button
+                      type="button"
+                      onClick={() => setAsignacionCompartir(asig)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-[11px] font-bold text-slate-400 hover:bg-white/60 hover:text-slate-600"
+                    >
+                      <Icon name="share" size="13px" />
+                      Compartir
+                    </button>
+
+                    {enColaOffline ? (
+                      <Link
+                        to={`/auditorias/${asig.id}/realizar`}
+                        className="inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3.5 text-xs font-black text-blue-700 backdrop-blur-md transition"
+                      >
+                        <Icon name="cloud_off" size="14px" />
+                        Ver estado
+                      </Link>
+                    ) : asig.bloqueoPeriodoAnterior ? (
+                      asig.bloqueoPeriodoAnterior.asignacionId ? (
+                        <Link
+                          to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
+                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3.5 text-xs font-black text-amber-800 backdrop-blur-md transition hover:bg-amber-100/80"
+                        >
+                          Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}
+                          <Icon name="arrow_forward" size="14px" />
+                        </Link>
+                      ) : (
+                        <Link
+                          to={`/auditorias/${asig.id}/realizar`}
+                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-xs font-black text-slate-600 backdrop-blur-md"
+                        >
+                          Pendiente anterior
+                          <Icon name="lock" size="14px" />
+                        </Link>
+                      )
+                    ) : (
+                      <Link
+                        to={`/auditorias/${asig.id}/realizar`}
+                        className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
+                          enCurso
+                            ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                            : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                        }`}
+                      >
+                        {enCurso ? 'Continuar' : 'Iniciar'}
+                        <Icon name="arrow_forward" size="14px" />
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        )}
+
+        {/* VISTA DESKTOP */}
+        {isDesktop && (
+        <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+          <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-100/90 bg-white/45 px-6 py-3">
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Área</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Disponibilidad</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Vence</span>
+            <span className="text-right text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Acciones</span>
+          </div>
+
+          <div className="divide-y divide-slate-100/80">
+            {pendientesGrupo.map((asig) => {
+              const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
+              const ind = asig.infoPeriodo;
+              const borrador = leerBorrador(asig);
+              const enCurso = borrador !== null;
+              const enColaOffline = leerColaPendiente(asig.id);
+              const esAtrasada = esAsignacionAtrasada(asig);
+
+              return (
+                <div
+                  key={asig.id}
+                  className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
+                    asig.bloqueoPeriodoAnterior
+                      ? 'bg-slate-50/40'
+                      : enColaOffline
+                      ? 'bg-blue-50/20 hover:bg-blue-50/40'
+                      : enCurso
+                      ? 'bg-amber-50/10 hover:bg-amber-50/30'
+                      : esAtrasada
+                      ? 'bg-rose-50/30 hover:bg-rose-50/50'
+                      : 'hover:bg-slate-50/70'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                        asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enColaOffline ? 'text-blue-600' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enColaOffline ? 'bg-blue-500' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
+                        }`} />
+                        {asig.bloqueoPeriodoAnterior
+                          ? 'Bloqueada por periodo anterior'
+                          : enColaOffline
+                          ? 'Esperando señal'
+                          : enCurso
+                          ? 'En curso'
+                          : esAtrasada
+                          ? 'Atrasada'
+                          : 'Pendiente'}
+                      </span>
+                      {enColaOffline && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2 py-0.5 text-[10px] font-black text-blue-800">
+                          <Icon name="cloud_off" size="11px" />
+                          Pendiente de envío
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0">
+                    {enColaOffline ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 px-3 py-1 text-xs font-black uppercase text-blue-800 tracking-wide">
+                        <Icon name="cloud_off" size="13px" className="shrink-0 text-blue-600" />
+                        <span className="truncate">Completa — sin señal</span>
+                      </span>
+                    ) : asig.bloqueoPeriodoAnterior ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-3 py-1 text-xs font-black uppercase text-amber-800 tracking-wide">
+                        <Icon name="lock" size="13px" className="shrink-0 text-amber-600" />
+                        <span className="truncate">Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
+                      </span>
+                    ) : ind && (
+                      <EstadoBadge estado={asig} label={ind.texto} />
+                    )}
+                  </div>
+
+                  <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                    {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
+                  </div>
+
+                  {canExecuteAudit ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAsignacionCompartir(asig)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/60 hover:text-slate-600"
+                        title="Compartir"
+                      >
+                        <Icon name="share" size="15px" />
+                      </button>
+
+                      {enColaOffline ? (
+                        <Link
+                          to={`/auditorias/${asig.id}/realizar`}
+                          className="inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 text-xs font-black text-blue-700 backdrop-blur-md transition"
+                          title="Ver estado de envío"
+                        >
+                          <Icon name="cloud_off" size="14px" />
+                          Ver estado
+                        </Link>
+                      ) : asig.bloqueoPeriodoAnterior ? (
+                        asig.bloqueoPeriodoAnterior.asignacionId ? (
+                          <Link
+                            to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
+                            className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 text-xs font-black text-amber-800 backdrop-blur-md transition hover:bg-amber-100/80"
+                            title={`Primero termina P${asig.bloqueoPeriodoAnterior.periodo} de ${asig.bloqueoPeriodoAnterior.mesEtiqueta}`}
+                          >
+                            Primero termina P{asig.bloqueoPeriodoAnterior.periodo}
+                            <Icon name="arrow_forward" size="14px" />
+                          </Link>
+                        ) : (
+                          <Link
+                            to={`/auditorias/${asig.id}/realizar`}
+                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3 text-xs font-black text-slate-600 backdrop-blur-md"
+                          >
+                            Bloqueada
+                            <Icon name="lock" size="14px" />
+                          </Link>
+                        )
+                      ) : (
+                        <Link
+                          to={`/auditorias/${asig.id}/realizar`}
+                          className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
+                            enCurso
+                              ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                              : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                          }`}
+                        >
+                          {enCurso ? 'Continuar' : 'Iniciar'}
+                          <Icon name="arrow_forward" size="14px" />
+                        </Link>
+                      )}
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderBloqueComodin = (lista, { titulo, subtitulo, badgeTexto, esAtrasado, key }) => {
+    if (!lista || lista.length === 0) return null;
+
+    return (
+      <div key={key || titulo} className="space-y-4 pt-4 border-t border-slate-200/80">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900">
+                {titulo}
+              </h2>
+              {esAtrasado && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100/90 px-2 py-0.5 text-[11px] font-black text-rose-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
+                  Atrasadas
+                </span>
+              )}
+            </div>
+            <p className="text-xs font-semibold text-slate-500">
+              {subtitulo}
+            </p>
+          </div>
+          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
+            esAtrasado ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
+          }`}>
+            {badgeTexto || `${lista.length} pendientes`}
+          </span>
+        </div>
+
+        {/* VISTA MOBILE */}
+        {!isDesktop && (
+        <div className="space-y-3">
+          {lista.map((asig) => {
+            const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
+            const auditorTitular = asig.auditor?.nombre || 'Sin asignar';
+            const responsableKpi = asig.responsableCumplimiento?.nombre;
+            const ind = asig.infoPeriodo;
+            const borrador = leerBorrador(asig);
+            const enCurso = borrador !== null;
+            const esAtrasada = esAsignacionAtrasada(asig);
+
+            return (
+              <div
+                key={asig.id}
+                className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
+                  enCurso
+                    ? 'border-amber-300/90 bg-amber-50/40 shadow-[0_8px_24px_rgba(245,158,11,0.08)]'
+                    : esAtrasada
+                    ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
+                    : 'border-slate-200/90 bg-slate-100/80 shadow-[0_8px_24px_rgba(15,23,42,0.04)]'
+                }`}
+              >
+                <div className="p-4">
+                  {/* Banner titular */}
+                  <div className={`mb-2.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold ${
+                    enCurso
+                      ? 'border-amber-200/70 bg-amber-100/60 text-amber-900'
+                      : esAtrasada
+                      ? 'border-rose-200 bg-rose-100/60 text-rose-900'
+                      : 'border-slate-200 bg-slate-200/60 text-slate-700'
+                  }`}>
+                    <Icon name="person" size="13px" className={`shrink-0 ${enCurso ? 'text-amber-700' : esAtrasada ? 'text-rose-600' : 'text-slate-500'}`} />
+                    <span className="truncate">
+                      Asignada a: <strong className={`font-black ${enCurso ? 'text-amber-950' : esAtrasada ? 'text-rose-950' : 'text-slate-900'}`}>{auditorTitular}</strong>
+                    </span>
+                  </div>
+
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
+                      <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                        Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
+                      </p>
+                    </div>
+
+                    {borrador && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
+                        <Icon name="edit_note" size="12px" />
+                        {borrador.respondidas} de {borrador.total}
+                      </span>
+                    )}
+                  </div>
+
+                  {responsableKpi && responsableKpi !== auditorTitular && (
+                    <div className="mt-2 rounded-xl bg-slate-200/50 p-2 text-xs text-slate-600 flex items-center justify-between">
+                      <span className="font-semibold text-slate-500">Resp. KPI:</span>
+                      <span className="font-medium text-slate-700 truncate max-w-[180px]">{responsableKpi}</span>
+                    </div>
+                  )}
+
+                  {ind && (
+                    <div className="mt-3">
+                      <EstadoBadge
+                        estado={asig}
+                        label={ind.texto}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {canExecuteAudit && (
+                  <div className={`flex items-center justify-end gap-3 border-t px-4 py-2.5 backdrop-blur-md ${
+                    enCurso
+                      ? 'border-amber-100/70 bg-amber-50/40'
+                      : esAtrasada
+                      ? 'border-rose-100/70 bg-rose-50/30'
+                      : 'border-slate-200/70 bg-slate-100/60'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => setComodinModal(asig)}
+                      className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
+                        enCurso
+                          ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                          : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                      }`}
+                    >
+                      {enCurso ? 'Continuar' : 'Iniciar'}
+                      <Icon name="arrow_forward" size="14px" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        )}
+
+        {/* VISTA DESKTOP */}
+        {isDesktop && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/70 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+          <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-200/80 bg-slate-100/80 px-6 py-3">
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Área</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Disponibilidad</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Vence</span>
+            <span className="text-right text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Acciones</span>
+          </div>
+
+          <div className="divide-y divide-slate-200/70">
+            {lista.map((asig) => {
+              const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
+              const auditorTitular = asig.auditor?.nombre || 'Sin asignar';
+              const responsableKpi = asig.responsableCumplimiento?.nombre;
+              const ind = asig.infoPeriodo;
+              const borrador = leerBorrador(asig);
+              const enCurso = borrador !== null;
+              const esAtrasada = esAsignacionAtrasada(asig);
+
+              return (
+                <div
+                  key={asig.id}
+                  className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
+                    enCurso
+                      ? 'bg-amber-50/25 hover:bg-amber-50/45'
+                      : esAtrasada
+                      ? 'bg-rose-50/30 hover:bg-rose-50/50'
+                      : 'bg-slate-100/50 hover:bg-slate-100/90'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold border ${
+                        enCurso
+                          ? 'bg-amber-50/90 text-amber-900 border-amber-200/70'
+                          : esAtrasada
+                          ? 'bg-rose-50 text-rose-900 border-rose-200/80'
+                          : 'bg-slate-200/70 text-slate-700 border-slate-300/80'
+                      }`}>
+                        <Icon name="person" size="12px" className={enCurso ? 'text-amber-700' : esAtrasada ? 'text-rose-600' : 'text-slate-500'} />
+                        Asignada a: <strong className={`font-bold ${enCurso ? 'text-amber-950' : esAtrasada ? 'text-rose-950' : 'text-slate-900'}`}>{auditorTitular}</strong>
+                        {responsableKpi && responsableKpi !== auditorTitular && (
+                          <span className={enCurso ? 'text-amber-600/80 font-normal' : esAtrasada ? 'text-rose-600/80 font-normal' : 'text-slate-500 font-normal'}> (KPI: {responsableKpi})</span>
+                        )}
+                      </span>
+                      {enCurso && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                          <Icon name="edit_note" size="12px" />
+                          {borrador.respondidas}/{borrador.total}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0">
+                    {ind && (
+                      <EstadoBadge
+                        estado={asig}
+                        label={ind.texto}
+                      />
+                    )}
+                  </div>
+
+                  <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                    {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
+                  </div>
+
+                  {canExecuteAudit ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setComodinModal(asig)}
+                        className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
+                          enCurso
+                            ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
+                            : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
+                        }`}
+                      >
+                        {enCurso ? 'Continuar' : 'Iniciar'}
+                        <Icon name="arrow_forward" size="14px" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <section className="space-y-6 pt-4 sm:pt-0">
@@ -357,27 +985,34 @@ export function MisAuditoriasPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {esComodin && comodinAudits.length > 0 && (
-            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-              <div>
-                <h2 className="text-lg font-black text-slate-900">
-                  Mis auditorías asignadas
-                </h2>
-                <p className="text-xs font-semibold text-slate-500">
-                  Auditorías bajo tu responsabilidad en el periodo actual.
-                </p>
-              </div>
-              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-                {executables.length} asignadas
-              </span>
+          {/* ==================================================
+              BLOQUE 1: PERIODOS PROPIOS ATRASADOS
+          ================================================== */}
+          {gruposAtrasados.length > 0 && (
+            <div className="space-y-6">
+              {gruposAtrasados.map(renderGrupoAuditorias)}
             </div>
           )}
 
           {/* ==================================================
-              PERIODO COMPLETADO (SIN PENDIENTES)
+              BLOQUE 2: COMODÍN ATRASADAS
           ================================================== */}
+          {esComodin && comodinAtrasadas.length > 0 && renderBloqueComodin(comodinAtrasadas, {
+            key: 'comodin-atrasadas',
+            titulo: 'Otras auditorías pendientes',
+            subtitulo: 'Auditorías de apoyo atrasadas asignadas a otros usuarios que puedes intervenir.',
+            badgeTexto: `${comodinAtrasadas.length} atrasadas`,
+            esAtrasado: true,
+          })}
 
-          {porRealizarTotal.length === 0 && (
+          {/* ==================================================
+              BLOQUE 3: PERIODOS PROPIOS ACTUALES / EN CURSO
+          ================================================== */}
+          {gruposActuales.length > 0 ? (
+            <div className="space-y-6">
+              {gruposActuales.map(renderGrupoAuditorias)}
+            </div>
+          ) : porRealizarTotal.length === 0 && gruposAtrasados.length === 0 ? (
             <Card className="border-dashed border-emerald-300 bg-emerald-50/20 backdrop-blur-xl">
               <CardBody className="flex flex-col items-center gap-4 py-12 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-700">
@@ -391,587 +1026,18 @@ export function MisAuditoriasPage() {
                 </div>
               </CardBody>
             </Card>
-          )}
+          ) : null}
 
           {/* ==================================================
-              GRUPOS DE PERIODOS (AÑO, MES, CORTE)
+              BLOQUE 4: COMODÍN PERIODO ACTUAL
           ================================================== */}
-
-          {gruposPorPeriodo.map((grupo) => {
-            const pendientesGrupo = grupo.asignaciones.filter((a) => a.estado !== 'COMPLETADA' && a.infoPeriodo?.realizable);
-            const completadasGrupo = grupo.asignaciones.filter((a) => a.estado === 'COMPLETADA');
-            const totalGrupo = grupo.asignaciones.length;
-
-            if (pendientesGrupo.length === 0 && completadasGrupo.length === 0) return null;
-
-            const esPeriodoAtrasado = grupo.asignaciones.some(
-              (a) => a.infoPeriodo?.status === 'VENCIDA' || a.infoPeriodo?.texto === 'ATRASADA' || a.estado === 'ATRASADA'
-            );
-
-            const periodoInfo = {
-              numeroCorte: grupo.periodo,
-              mes: grupo.mes,
-              anio: grupo.anio,
-            };
-
-            return (
-              <div key={grupo.key} className="space-y-4">
-                {/* TARJETA DE PERIODO */}
-                <div
-                  className={`rounded-2xl border p-5 backdrop-blur-xl transition md:p-6 ${
-                    esPeriodoAtrasado
-                      ? 'border-rose-200/90 bg-rose-50/60 shadow-[0_8px_28px_rgba(225,29,72,0.05)]'
-                      : 'border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)]'
-                  }`}
-                >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.25em] text-marca-acento">
-                        Periodo de auditoría
-                      </p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                        <h2 className="text-xl font-black text-slate-950">
-                          {getPeriodLabel(periodoInfo).toUpperCase()}
-                        </h2>
-                        {esPeriodoAtrasado && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100/90 px-2.5 py-0.5 text-xs font-black text-rose-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
-                            Periodo atrasado
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        {formatRange(grupo.iniciaEn, grupo.terminaEn)}
-                      </p>
-                    </div>
-
-                    <div className="flex min-w-[200px] flex-col items-start gap-1 md:items-end">
-                      <span className="text-sm font-bold text-slate-700">
-                        {completadasGrupo.length} realizadas · {pendientesGrupo.length} pendientes
-                      </span>
-                      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className="h-full bg-emerald-600 transition-all duration-300"
-                          style={{
-                            width: `${totalGrupo > 0 ? (completadasGrupo.length / totalGrupo) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* VISTA MOBILE */}
-                {!isDesktop && (
-                <div className="space-y-3">
-                  {pendientesGrupo.map((asig) => {
-                    const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
-                    const ind = asig.infoPeriodo;
-                    const borrador = leerBorrador(asig);
-                    const enCurso = borrador !== null;
-                    const enColaOffline = leerColaPendiente(asig.id);
-                    const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
-
-                    return (
-                      <div
-                        key={asig.id}
-                        className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
-                          enColaOffline
-                            ? 'border-blue-200/80 bg-blue-50/30 shadow-[0_8px_24px_rgba(59,130,246,0.06)]'
-                            : enCurso
-                            ? 'border-amber-200/80 bg-amber-50/25 shadow-[0_8px_24px_rgba(245,158,11,0.06)]'
-                            : esAtrasada
-                            ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
-                            : 'border-white/90 bg-white/75 shadow-[0_8px_24px_rgba(15,23,42,0.06)]'
-                        }`}
-                      >
-                        <div className="p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
-                              <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
-                                Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
-                              </p>
-                            </div>
-
-                            {enColaOffline ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2.5 py-0.5 text-[10px] font-black text-blue-800">
-                                <Icon name="cloud_off" size="12px" />
-                                Pendiente de envío
-                              </span>
-                            ) : borrador && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
-                                <Icon name="edit_note" size="12px" />
-                                {borrador.respondidas} de {borrador.total}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                              asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enColaOffline ? 'text-blue-600' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
-                            }`}>
-                              <span className={`h-1.5 w-1.5 rounded-full ${
-                                asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enColaOffline ? 'bg-blue-500' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
-                              }`} />
-                              {asig.bloqueoPeriodoAnterior
-                                ? 'Bloqueada por periodo anterior'
-                                : enColaOffline
-                                ? 'Completa — esperando señal para enviar'
-                                : enCurso
-                                ? 'En curso'
-                                : esAtrasada
-                                ? 'Atrasada'
-                                : 'Pendiente'}
-                            </span>
-                          </div>
-
-                          {enColaOffline ? (
-                            <div className="mt-2.5 rounded-xl border border-blue-200/70 bg-blue-50/60 p-2.5 text-xs text-blue-900 font-semibold flex items-center gap-2">
-                              <Icon name="cloud_off" size="14px" className="text-blue-600 shrink-0" />
-                              <span>Auditoría completa. Se enviará automáticamente cuando haya señal.</span>
-                            </div>
-                          ) : asig.bloqueoPeriodoAnterior ? (
-                            <div className="mt-2.5 rounded-xl border border-amber-200/70 bg-amber-50/60 p-2.5 text-xs text-amber-900 font-semibold flex items-center justify-between gap-2">
-                              <span className="flex items-center gap-1.5">
-                                <Icon name="lock" size="14px" className="text-amber-600 shrink-0" />
-                                <span>Primero termina {asig.bloqueoPeriodoAnterior.periodo === 1 ? 'P1' : 'P2'} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
-                              </span>
-                              {asig.bloqueoPeriodoAnterior.asignacionId && (
-                                <Link
-                                  to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
-                                  className="inline-flex items-center gap-1 text-[11px] font-black text-amber-800 underline hover:text-amber-950 shrink-0"
-                                >
-                                  Ir a P{asig.bloqueoPeriodoAnterior.periodo}
-                                </Link>
-                              )}
-                            </div>
-                          ) : ind && (
-                            <div className="mt-3">
-                              <EstadoBadge estado={asig} label={ind.texto} />
-                            </div>
-                          )}
-                        </div>
-
-                        {canExecuteAudit && (
-                          <div className="flex items-center justify-between gap-3 border-t border-white/70 bg-white/35 px-4 py-2.5 backdrop-blur-md">
-                            <button
-                              type="button"
-                              onClick={() => setAsignacionCompartir(asig)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-[11px] font-bold text-slate-400 hover:bg-white/60 hover:text-slate-600"
-                            >
-                              <Icon name="share" size="13px" />
-                              Compartir
-                            </button>
-
-                            {enColaOffline ? (
-                              <Link
-                                to={`/auditorias/${asig.id}/realizar`}
-                                className="inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3.5 text-xs font-black text-blue-700 backdrop-blur-md transition"
-                              >
-                                <Icon name="cloud_off" size="14px" />
-                                Ver estado
-                              </Link>
-                            ) : asig.bloqueoPeriodoAnterior ? (
-                              asig.bloqueoPeriodoAnterior.asignacionId ? (
-                                <Link
-                                  to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
-                                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3.5 text-xs font-black text-amber-800 backdrop-blur-md transition hover:bg-amber-100/80"
-                                >
-                                  Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}
-                                  <Icon name="arrow_forward" size="14px" />
-                                </Link>
-                              ) : (
-                                <Link
-                                  to={`/auditorias/${asig.id}/realizar`}
-                                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-xs font-black text-slate-600 backdrop-blur-md"
-                                >
-                                  Pendiente anterior
-                                  <Icon name="lock" size="14px" />
-                                </Link>
-                              )
-                            ) : (
-                              <Link
-                                to={`/auditorias/${asig.id}/realizar`}
-                                className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
-                                  enCurso
-                                    ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
-                                    : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
-                                }`}
-                              >
-                                {enCurso ? 'Continuar' : 'Iniciar'}
-                                <Icon name="arrow_forward" size="14px" />
-                              </Link>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                )}
-
-                {/* VISTA DESKTOP */}
-                {isDesktop && (
-                <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/75 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-                  <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-100/90 bg-white/45 px-6 py-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Área</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Disponibilidad</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Vence</span>
-                    <span className="text-right text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Acciones</span>
-                  </div>
-
-                  <div className="divide-y divide-slate-100/80">
-                    {pendientesGrupo.map((asig) => {
-                      const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
-                      const ind = asig.infoPeriodo;
-                      const borrador = leerBorrador(asig);
-                      const enCurso = borrador !== null;
-                      const enColaOffline = leerColaPendiente(asig.id);
-                      const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
-
-                      return (
-                        <div
-                          key={asig.id}
-                          className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
-                            asig.bloqueoPeriodoAnterior
-                              ? 'bg-slate-50/40'
-                              : enColaOffline
-                              ? 'bg-blue-50/20 hover:bg-blue-50/40'
-                              : enCurso
-                              ? 'bg-amber-50/10 hover:bg-amber-50/30'
-                              : esAtrasada
-                              ? 'bg-rose-50/30 hover:bg-rose-50/50'
-                              : 'hover:bg-slate-50/70'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
-                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                                asig.bloqueoPeriodoAnterior ? 'text-slate-500' : enColaOffline ? 'text-blue-600' : enCurso ? 'text-amber-600' : esAtrasada ? 'text-rose-700' : 'text-slate-500'
-                              }`}>
-                                <span className={`h-1.5 w-1.5 rounded-full ${
-                                  asig.bloqueoPeriodoAnterior ? 'bg-slate-400' : enColaOffline ? 'bg-blue-500' : enCurso ? 'bg-amber-500' : esAtrasada ? 'bg-rose-600' : 'bg-slate-400'
-                                }`} />
-                                {asig.bloqueoPeriodoAnterior
-                                  ? 'Bloqueada por periodo anterior'
-                                  : enColaOffline
-                                  ? 'Esperando señal'
-                                  : enCurso
-                                  ? 'En curso'
-                                  : esAtrasada
-                                  ? 'Atrasada'
-                                  : 'Pendiente'}
-                              </span>
-                              {enColaOffline && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2 py-0.5 text-[10px] font-black text-blue-800">
-                                  <Icon name="cloud_off" size="11px" />
-                                  Pendiente de envío
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="min-w-0">
-                            {enColaOffline ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 px-3 py-1 text-xs font-black uppercase text-blue-800 tracking-wide">
-                                <Icon name="cloud_off" size="13px" className="shrink-0 text-blue-600" />
-                                <span className="truncate">Completa — sin señal</span>
-                              </span>
-                            ) : asig.bloqueoPeriodoAnterior ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-3 py-1 text-xs font-black uppercase text-amber-800 tracking-wide">
-                                <Icon name="lock" size="13px" className="shrink-0 text-amber-600" />
-                                <span className="truncate">Primero termina P{asig.bloqueoPeriodoAnterior.periodo} de {asig.bloqueoPeriodoAnterior.mesEtiqueta}</span>
-                              </span>
-                            ) : ind && (
-                              <EstadoBadge estado={asig} label={ind.texto} />
-                            )}
-                          </div>
-
-                          <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
-                            {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
-                          </div>
-
-                          {canExecuteAudit ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setAsignacionCompartir(asig)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/60 hover:text-slate-600"
-                                title="Compartir"
-                              >
-                                <Icon name="share" size="15px" />
-                              </button>
-
-                              {enColaOffline ? (
-                                <Link
-                                  to={`/auditorias/${asig.id}/realizar`}
-                                  className="inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 text-xs font-black text-blue-700 backdrop-blur-md transition"
-                                  title="Ver estado de envío"
-                                >
-                                  <Icon name="cloud_off" size="14px" />
-                                  Ver estado
-                                </Link>
-                              ) : asig.bloqueoPeriodoAnterior ? (
-                                asig.bloqueoPeriodoAnterior.asignacionId ? (
-                                  <Link
-                                    to={`/auditorias/${asig.bloqueoPeriodoAnterior.asignacionId}/realizar`}
-                                    className="inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 text-xs font-black text-amber-800 backdrop-blur-md transition hover:bg-amber-100/80"
-                                    title={`Primero termina P${asig.bloqueoPeriodoAnterior.periodo} de ${asig.bloqueoPeriodoAnterior.mesEtiqueta}`}
-                                  >
-                                    Primero termina P{asig.bloqueoPeriodoAnterior.periodo}
-                                    <Icon name="arrow_forward" size="14px" />
-                                  </Link>
-                                ) : (
-                                  <Link
-                                    to={`/auditorias/${asig.id}/realizar`}
-                                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3 text-xs font-black text-slate-600 backdrop-blur-md"
-                                  >
-                                    Bloqueada
-                                    <Icon name="lock" size="14px" />
-                                  </Link>
-                                )
-                              ) : (
-                                <Link
-                                  to={`/auditorias/${asig.id}/realizar`}
-                                  className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
-                                    enCurso
-                                      ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
-                                      : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
-                                  }`}
-                                >
-                                  {enCurso ? 'Continuar' : 'Iniciar'}
-                                  <Icon name="arrow_forward" size="14px" />
-                                </Link>
-                              )}
-                            </div>
-                          ) : (
-                            <div />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                )}
-              </div>
-            );
+          {esComodin && comodinActuales.length > 0 && renderBloqueComodin(comodinActuales, {
+            key: 'comodin-actuales',
+            titulo: 'Otras auditorías pendientes',
+            subtitulo: 'Auditorías asignadas a otros usuarios en el periodo actual que puedes apoyar a realizar.',
+            badgeTexto: `${comodinActuales.length} en curso`,
+            esAtrasado: false,
           })}
-
-          {/* ==================================================
-              AUDITORÍAS PENDIENTES DE OTROS USUARIOS
-          ================================================== */}
-          {esComodin && comodinAudits.length > 0 && (
-            <div className="space-y-4 pt-4 border-t border-slate-200/80">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900">
-                    Otras auditorías pendientes
-                  </h2>
-                  <p className="text-xs font-semibold text-slate-500">
-                    Auditorías asignadas a otros usuarios en el periodo actual que puedes apoyar a realizar.
-                  </p>
-                </div>
-                <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-                  {comodinAudits.length} pendientes
-                </span>
-              </div>
-
-              {/* VISTA MOBILE */}
-              {!isDesktop && (
-              <div className="space-y-3">
-                {comodinAuditsOrdenadas.map((asig) => {
-                  const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
-                  const auditorTitular = asig.auditor?.nombre || 'Sin asignar';
-                  const responsableKpi = asig.responsableCumplimiento?.nombre;
-                  const ind = asig.infoPeriodo;
-                  const borrador = leerBorrador(asig);
-                  const enCurso = borrador !== null;
-                  const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
-
-                  return (
-                    <div
-                      key={asig.id}
-                      className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition ${
-                        enCurso
-                          ? 'border-amber-300/90 bg-amber-50/40 shadow-[0_8px_24px_rgba(245,158,11,0.08)]'
-                          : esAtrasada
-                          ? 'border-rose-300/90 bg-rose-50/35 shadow-[0_8px_24px_rgba(225,29,72,0.06)]'
-                          : 'border-slate-200/90 bg-slate-100/80 shadow-[0_8px_24px_rgba(15,23,42,0.04)]'
-                      }`}
-                    >
-                      <div className="p-4">
-                        {/* Banner titular */}
-                        <div className={`mb-2.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold ${
-                          enCurso
-                            ? 'border-amber-200/70 bg-amber-100/60 text-amber-900'
-                            : esAtrasada
-                            ? 'border-rose-200 bg-rose-100/60 text-rose-900'
-                            : 'border-slate-200 bg-slate-200/60 text-slate-700'
-                        }`}>
-                          <Icon name="person" size="13px" className={`shrink-0 ${enCurso ? 'text-amber-700' : esAtrasada ? 'text-rose-600' : 'text-slate-500'}`} />
-                          <span className="truncate">
-                            Asignada a: <strong className={`font-black ${enCurso ? 'text-amber-950' : esAtrasada ? 'text-rose-950' : 'text-slate-900'}`}>{auditorTitular}</strong>
-                          </span>
-                        </div>
-
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="text-sm font-black uppercase text-slate-900">{areaNombre}</h3>
-                            <p className={`mt-0.5 text-xs font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
-                              Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
-                            </p>
-                          </div>
-
-                          {borrador && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
-                              <Icon name="edit_note" size="12px" />
-                              {borrador.respondidas} de {borrador.total}
-                            </span>
-                          )}
-                        </div>
-
-                        {responsableKpi && responsableKpi !== auditorTitular && (
-                          <div className="mt-2 rounded-xl bg-slate-200/50 p-2 text-xs text-slate-600 flex items-center justify-between">
-                            <span className="font-semibold text-slate-500">Resp. KPI:</span>
-                            <span className="font-medium text-slate-700 truncate max-w-[180px]">{responsableKpi}</span>
-                          </div>
-                        )}
-
-                        {ind && (
-                          <div className="mt-3">
-                            <EstadoBadge
-                              estado={asig}
-                              label={ind.texto}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {canExecuteAudit && (
-                        <div className={`flex items-center justify-end gap-3 border-t px-4 py-2.5 backdrop-blur-md ${
-                          enCurso
-                            ? 'border-amber-100/70 bg-amber-50/40'
-                            : esAtrasada
-                            ? 'border-rose-100/70 bg-rose-50/30'
-                            : 'border-slate-200/70 bg-slate-100/60'
-                        }`}>
-                          <button
-                            type="button"
-                            onClick={() => setComodinModal(asig)}
-                            className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1.5 rounded-xl border px-3.5 text-xs font-black backdrop-blur-md transition ${
-                              enCurso
-                                ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
-                                : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
-                            }`}
-                          >
-                            {enCurso ? 'Continuar' : 'Iniciar'}
-                            <Icon name="arrow_forward" size="14px" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              )}
-
-              {/* VISTA DESKTOP */}
-              {isDesktop && (
-              <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/70 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-                <div className="grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 border-b border-slate-200/80 bg-slate-100/80 px-6 py-3">
-                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Área</span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Disponibilidad</span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Vence</span>
-                  <span className="text-right text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Acciones</span>
-                </div>
-
-                <div className="divide-y divide-slate-200/70">
-                  {comodinAuditsOrdenadas.map((asig) => {
-                    const areaNombre = asig.objetivoAuditoria?.area?.nombre ?? asig.objetivoAuditoria?.nombreAreaSnapshot ?? 'Área';
-                    const auditorTitular = asig.auditor?.nombre || 'Sin asignar';
-                    const responsableKpi = asig.responsableCumplimiento?.nombre;
-                    const ind = asig.infoPeriodo;
-                    const borrador = leerBorrador(asig);
-                    const enCurso = borrador !== null;
-                    const esAtrasada = ind?.status === 'VENCIDA' || ind?.texto === 'ATRASADA' || asig.estado === 'ATRASADA';
-
-                    return (
-                      <div
-                        key={asig.id}
-                        className={`grid grid-cols-[minmax(260px,1.6fr)_minmax(220px,1fr)_150px_240px] items-center gap-5 px-6 py-4 transition-colors ${
-                          enCurso
-                            ? 'bg-amber-50/25 hover:bg-amber-50/45'
-                            : esAtrasada
-                            ? 'bg-rose-50/30 hover:bg-rose-50/50'
-                            : 'bg-slate-100/50 hover:bg-slate-100/90'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-black uppercase leading-5 text-slate-900">{areaNombre}</h3>
-                          <div className="mt-1 flex flex-wrap items-center gap-2">
-                            <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold border ${
-                              enCurso
-                                ? 'bg-amber-50/90 text-amber-900 border-amber-200/70'
-                                : esAtrasada
-                                ? 'bg-rose-50 text-rose-900 border-rose-200/80'
-                                : 'bg-slate-200/70 text-slate-700 border-slate-300/80'
-                            }`}>
-                              <Icon name="person" size="12px" className={enCurso ? 'text-amber-700' : esAtrasada ? 'text-rose-600' : 'text-slate-500'} />
-                              Asignada a: <strong className={`font-bold ${enCurso ? 'text-amber-950' : esAtrasada ? 'text-rose-950' : 'text-slate-900'}`}>{auditorTitular}</strong>
-                              {responsableKpi && responsableKpi !== auditorTitular && (
-                                <span className={enCurso ? 'text-amber-600/80 font-normal' : esAtrasada ? 'text-rose-600/80 font-normal' : 'text-slate-500 font-normal'}> (KPI: {responsableKpi})</span>
-                              )}
-                            </span>
-                            {enCurso && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2 py-0.5 text-[10px] font-black text-amber-800">
-                                <Icon name="edit_note" size="12px" />
-                                {borrador.respondidas}/{borrador.total}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0">
-                          {ind && (
-                            <EstadoBadge
-                              estado={asig}
-                              label={ind.texto}
-                            />
-                          )}
-                        </div>
-
-                        <div className={`whitespace-nowrap text-sm font-semibold ${asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() || esAtrasada ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
-                          {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFecha(asig.venceEn)}
-                        </div>
-
-                        {canExecuteAudit ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setComodinModal(asig)}
-                              className={`inline-flex h-9 w-[112px] items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-black backdrop-blur-md transition ${
-                                enCurso
-                                  ? 'border-amber-200/80 bg-amber-50/70 text-amber-700'
-                                  : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-700'
-                              }`}
-                            >
-                              {enCurso ? 'Continuar' : 'Iniciar'}
-                              <Icon name="arrow_forward" size="14px" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
