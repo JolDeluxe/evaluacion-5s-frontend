@@ -9,6 +9,21 @@ import { MisPendientesAuditor } from '@/features/inicio/components/mis-pendiente
 import { ResultadoGlobalCard } from '@/features/inicio/components/resultado-global-card';
 import { ResultadosDepartamentos } from '@/features/inicio/components/resultados-departamentos';
 
+function AvisoConfiguracionInicio({ configuracion }) {
+  if (!configuracion || configuracion.estado === 'LISTA') return null;
+
+  const tipos = configuracion.tiposSinFormulario?.join(', ').toLowerCase();
+  const mensaje = configuracion.estado === 'SIN_AREAS'
+    ? 'Configura tus áreas auditables para comenzar.'
+    : `Falta configurar formulario activo para: ${tipos}.`;
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800">
+      Sistema pendiente de configuración. {mensaje}
+    </div>
+  );
+}
+
 export function InicioPage() {
   const { user } = useAuth();
   const { data, loading, error } = useInicioDashboard();
@@ -35,6 +50,8 @@ export function InicioPage() {
           {error}
         </div>
       )}
+
+      <AvisoConfiguracionInicio configuracion={data?.configuracion} />
 
       {/* 1. Cabecera / Bienvenida */}
       <InicioHeader

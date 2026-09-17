@@ -38,7 +38,7 @@ function AsignacionesHeader({ anio, mes, onPeriodoChange }) {
   );
 }
 
-function ResumenAsignaciones({ resumen, onOpenAutoasignar }) {
+function ResumenAsignaciones({ resumen, autoasignacionDeshabilitada, onOpenAutoasignar }) {
   return (
     <div className="space-y-2.5">
       <div className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
@@ -64,11 +64,28 @@ function ResumenAsignaciones({ resumen, onOpenAutoasignar }) {
           variant="default"
           icon="auto_fix_high"
           onClick={onOpenAutoasignar}
+          disabled={autoasignacionDeshabilitada}
           className="w-full md:w-auto shadow-sm text-xs font-black h-9"
         >
           Autoasignar pendientes
         </Button>
       </div>
+    </div>
+  );
+}
+
+function AvisoConfiguracion({ configuracion }) {
+  if (!configuracion || configuracion.estado === 'LISTA') return null;
+
+  const tipos = configuracion.tiposSinFormulario?.join(', ').toLowerCase();
+  const mensaje = configuracion.estado === 'SIN_AREAS'
+    ? 'Configura tus áreas auditables para comenzar. La programación mensual se generará cuando exista configuración válida.'
+    : `Falta configurar formulario activo para: ${tipos}. No se crearán auditorías incompletas hasta terminar esa configuración.`;
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+      <span className="font-black">Sistema pendiente de configuración. </span>
+      {mensaje}
     </div>
   );
 }
@@ -253,9 +270,12 @@ export function AsignacionesView({
       {data && (
         <ResumenAsignaciones
           resumen={data.resumen}
+          autoasignacionDeshabilitada={data.configuracion?.estado && data.configuracion.estado !== 'LISTA'}
           onOpenAutoasignar={() => setShowAutoModal(true)}
         />
       )}
+
+      <AvisoConfiguracion configuracion={data?.configuracion} />
 
       <FiltrosAsignaciones
         params={params}
