@@ -94,8 +94,11 @@ export function ResultadosDepartamentos({ departamentosCargo = [] }) {
                           : 'border-slate-100 bg-slate-50/40'
                       }`}
                     >
-                      <div className="space-y-0.5 min-w-0 pr-2">
-                        <p className={`text-xs font-black uppercase truncate ${tieneResultado ? 'text-slate-900' : 'text-slate-400'}`}>
+                      <div className="space-y-0.5 min-w-0 flex-1 pr-2">
+                        <p
+                          title={dep.nombre}
+                          className={`text-xs font-black uppercase line-clamp-2 break-words ${tieneResultado ? 'text-slate-900' : 'text-slate-400'}`}
+                        >
                           {dep.nombre}
                         </p>
                       </div>
@@ -155,8 +158,11 @@ export function ResultadosDepartamentos({ departamentosCargo = [] }) {
                           : 'border-slate-100 bg-slate-50/40 opacity-70'
                       }`}
                     >
-                      <div className="space-y-0.5 min-w-0 pr-2">
-                        <p className={`text-xs font-black uppercase truncate ${tieneResultado ? 'text-slate-900' : 'text-slate-400'}`}>
+                      <div className="space-y-0.5 min-w-0 flex-1 pr-2">
+                        <p
+                          title={dep.nombre}
+                          className={`text-xs font-black uppercase line-clamp-2 break-words ${tieneResultado ? 'text-slate-900' : 'text-slate-400'}`}
+                        >
                           {dep.nombre}
                         </p>
                       </div>
