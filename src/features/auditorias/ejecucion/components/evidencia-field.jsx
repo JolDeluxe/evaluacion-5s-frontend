@@ -198,14 +198,21 @@ export function EvidenciaField({
         return prev.filter((t) => t.id !== tarea.id);
       });
     } catch (err) {
-      const isOfflineError = !navigator.onLine || err?.name === 'TypeError' || err?.message?.toLowerCase().includes('failed to fetch');
+      const isOfflineError =
+        err?.esOffline ||
+        !navigator.onLine ||
+        err?.name === 'TypeError' ||
+        err?.message?.toLowerCase().includes('failed to fetch') ||
+        err?.message?.toLowerCase().includes('sin conexión');
       setColaSubidas((prev) =>
         prev.map((t) =>
           t.id === tarea.id
             ? {
                 ...t,
                 estado: isOfflineError ? 'offline' : 'error',
-                errorMsg: isOfflineError ? 'Guardada localmente (sin internet)' : err?.message || 'Error de subida',
+                errorMsg: isOfflineError
+                  ? 'Guardada — se sube cuando haya señal'
+                  : err?.message || 'Error de subida',
               }
             : t
         )

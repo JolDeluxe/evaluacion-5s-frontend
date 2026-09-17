@@ -14,7 +14,7 @@ import {
   obtenerCriterios,
 } from '@/features/auditorias/ejecucion/components/formulario-dinamico.helpers';
 import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-api';
-import { getAuditRuntimeStatus, markAuditDraftDirty, markAuditDraftSaved } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
+import { markAuditDraftDirty, markAuditDraftSaved, subscribeAuditRuntimeStatus } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
 import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
 import {
   eliminarDeCola,
@@ -193,7 +193,16 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   const [draftSavedAt, setDraftSavedAt] = useState(null);
   const [enColaPendiente, setEnColaPendiente] = useState(false);
   const [reintentandoOffline, setReintentandoOffline] = useState(false);
+  const [uploadsActivos, setUploadsActivos] = useState(0);
   const reintentarOfflineRef = useRef(null);
+
+  // Suscribirse al estado de subidas activas (reactivo, sin polling)
+  useEffect(() => {
+    const unsub = subscribeAuditRuntimeStatus((status) => {
+      setUploadsActivos(status.uploadsInProgress);
+    });
+    return unsub;
+  }, []);
 
   const bloques = useMemo(() => obtenerBloques(contexto.versionFormulario), [contexto.versionFormulario]);
   const secciones = useMemo(() => agruparSecciones(bloques), [bloques]);
@@ -375,16 +384,9 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     return () => window.removeEventListener('online', handleOnline);
   }, [preview]);
 
-  const handleIntentarFinalizar = async () => {
-    // Si estamos con internet y hay subidas activas, dar un breve momento
-    if (typeof navigator !== 'undefined' && navigator.onLine) {
-      const runtimeStatus = getAuditRuntimeStatus();
-      if (runtimeStatus.uploadsInProgress > 0) {
-        setFeedbackIncompleto('Hay evidencias subiéndose. Espera un momento antes de revisar.');
-        return;
-      }
-    }
-
+  const handleIntentarFinalizar = () => {
+    // Las fotos se siguen subiendo en background; nunca bloqueamos el avance.
+    // Si alguna no terminó, se sincronizará al momento de enviar al backend.
     const { isValid, faltantes } = validarTodo();
     if (isValid) {
       setFeedbackIncompleto(null);
@@ -711,6 +713,25 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           savedAt={draftSavedAt}
         />
         <main className="mx-auto w-full max-w-2xl space-y-8 px-4 pb-12 pt-4">
+          {/* Banner: fotos aún subiendo (informativo, no bloqueante) */}
+          {!enColaPendiente && uploadsActivos > 0 && (
+            <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                  <Icon name="progress_activity" size="sm" className="animate-spin" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-amber-900">
+                    {uploadsActivos === 1 ? '1 foto subiendo…' : `${uploadsActivos} fotos subiendo…`}
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold text-amber-700">
+                    Puedes revisar y finalizar mientras terminan de subir. Si no hay señal se guardan y se suben al enviar.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {enColaPendiente && (
             <OfflinePendingBanner
               reintentando={reintentandoOffline || isSubmitting}
@@ -734,9 +755,23 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           onClose={() => setShowConfirmQrModal(false)}
           onConfirm={handleConfirmQrCode}
         />
+
+        {/* Overlay de carga al enviar: previene doble tap / doble envío */}
+        {(isSubmitting || reintentandoOffline) && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/85 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/70 bg-white/90 p-8 shadow-2xl shadow-slate-950/10">
+              <Icon name="progress_activity" size="xl" className="animate-spin text-marca-acento" />
+              <div className="text-center space-y-1">
+                <p className="text-base font-black text-slate-900">Enviando auditoría…</p>
+                <p className="text-xs font-semibold text-slate-500">No cierres la aplicación</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
+
 
   return (
     <div className="relative min-h-dvh bg-app-surface">

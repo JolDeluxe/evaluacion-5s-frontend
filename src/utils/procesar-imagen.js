@@ -17,34 +17,31 @@ export const procesarImagen = async (file) => {
       const convertedBlob = await heic2any({
         blob: file,
         toType: 'image/jpeg',
-        quality: 0.8, // Calidad intermedia antes de la compresión final
+        quality: 0.75,
       });
 
-      // heic2any puede devolver un array de blobs, tomamos el primero
       const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-
-      // Reconstruir el archivo
       const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
       fileToCompress = new File([blob], newName, { type: 'image/jpeg' });
     }
 
-    // 2. Compresión Agresiva y control de dimensiones
+    // 2. Compresión rápida: target 250 KB para redes lentas de planta
+    //    initialQuality 0.75 converge más rápido que 0.8 → menos iteraciones internas
     const options = {
-      maxSizeMB: 0.3, // Máximo 300KB por foto (ideal para redes lentas)
-      maxWidthOrHeight: 1600, // Evita fotos de 4K
-      useWebWorker: true, // No bloquea la interfaz de usuario
-      fileType: 'image/webp', // Formato de última generación
-      initialQuality: 0.8,
+      maxSizeMB: 0.25,           // 250 KB — buen equilibrio velocidad/calidad para evidencias 5S
+      maxWidthOrHeight: 1280,    // Bajado de 1600: fotos de auditoría no necesitan 1600px
+      useWebWorker: true,        // No bloquea UI
+      fileType: 'image/webp',
+      initialQuality: 0.75,
+      alwaysKeepResolution: false,
     };
 
     const compressedBlob = await imageCompression(fileToCompress, options);
 
-    // Devolver como objeto File
     const finalName = fileToCompress.name.replace(/\.[^/.]+$/, '.webp');
     return new File([compressedBlob], finalName, { type: 'image/webp' });
   } catch (error) {
     console.error('Error al procesar la imagen:', error);
-    // Si la compresión falla, fallback devolviendo el archivo original
     return file;
   }
 };
