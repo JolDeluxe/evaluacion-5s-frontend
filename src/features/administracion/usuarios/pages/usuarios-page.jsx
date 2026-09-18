@@ -870,11 +870,12 @@ export function UsuariosPage() {
 
   const startEdit = (usuario) => {
     const responsables = (usuario.areasUsuario ?? []).map((ua) => String(ua.area.id));
+    const telLocal = (usuario.telefonoE164 ?? '').replace(/^\+52/, '');
     setForm({
       nombre: usuario.nombre,
       nombreUsuario: usuario.nombreUsuario,
       correo: usuario.correo ?? '',
-      telefonoE164: usuario.telefonoE164 ?? '',
+      telefonoE164: telLocal,
       rol: usuario.rol,
       esComodin: Boolean(usuario.esComodin),
       puedeSerAsignadoAuditoria: usuario.puedeSerAsignadoAuditoria ?? true,
@@ -892,8 +893,9 @@ export function UsuariosPage() {
     setSaving(true);
     setActionError(null);
     try {
-      if (form.telefonoE164 && !/^\+[1-9]\d{7,14}$/.test(form.telefonoE164.trim())) {
-        throw new Error('El teléfono debe usar formato E.164, por ejemplo +525512345678.');
+      const telNumeros = (form.telefonoE164 ?? '').replace(/\D/g, '');
+      if (telNumeros && telNumeros.length !== 10) {
+        throw new Error('El número de teléfono debe ser de 10 dígitos (por ejemplo: 4772756778).');
       }
       if (!isValidUsername(form.nombreUsuario.trim())) {
         throw new Error('El username debe usar solo letras minúsculas, sin espacios, números ni símbolos.');
@@ -907,7 +909,7 @@ export function UsuariosPage() {
         nombre: form.nombre.trim(),
         nombreUsuario: normalizeUsernameInput(form.nombreUsuario),
         correo: form.correo?.trim() || null,
-        telefonoE164: form.telefonoE164.trim() || null,
+        telefonoE164: telNumeros ? `+52${telNumeros}` : null,
         rol: form.rol,
         esComodin: form.rol === 'ADMINISTRADOR' ? Boolean(form.esComodin) : false,
         puedeSerAsignadoAuditoria: Boolean(form.puedeSerAsignadoAuditoria ?? true),
@@ -1369,17 +1371,32 @@ export function UsuariosPage() {
               </div>
 
               <div>
-                <Label htmlFor="crear-tel">Teléfono <span className="text-slate-400 font-normal italic">(Opcional, E.164)</span></Label>
-                <Input
-                  id="crear-tel"
-                  name="telefonoE164"
-                  autoComplete="tel"
-                  type="tel"
-                  inputMode="tel"
-                  value={form.telefonoE164}
-                  placeholder="+525512345678"
-                  onChange={(e) => setForm({ ...form, telefonoE164: e.target.value })}
-                />
+                <Label htmlFor="crear-tel">
+                  Teléfono <span className="text-slate-400 font-normal italic">(10 dígitos, opcional)</span>
+                </Label>
+                <div className="relative flex items-center">
+                  <span className="inline-flex h-9 items-center justify-center rounded-l-lg border border-r-0 border-slate-200 bg-slate-100 px-3 text-xs font-bold text-slate-600 select-none">
+                    +52
+                  </span>
+                  <Input
+                    id="crear-tel"
+                    name="telefonoE164"
+                    autoComplete="tel"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={form.telefonoE164}
+                    placeholder="4772756778"
+                    className="rounded-l-none font-mono"
+                    onChange={(e) => {
+                      const digitos = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setForm({ ...form, telefonoE164: digitos });
+                    }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Ingresa solo los 10 dígitos locales. El código de país (+52) se incluye automáticamente.
+                </p>
               </div>
 
               <div>
