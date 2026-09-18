@@ -900,7 +900,7 @@ export function UsuariosPage() {
       }
 
       if (form.seEvalua && form.areasResponsablesIds.length === 0) {
-        throw new Error('Para activar "Se evalúa con KPI 50/50", el usuario debe tener al menos un área asignada.');
+        throw new Error('Para activar "Se evalúa con KPI", el usuario debe tener al menos un área asignada.');
       }
 
       const payload = {
@@ -1398,7 +1398,9 @@ export function UsuariosPage() {
                   <option value="AUDITOR">Auditor</option>
                   <option value="ADMINISTRADOR">Administrador</option>
                   <option value="VISUALIZADOR">Visualizador</option>
-                  {currentUser?.rol === 'SUPER_ADMIN' && <option value="SUPER_ADMIN">Super Admin</option>}
+                  {(currentUser?.rol === 'SUPER_ADMIN' || editingUsuario?.rol === 'SUPER_ADMIN' || form.rol === 'SUPER_ADMIN') && (
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                  )}
                 </Select>
 
                 <div className="mt-3 space-y-2.5 rounded-xl border border-slate-200/80 bg-slate-50/60 p-3">
@@ -1449,9 +1451,9 @@ export function UsuariosPage() {
                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-marca-secundario focus:ring-marca-secundario/20"
                       />
                       <div>
-                        <span className="text-xs font-bold text-slate-800">Se evalúa con KPI 50/50</span>
+                        <span className="text-xs font-bold text-slate-800">Se evalúa con KPI</span>
                         <p className="text-[11px] font-medium text-slate-500">
-                          Incluye al usuario en el cálculo mensual del KPI 50/50 (50% cumplimiento individual + 50% promedio de áreas a cargo).
+                          Incluye al usuario en el cálculo mensual del KPI (50% cumplimiento individual + 50% promedio de áreas a cargo).
                         </p>
                       </div>
                     </label>
@@ -1459,7 +1461,7 @@ export function UsuariosPage() {
                       <div className="ml-6 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-[11px] font-semibold text-amber-800 flex items-start gap-2">
                         <Icon name="warning" size="xs" className="text-amber-600 shrink-0 mt-0.5" />
                         <span>
-                          Para activar la evaluación de KPI 50/50, el usuario debe tener al menos un área asignada bajo su responsabilidad.
+                          Para activar la evaluación de KPI, el usuario debe tener al menos un área asignada bajo su responsabilidad.
                         </span>
                       </div>
                     )}
