@@ -9,6 +9,7 @@ import { AsignacionesList } from '@/features/administracion/asignaciones/compone
 import { EditarAsignacionModal } from '@/features/administracion/asignaciones/components/editar-asignacion-modal';
 import { CargaMensual } from '@/features/administracion/asignaciones/components/carga-mensual';
 import { AutoasignacionModal } from '@/features/administracion/asignaciones/components/autoasignacion-modal';
+import { GestionarAsignacionesModal } from '@/features/administracion/asignaciones/components/gestionar-asignaciones-modal';
 import { AdministracionNav } from '@/features/administracion/components/administracion-nav';
 import { ESTADOS_ASIGNACION } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
@@ -38,7 +39,7 @@ function AsignacionesHeader({ anio, mes, onPeriodoChange }) {
   );
 }
 
-function ResumenAsignaciones({ resumen, autoasignacionDeshabilitada, onOpenAutoasignar }) {
+function ResumenAsignaciones({ resumen, autoasignacionDeshabilitada, onOpenAutoasignar, onOpenGestionar }) {
   return (
     <div className="space-y-2.5">
       <div className="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
@@ -58,14 +59,23 @@ function ResumenAsignaciones({ resumen, autoasignacionDeshabilitada, onOpenAutoa
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-col sm:flex-row justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          icon="tune"
+          onClick={onOpenGestionar}
+          className="w-full sm:w-auto shadow-sm text-xs font-black h-9 bg-white border-slate-300 hover:bg-slate-50"
+        >
+          Gestionar asignaciones
+        </Button>
         <Button
           type="button"
           variant="default"
           icon="auto_fix_high"
           onClick={onOpenAutoasignar}
           disabled={autoasignacionDeshabilitada}
-          className="w-full md:w-auto shadow-sm text-xs font-black h-9"
+          className="w-full sm:w-auto shadow-sm text-xs font-black h-9"
         >
           Autoasignar pendientes
         </Button>
@@ -262,6 +272,7 @@ export function AsignacionesView({
   onReabrirAsignacion,
 }) {
   const [showAutoModal, setShowAutoModal] = useState(false);
+  const [showGestionarModal, setShowGestionarModal] = useState(false);
 
   return (
     <section className="space-y-4 pb-16">
@@ -272,6 +283,7 @@ export function AsignacionesView({
           resumen={data.resumen}
           autoasignacionDeshabilitada={data.configuracion?.estado && data.configuracion.estado !== 'LISTA'}
           onOpenAutoasignar={() => setShowAutoModal(true)}
+          onOpenGestionar={() => setShowGestionarModal(true)}
         />
       )}
 
@@ -304,10 +316,7 @@ export function AsignacionesView({
           filas={data?.filas ?? []}
           anio={anio}
           mes={mes}
-          auditores={data?.auditores ?? []}
           onEdit={onEdit}
-          onSaveAsignacion={onSaveAsignacion}
-          onSaved={onSaved}
         />
       )}
 
@@ -321,6 +330,18 @@ export function AsignacionesView({
           onSaved={onSaved}
           onSaveAsignacion={onSaveAsignacion}
           onReabrirAsignacion={onReabrirAsignacion}
+        />
+      )}
+
+      {showGestionarModal && (
+        <GestionarAsignacionesModal
+          filas={data?.filas ?? []}
+          auditores={data?.auditores ?? []}
+          anio={anio}
+          mes={mes}
+          onClose={() => setShowGestionarModal(false)}
+          onSaved={onSaved}
+          onSaveAsignacion={onSaveAsignacion}
         />
       )}
 
