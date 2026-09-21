@@ -17,9 +17,19 @@ export function GestionarAsignacionesModal({
   onClose,
   onSaved,
   onSaveAsignacion,
+  onSaveLoteAsignaciones,
 }) {
   // Estado local para almacenar las asignaciones modificadas en el modal: { [areaId]: auditorId }
   const [asignaciones, setAsignaciones] = useState(() => {
+    const mapa = {};
+    filas.forEach((fila) => {
+      mapa[fila.area.id] = fila.auditorMensual?.id ? String(fila.auditorMensual.id) : '';
+    });
+    return mapa;
+  });
+
+  // Base de valores persistidos (se inicializa con filas y se actualiza al guardar parcialmente)
+  const [valoresPersistidos, setValoresPersistidos] = useState(() => {
     const mapa = {};
     filas.forEach((fila) => {
       mapa[fila.area.id] = fila.auditorMensual?.id ? String(fila.auditorMensual.id) : '';
@@ -32,23 +42,14 @@ export function GestionarAsignacionesModal({
   const [erroresPorArea, setErroresPorArea] = useState({});
   const [resumenGuardado, setResumenGuardado] = useState(null);
 
-  // Mapa con los valores originales persistidos para saber qué áreas cambiaron
-  const valoresOriginales = useMemo(() => {
-    const mapa = {};
-    filas.forEach((fila) => {
-      mapa[fila.area.id] = fila.auditorMensual?.id ? String(fila.auditorMensual.id) : '';
-    });
-    return mapa;
-  }, [filas]);
-
-  // Lista de áreas que tienen cambios pendientes respecto al original
+  // Lista de áreas que tienen cambios pendientes respecto a los valores base persistidos
   const areasModificadas = useMemo(() => {
     return filas.filter((fila) => {
       const valorActual = asignaciones[fila.area.id] ?? '';
-      const valorOriginal = valoresOriginales[fila.area.id] ?? '';
+      const valorOriginal = valoresPersistidos[fila.area.id] ?? '';
       return valorActual !== valorOriginal;
     });
-  }, [filas, asignaciones, valoresOriginales]);
+  }, [filas, asignaciones, valoresPersistidos]);
 
   const cambiosCount = areasModificadas.length;
 
@@ -78,64 +79,117 @@ export function GestionarAsignacionesModal({
     );
   }, [filas, q]);
 
-  // Guardado masivo con manejo exhaustivo de errores parciales
+  // Guardado masivo mediante un único POST /mensual/lote secuencial y atómico por área
   const handleGuardar = async () => {
+    // Protección estricta contra doble clic y ejecuciones concurrentes
     if (cambiosCount === 0 || guardando) return;
 
     setGuardando(true);
     setResumenGuardado(null);
 
     const nuevosErrores = {};
-    let exitoCount = 0;
-    let falloCount = 0;
+    const loteAEnviar = [];
 
-    // Procesar concurrentemente cada área modificada utilizando el endpoint existente PUT /mensual/:areaId
-    const promesas = areasModificadas.map(async (fila) => {
+    // Validar precondiciones locales y preparar lote
+    for (const fila of areasModificadas) {
       const areaId = fila.area.id;
       const nuevoAuditorId = asignaciones[areaId];
 
-      // Regla de validación: si el usuario seleccionó vacío pero la API exige auditor
       if (!nuevoAuditorId) {
         nuevosErrores[areaId] = 'Debes seleccionar un auditor válido para asignar esta área.';
-        falloCount += 1;
-        return;
+        continue;
       }
 
-      try {
-        const payload = buildGuardarAsignacionMensualPayload({
+      const valorOriginal = valoresPersistidos[areaId];
+      loteAEnviar.push({
+        areaId,
+        auditorMensualId: Number(nuevoAuditorId),
+        expectedAuditorId: valorOriginal ? Number(valorOriginal) : null,
+      });
+    }
+
+    if (loteAEnviar.length === 0) {
+      setGuardando(false);
+      setErroresPorArea(nuevosErrores);
+      setResumenGuardado({ exito: 0, fallo: Object.keys(nuevosErrores).length });
+      return;
+    }
+
+    try {
+      let resultado;
+      if (onSaveLoteAsignaciones) {
+        resultado = await onSaveLoteAsignaciones({
           anio,
           mes,
-          form: { auditorMensualId: Number(nuevoAuditorId) },
-          expectedAuditorId: fila.auditorMensual?.id ?? null,
+          asignaciones: loteAEnviar,
         });
-
-        await onSaveAsignacion(areaId, payload);
-        exitoCount += 1;
-      } catch (err) {
-        falloCount += 1;
-        nuevosErrores[areaId] = err?.message || 'Error al guardar la asignación.';
+      } else {
+        // Fallback defensivo si no estuviera disponible el método de lote
+        const guardadas = [];
+        const fallidas = [];
+        for (const item of loteAEnviar) {
+          try {
+            await onSaveAsignacion(item.areaId, {
+              anio,
+              mes,
+              auditorMensualId: item.auditorMensualId,
+              expectedAuditorId: item.expectedAuditorId,
+            });
+            guardadas.push(item.areaId);
+          } catch (err) {
+            fallidas.push({ areaId: item.areaId, motivo: err?.message || 'Error al guardar' });
+          }
+        }
+        resultado = { guardadas, fallidas };
       }
-    });
 
-    await Promise.allSettled(promesas);
+      const guardadasSet = new Set(resultado.guardadas || []);
+      const fallidas = resultado.fallidas || [];
 
-    setGuardando(false);
-    setErroresPorArea(nuevosErrores);
-
-    if (falloCount === 0) {
-      // Todo se guardó con éxito: cerramos modal y refrescamos vista
-      onSaved();
-      onClose();
-    } else {
-      // Hubo errores parciales: reportar en cabecera del modal y mantener las áreas fallidas
-      setResumenGuardado({
-        exito: exitoCount,
-        fallo: falloCount,
+      // Mapear errores devueltos por el backend a cada área
+      fallidas.forEach((f) => {
+        nuevosErrores[f.areaId] = f.motivo || 'Error al guardar la asignación.';
       });
-      // Si al menos una se guardó con éxito, refrescar en segundo plano para sincronizar la BD
-      if (exitoCount > 0) {
-        onSaved();
+
+      // Actualizar valores base persistidos para las que sí se guardaron correctamente
+      if (guardadasSet.size > 0) {
+        setValoresPersistidos((prev) => {
+          const copia = { ...prev };
+          guardadasSet.forEach((areaId) => {
+            copia[areaId] = asignaciones[areaId] ?? '';
+          });
+          return copia;
+        });
       }
+
+      const exitoCount = guardadasSet.size;
+      const falloCount = Object.keys(nuevosErrores).length;
+
+      setErroresPorArea(nuevosErrores);
+
+      if (falloCount === 0) {
+        // Todo el lote se guardó con éxito: cerramos modal y refrescamos la vista
+        onSaved();
+        onClose();
+      } else {
+        setResumenGuardado({ exito: exitoCount, fallo: falloCount });
+        // Si al menos una guardó con éxito, refrescamos la vista exterior
+        if (exitoCount > 0) {
+          onSaved();
+        }
+      }
+    } catch (errorLote) {
+      // Error de red o fallo general de la petición
+      setResumenGuardado({
+        exito: 0,
+        fallo: loteAEnviar.length,
+      });
+      loteAEnviar.forEach((item) => {
+        nuevosErrores[item.areaId] = errorLote?.message || 'Error al conectar con el servidor.';
+      });
+      setErroresPorArea(nuevosErrores);
+    } finally {
+      setGuardando(false);
     }
   };
 

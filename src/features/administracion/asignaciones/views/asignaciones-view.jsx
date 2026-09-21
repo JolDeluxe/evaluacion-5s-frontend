@@ -269,6 +269,7 @@ export function AsignacionesView({
   onEdit,
   onCloseEdit,
   onSaveAsignacion,
+  onSaveLoteAsignaciones,
   onReabrirAsignacion,
 }) {
   const [showAutoModal, setShowAutoModal] = useState(false);
@@ -342,6 +343,7 @@ export function AsignacionesView({
           onClose={() => setShowGestionarModal(false)}
           onSaved={onSaved}
           onSaveAsignacion={onSaveAsignacion}
+          onSaveLoteAsignaciones={onSaveLoteAsignaciones}
         />
       )}
 

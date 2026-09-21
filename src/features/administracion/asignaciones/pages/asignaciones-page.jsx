@@ -20,6 +20,7 @@ export function AsignacionesPage() {
       onCloseEdit={asignaciones.cerrarEdicion}
       onSaved={asignaciones.handleSaved}
       onSaveAsignacion={asignaciones.guardarAsignacionMensual}
+      onSaveLoteAsignaciones={asignaciones.guardarLoteAsignacionesMensuales}
       onReabrirAsignacion={asignaciones.reabrirAsignacion}
     />
   );

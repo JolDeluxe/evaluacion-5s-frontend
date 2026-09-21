@@ -65,6 +65,10 @@ export function useAsignaciones() {
     return asignacionesApi.guardarMensual(areaId, payload);
   }, []);
 
+  const guardarLoteAsignacionesMensuales = useCallback((payload) => {
+    return asignacionesApi.guardarLoteMensual(payload);
+  }, []);
+
   const reabrirAsignacion = useCallback((asignacionId, payload) => {
     return asignacionesApi.reabrir(asignacionId, payload);
   }, []);
@@ -91,6 +95,7 @@ export function useAsignaciones() {
     mensaje,
     handlePeriodo,
     guardarAsignacionMensual,
+    guardarLoteAsignacionesMensuales,
     reabrirAsignacion,
     cerrarEdicion,
     handleSaved,
