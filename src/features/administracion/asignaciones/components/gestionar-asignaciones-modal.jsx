@@ -9,6 +9,8 @@ import {
   MESES,
 } from '@/features/administracion/asignaciones/utils/asignaciones-utils';
 
+import { asignacionesApi } from '@/features/administracion/asignaciones/api/asignaciones-api';
+
 export function GestionarAsignacionesModal({
   filas = [],
   auditores = [],
@@ -116,32 +118,12 @@ export function GestionarAsignacionesModal({
     }
 
     try {
-      let resultado;
-      if (onSaveLoteAsignaciones) {
-        resultado = await onSaveLoteAsignaciones({
-          anio,
-          mes,
-          asignaciones: loteAEnviar,
-        });
-      } else {
-        // Fallback defensivo si no estuviera disponible el método de lote
-        const guardadas = [];
-        const fallidas = [];
-        for (const item of loteAEnviar) {
-          try {
-            await onSaveAsignacion(item.areaId, {
-              anio,
-              mes,
-              auditorMensualId: item.auditorMensualId,
-              expectedAuditorId: item.expectedAuditorId,
-            });
-            guardadas.push(item.areaId);
-          } catch (err) {
-            fallidas.push({ areaId: item.areaId, motivo: err?.message || 'Error al guardar' });
-          }
-        }
-        resultado = { guardadas, fallidas };
-      }
+      const fnGuardarLote = onSaveLoteAsignaciones || asignacionesApi.guardarLoteMensual;
+      const resultado = await fnGuardarLote({
+        anio,
+        mes,
+        asignaciones: loteAEnviar,
+      });
 
       const guardadasSet = new Set(resultado.guardadas || []);
       const fallidas = resultado.fallidas || [];
