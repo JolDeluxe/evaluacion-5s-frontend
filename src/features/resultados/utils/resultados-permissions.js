@@ -13,7 +13,7 @@ export function canViewRestrictedResultSections(role) {
 }
 
 export function canViewAreaDetail(role) {
-  return role !== ROLES.VISUALIZADOR && Boolean(role);
+  return RESULTS_ROLES.includes(role);
 }
 
 export function getResultadosDefaultPath(role, search = '') {

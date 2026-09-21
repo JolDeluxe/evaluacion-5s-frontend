@@ -22,14 +22,11 @@ describe('permisos de resultados generales', () => {
     expect(canViewRestrictedResultSections(ROLES.AUDITOR)).toBe(false);
   });
 
-  test('VISUALIZADOR no puede ver detalle de área', () => {
-    expect(canViewAreaDetail(ROLES.VISUALIZADOR)).toBe(false);
-  });
-
   test.each([
     ROLES.SUPER_ADMIN,
     ROLES.ADMINISTRADOR,
     ROLES.AUDITOR,
+    ROLES.VISUALIZADOR,
   ])('%s puede ver detalle de área', (role) => {
     expect(canViewAreaDetail(role)).toBe(true);
   });
