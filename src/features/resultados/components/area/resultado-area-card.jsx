@@ -107,7 +107,7 @@ export function ResultadoAreaCard({ item, mes, rango }) {
 
             <div className="flex items-center gap-2 shrink-0">
               <EstadoPeriodoTexto periodo={periodo} />
-              {canViewDetail && (
+              {!isGeneral && canViewDetail && (
                 <Button
                   as={Link}
                   to={`/resultados/areas/${item.area.id}/periodos/${periodo.periodo}?mes=${mes}`}
