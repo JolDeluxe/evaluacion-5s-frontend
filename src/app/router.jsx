@@ -115,7 +115,7 @@ export const router = createBrowserRouter([
               { path: 'general', element: <ResultadosPage /> },
               { path: 'areas', element: <ResultadosPage /> },
               {
-                element: <RequireRole roles={AUDIT_VIEW_ROLES} />,
+                element: <RequireRole roles={RESULTS_ROLES} />,
                 children: [
                   { path: 'areas/:areaId', element: <ResultadoAreaPage /> },
                   { path: 'areas/:areaId/periodos/:periodo', element: <ResultadoPeriodoPage /> },
