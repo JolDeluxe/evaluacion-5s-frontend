@@ -458,15 +458,10 @@ export function MisAuditoriasPage() {
                       </p>
                     </div>
 
-                    {enColaOffline ? (
+                    {enColaOffline && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 px-2.5 py-0.5 text-[10px] font-black text-blue-800">
                         <Icon name="cloud_off" size="12px" />
                         Pendiente de envío
-                      </span>
-                    ) : borrador && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
-                        <Icon name="edit_note" size="12px" />
-                        {borrador.respondidas} de {borrador.total}
                       </span>
                     )}
                   </div>
@@ -797,13 +792,6 @@ export function MisAuditoriasPage() {
                         Vence: {asig.reabiertaHasta && new Date(asig.reabiertaHasta) > new Date() ? 'Hoy 23:59' : formatearFechaCorta(asig.venceEn)}
                       </p>
                     </div>
-
-                    {borrador && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
-                        <Icon name="edit_note" size="12px" />
-                        {borrador.respondidas} de {borrador.total}
-                      </span>
-                    )}
                   </div>
 
                   {responsableKpi && responsableKpi !== auditorTitular && (
@@ -898,12 +886,6 @@ export function MisAuditoriasPage() {
                           <span className={enCurso ? 'text-amber-600/80 font-normal' : esAtrasada ? 'text-rose-600/80 font-normal' : 'text-slate-500 font-normal'}> (KPI: {responsableKpi})</span>
                         )}
                       </span>
-                      {enCurso && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2 py-0.5 text-[10px] font-black text-amber-800">
-                          <Icon name="edit_note" size="12px" />
-                          {borrador.respondidas}/{borrador.total}
-                        </span>
-                      )}
                     </div>
                   </div>
 
