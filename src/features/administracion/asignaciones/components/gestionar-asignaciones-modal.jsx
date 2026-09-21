@@ -234,7 +234,7 @@ export function GestionarAsignacionesModal({
               const areaId = fila.area.id;
               const editable = esFilaEditable(fila, anio, mes);
               const valorActual = asignaciones[areaId] ?? '';
-              const valorOriginal = valoresOriginales[areaId] ?? '';
+              const valorOriginal = valoresPersistidos[areaId] ?? '';
               const fueModificada = valorActual !== valorOriginal;
               const errorArea = erroresPorArea[areaId];
 
