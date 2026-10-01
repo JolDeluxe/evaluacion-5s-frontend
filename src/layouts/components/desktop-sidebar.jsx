@@ -145,7 +145,7 @@ export function DesktopSidebar() {
       )}>
         <p className="fuente-titulos whitespace-nowrap text-xl uppercase tracking-wide text-white">Cuadra 5S</p>
         <p className="font-codigo mt-1 rounded-sm bg-marca-primario/50 px-2 py-0.5 text-[10px] text-cuadra-arena shadow-inner">
-          v.desarrollo
+          v.1.0.0
         </p>
         <p className="mt-3 text-[10px] leading-tight text-white/50">
           Desarrollado por el equipo de <br />
