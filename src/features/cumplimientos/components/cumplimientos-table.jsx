@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/form/input';
 import { CumplimientoChip } from '@/features/cumplimientos/components/cumplimiento-chip';
@@ -13,6 +14,7 @@ export function CumplimientosTable({
   filtroTipo: filtroTipoProp,
   onFiltroTipoChange,
 }) {
+  const isDesktop = useIsDesktop();
   const [busquedaLocal, setBusquedaLocal] = useState('');
   const [filtroTipoLocal, setFiltroTipoLocal] = useState('TODAS');
 
@@ -81,7 +83,8 @@ export function CumplimientosTable({
       )}
 
       {/* Tabla Desktop */}
-      <div className="hidden md:block overflow-hidden rounded-2xl border border-white/80 bg-white/80 shadow-xl backdrop-blur-xl">
+      {isDesktop ? (
+        <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/80 shadow-xl backdrop-blur-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200/70 bg-slate-50/80 text-[10px] font-black uppercase tracking-wider text-slate-500">
@@ -164,9 +167,9 @@ export function CumplimientosTable({
           </table>
         </div>
       </div>
-
-      {/* Vista Mobile Cards */}
-      <div className="block md:hidden space-y-3">
+      ) : (
+      /* Vista Mobile Cards */
+      <div className="space-y-3">
         {filasFiltradas.length === 0 ? (
           <div className="p-8 text-center text-slate-400 bg-white/70 rounded-2xl border border-white">
             No se encontraron registros.
@@ -232,6 +235,7 @@ export function CumplimientosTable({
           ))
         )}
       </div>
+      )}
     </div>
   );
 }

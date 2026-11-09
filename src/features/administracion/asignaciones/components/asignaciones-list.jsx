@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { PeriodoBadge, PeriodosResumen } from '@/features/administracion/asignaciones/components/estado-asignacion';
 import { EstadoBadge } from '@/features/auditorias/shared/components/estado-badge';
 import {
@@ -96,10 +97,13 @@ export function AsignacionesList({
   mes,
   onEdit,
 }) {
+  const isDesktop = useIsDesktop();
+
   return (
     <>
-      <Card className="hidden overflow-visible border-app-border bg-white shadow-sm md:block">
-        <table className="w-full text-sm">
+      {isDesktop ? (
+        <Card className="overflow-visible border-app-border bg-white shadow-sm">
+          <table className="w-full text-sm">
           <thead className="border-b border-app-border bg-slate-50/70 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
             <tr>
               <th className="px-5 py-3 text-left">Área</th>
@@ -151,8 +155,8 @@ export function AsignacionesList({
           </p>
         )}
       </Card>
-
-      <div className="space-y-3 md:hidden">
+      ) : (
+      <div className="space-y-3">
         {filas.map((fila) => (
           <MobileCard
             key={fila.area.id}
@@ -168,6 +172,7 @@ export function AsignacionesList({
           </Card>
         )}
       </div>
+      )}
     </>
   );
 }

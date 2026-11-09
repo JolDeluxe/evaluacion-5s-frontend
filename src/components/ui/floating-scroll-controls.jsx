@@ -35,7 +35,7 @@ export function FloatingScrollControls() {
 
   return (
     <div
-      className={`fixed bottom-24 right-4 z-50 flex flex-col gap-2 transition-all duration-300 md:hidden ${
+      className={`fixed bottom-24 right-4 z-50 flex flex-col gap-2 transition-all duration-300 ${
         visible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
       }`}
     >

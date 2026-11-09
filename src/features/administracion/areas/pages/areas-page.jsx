@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUrlState, parsePageParam } from '@/hooks/use-url-state';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
@@ -420,16 +421,8 @@ export function AreasPage() {
     setSearch('q', '');
   };
 
-  const [isMobile, setIsMobile] = useState(false);
+  const isDesktop = useIsDesktop();
   const debounceRef = useRef(null);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    setIsMobile(mq.matches);
-    const handler = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   const cargar = useCallback(async (currentParams) => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
@@ -697,65 +690,68 @@ export function AreasPage() {
         </div>
       </div>
 
-      {/* Filtros Mobile (Búsqueda + Botón Filtros Modal) */}
-      <div className="md:hidden space-y-2">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-            <Icon name="search" size="18px" />
-          </span>
-          <Input
-            type="text"
-            placeholder="Buscar por nombre o responsable..."
-            value={params.q}
-            onChange={(e) => handleFiltro('q', e.target.value)}
-            className="bg-white pl-9 h-9 text-xs"
-          />
+      {/* Filtros */}
+      {isDesktop ? (
+        /* Filtros Desktop */
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Icon name="search" size="18px" />
+            </span>
+            <Input
+              type="text"
+              placeholder="Buscar por nombre o responsable..."
+              value={params.q}
+              onChange={(e) => handleFiltro('q', e.target.value)}
+              className="bg-slate-50 pl-9 h-9 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <FilterGridGroup title="TIPO" value={params.tipo} options={TIPOS} onChange={(v) => handleFiltro('tipo', v)} />
+            <FilterGridGroup title="ESTADO" value={params.activo} options={ESTADOS} onChange={(v) => handleFiltro('activo', v)} />
+            <FilterGridGroup title="RESPONSABLE" value={params.sinResponsable} options={RESPONSABLE_OPTS} onChange={(v) => handleFiltro('sinResponsable', v)} />
+          </div>
         </div>
+      ) : (
+        /* Filtros Mobile (Búsqueda + Botón Filtros Modal) */
+        <div className="space-y-2">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Icon name="search" size="18px" />
+            </span>
+            <Input
+              type="text"
+              placeholder="Buscar por nombre o responsable..."
+              value={params.q}
+              onChange={(e) => handleFiltro('q', e.target.value)}
+              className="bg-white pl-9 h-9 text-xs"
+            />
+          </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            icon="tune"
-            iconSize="16px"
-            onClick={() => setShowMobileFilters(true)}
-            className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
-          >
-            Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-          </Button>
-
-          {(activeFiltersCount > 0 || params.q) && (
-            <button
+          <div className="flex items-center justify-between gap-2">
+            <Button
               type="button"
-              onClick={limpiarFiltros}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+              variant="outline"
+              icon="tune"
+              iconSize="16px"
+              onClick={() => setShowMobileFilters(true)}
+              className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
             >
-              Limpiar
-            </button>
-          )}
-        </div>
-      </div>
+              Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+            </Button>
 
-      {/* Filtros Desktop */}
-      <div className="hidden md:block rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-            <Icon name="search" size="18px" />
-          </span>
-          <Input
-            type="text"
-            placeholder="Buscar por nombre o responsable..."
-            value={params.q}
-            onChange={(e) => handleFiltro('q', e.target.value)}
-            className="bg-slate-50 pl-9 h-9 text-xs"
-          />
+            {(activeFiltersCount > 0 || params.q) && (
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <FilterGridGroup title="TIPO" value={params.tipo} options={TIPOS} onChange={(v) => handleFiltro('tipo', v)} />
-          <FilterGridGroup title="ESTADO" value={params.activo} options={ESTADOS} onChange={(v) => handleFiltro('activo', v)} />
-          <FilterGridGroup title="RESPONSABLE" value={params.sinResponsable} options={RESPONSABLE_OPTS} onChange={(v) => handleFiltro('sinResponsable', v)} />
-        </div>
-      </div>
+      )}
 
       {/* Modal de Filtros Mobile */}
       <Modal isOpen={showMobileFilters} onClose={() => setShowMobileFilters(false)} className="max-w-md">
@@ -800,14 +796,14 @@ export function AreasPage() {
               <p className="text-xs text-slate-500">Prueba ajustando los filtros de búsqueda.</p>
             </div>
           ) : (
-            <>
-              {/* Desktop */}
-              <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            isDesktop ? (
+              /* Desktop */
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <Table columns={columns} data={state.areas} />
               </div>
-
-              {/* Mobile */}
-              <div className="md:hidden space-y-2.5">
+            ) : (
+              /* Mobile */
+              <div className="space-y-2.5">
                 {state.areas.map((area) => (
                   <AreaCard
                     key={area.id}
@@ -821,7 +817,7 @@ export function AreasPage() {
                   />
                 ))}
               </div>
-            </>
+            )
           )}
         </>
       )}

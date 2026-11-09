@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useUrlState, parsePageParam } from '@/hooks/use-url-state';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -761,7 +762,7 @@ export function UsuariosPage() {
   const [impactError, setImpactError] = useState('');
   const [pageActionError, setPageActionError] = useState('');
 
-  const [isMobile, setIsMobile] = useState(false);
+  const isDesktop = useIsDesktop();
   const debounceRef = useRef(null);
 
   // Contadores de usuarios activos
@@ -771,14 +772,6 @@ export function UsuariosPage() {
     auditores: 0,
     supers: 0,
   });
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    setIsMobile(mq.matches);
-    const handler = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   const cargarStats = useCallback(async () => {
     try {
@@ -1116,65 +1109,68 @@ export function UsuariosPage() {
         </Button>
       </div>
 
-      {/* Filtros Mobile (Búsqueda + Botón Filtros Modal) */}
-      <div className="md:hidden space-y-2">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-            <Icon name="search" size="18px" />
-          </span>
-          <input
-            type="text"
-            placeholder="Buscar por nombre, username o área a cargo…"
-            value={params.q}
-            onChange={(e) => handleFiltro('q', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30 h-9"
-          />
+      {/* Filtros */}
+      {isDesktop ? (
+        /* Filtros Desktop */
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Icon name="search" size="18px" />
+            </span>
+            <input
+              type="text"
+              placeholder="Buscar por nombre, username o área a cargo…"
+              value={params.q}
+              onChange={(e) => handleFiltro('q', e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30 h-9"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-5" />
+            <FilterGridGroup title="ESTADO" value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} gridCols="grid-cols-3" />
+            <FilterGridGroup title="RESPONSABILIDAD" value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} gridCols="grid-cols-3" />
+          </div>
         </div>
+      ) : (
+        /* Filtros Mobile (Búsqueda + Botón Filtros Modal) */
+        <div className="space-y-2">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Icon name="search" size="18px" />
+            </span>
+            <input
+              type="text"
+              placeholder="Buscar por nombre, username o área a cargo…"
+              value={params.q}
+              onChange={(e) => handleFiltro('q', e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30 h-9"
+            />
+          </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            icon="tune"
-            iconSize="16px"
-            onClick={() => setShowMobileFilters(true)}
-            className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
-          >
-            Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-          </Button>
-
-          {(activeFiltersCount > 0 || params.q) && (
-            <button
+          <div className="flex items-center justify-between gap-2">
+            <Button
               type="button"
-              onClick={limpiarFiltros}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+              variant="outline"
+              icon="tune"
+              iconSize="16px"
+              onClick={() => setShowMobileFilters(true)}
+              className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
             >
-              Limpiar
-            </button>
-          )}
-        </div>
-      </div>
+              Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+            </Button>
 
-      {/* Filtros Desktop */}
-      <div className="hidden md:block rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm space-y-3">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-            <Icon name="search" size="18px" />
-          </span>
-          <input
-            type="text"
-            placeholder="Buscar por nombre, username o área a cargo…"
-            value={params.q}
-            onChange={(e) => handleFiltro('q', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-marca-primario focus:outline-none focus:ring-1 focus:ring-marca-primario/30 h-9"
-          />
+            {(activeFiltersCount > 0 || params.q) && (
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <FilterGridGroup title="ROL" value={params.rol} options={ROLES_OPTIONS} onChange={(v) => handleFiltro('rol', v)} gridCols="grid-cols-5" />
-          <FilterGridGroup title="ESTADO" value={params.estado} options={ESTADOS} onChange={(v) => handleFiltro('estado', v)} gridCols="grid-cols-3" />
-          <FilterGridGroup title="RESPONSABILIDAD" value={params.responsabilidad} options={RESPONSABILIDAD_OPTS} onChange={(v) => handleFiltro('responsabilidad', v)} gridCols="grid-cols-3" />
-        </div>
-      </div>
+      )}
 
       {/* Modal de Filtros Mobile */}
       <Modal isOpen={showMobileFilters} onClose={() => setShowMobileFilters(false)} className="max-w-md">
@@ -1210,7 +1206,7 @@ export function UsuariosPage() {
       )}
 
       {/* Desktop: Tabla */}
-      {state.status === 'ready' && !isMobile && (
+      {state.status === 'ready' && isDesktop && (
         <Table
           columns={columns}
           data={state.usuarios}
@@ -1225,7 +1221,7 @@ export function UsuariosPage() {
       )}
 
       {/* Mobile: Cards */}
-      {state.status === 'ready' && isMobile && (
+      {state.status === 'ready' && !isDesktop && (
         <>
           {state.usuarios.length === 0 ? (
             <div className="flex h-32 items-center justify-center rounded-xl bg-white border border-slate-200 text-sm text-slate-400 italic">

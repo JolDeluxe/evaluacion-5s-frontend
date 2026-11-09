@@ -1,5 +1,25 @@
 import { useState, useEffect } from 'react';
+import {
+  getDeviceCategory,
+  useDevice,
+  useIsDesktop,
+  useIsMobile,
+  useIsTablet,
+} from './useDevice';
 
+export {
+  getDeviceCategory,
+  useDevice,
+  useIsDesktop,
+  useIsMobile,
+  useIsTablet,
+};
+
+/**
+ * Hook de bajo nivel para consultas de medios CSS (basadas en píxeles).
+ * Úsalo cuando necesites evaluar queries de medios puramente cosméticos (p. ej. dark mode).
+ * Para la experiencia UI de Mobile vs Desktop, usa siempre useIsDesktop() o useDevice().
+ */
 export function useMediaQuery(query) {
   const getMatches = () => {
     if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -23,10 +43,15 @@ export function useMediaQuery(query) {
   return matches;
 }
 
-// Navaja suiza directa para usar en los componentes contenedores
-export function useIsDesktop() {
-  // Tailwind lg = 1024px.
-  // true = Escritorio (lg, xl, 2xl)
-  // false = Móvil/Tablet (xs, sm, md)
-  return useMediaQuery('(min-width: 1024px)');
+/**
+ * Compatibilidad con código previo.
+ */
+export function isMobileOrTabletDevice() {
+  const device = getDeviceCategory();
+  return device.isMobile;
+}
+
+export function useIsMobileOrTablet() {
+  const { isMobile } = useDevice();
+  return isMobile;
 }

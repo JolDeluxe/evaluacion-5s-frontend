@@ -20,6 +20,7 @@ function MobileRequired({
   publicPath,
   qrLabel = 'Escanea para continuar esta auditoría en tu celular',
   canShareWithOther = false,
+  onContinuar,
 }) {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const enlace = buildPublicAppUrl(publicPath);
@@ -133,6 +134,21 @@ function MobileRequired({
                 onClick={() => setIsShareOpen(true)}
               >
                 Compartir con otra persona
+              </Button>
+            </div>
+          )}
+
+          {onContinuar && (
+            <div className="border-t border-slate-200/80 pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon="desktop_windows"
+                className="mx-auto text-xs font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                onClick={onContinuar}
+              >
+                Continuar en este equipo de todos modos
               </Button>
             </div>
           )}
@@ -254,6 +270,19 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
   const auth = useAuth();
   const { user } = auth;
   const token = tokenProp ?? params.token;
+  const storageKey = `forzar_modo_auditoria_${modo}_${params.id || token}`;
+  const [forzarDesktop, setForzarDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.sessionStorage?.getItem(storageKey) === 'true';
+  });
+
+  const handlePermitirEnDispositivo = () => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage?.setItem(storageKey, 'true');
+    }
+    setForzarDesktop(true);
+  };
+
   const [state, setState] = useState({ status: 'loading', contexto: null, error: null, periodoAnteriorData: null });
 
   const cargar = useCallback(async () => {
@@ -332,7 +361,12 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
     return <ErrorState error={state.error} onRetry={cargar} onBack={() => navigate(modo === 'invitado' ? '/invitado' : '/mis-auditorias')} />;
   }
 
-  if (isDesktop) {
+  // Dispositivos móviles o tablets (incluyendo iPad Pro en cualquier orientación/resolución)
+  // tienen isDesktop === false, por lo que entran directo a la auditoría.
+  // Solo se bloquea para computadoras de escritorio/laptops si no se ha forzado continuar.
+  const bloquearPorDesktop = isDesktop && !forzarDesktop;
+
+  if (bloquearPorDesktop) {
     const publicPath = modo === 'invitado' ? `/invitado/${token}` : `/auditorias/${params.id}/realizar`;
     return (
       <MobileRequired
@@ -341,6 +375,7 @@ export function RealizarAuditoriaPage({ modo = 'autenticado', token: tokenProp, 
         publicPath={publicPath}
         qrLabel={modo === 'invitado' ? 'Escanea para abrir la invitación en tu celular' : 'Escanea para continuar esta auditoría en tu celular'}
         canShareWithOther={modo !== 'invitado'}
+        onContinuar={handlePermitirEnDispositivo}
       />
     );
   }

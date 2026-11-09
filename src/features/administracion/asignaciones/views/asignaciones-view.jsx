@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -101,6 +102,7 @@ function AvisoConfiguracion({ configuracion }) {
 }
 
 function FiltrosAsignaciones({ params, auditores, mensaje, onSetParam, onSetSearch }) {
+  const isDesktop = useIsDesktop();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const tieneFiltrosActivos = params.q || params.estado || params.auditor;
 
@@ -117,47 +119,61 @@ function FiltrosAsignaciones({ params, auditores, mensaje, onSetParam, onSetSear
 
   return (
     <div className="space-y-2">
-      {/* Mobile: Búsqueda + Botón Filtros Modal */}
-      <div className="md:hidden space-y-2">
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
-            <Icon name="search" size="18px" />
-          </span>
-          <input
-            value={params.q}
-            onChange={(event) => onSetSearch('q', event.target.value)}
-            placeholder="Buscar por área o auditor…"
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-marca-secundario focus:ring-1 focus:ring-marca-secundario h-9"
-          />
-        </div>
+      {/* Filtros */}
+      {isDesktop ? (
+        /* Desktop: Filtros directos */
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm space-y-2">
+          <div className="grid gap-2.5 md:grid-cols-[1fr_180px_220px_auto]">
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                <Icon name="search" size="18px" />
+              </span>
+              <input
+                value={params.q}
+                onChange={(event) => onSetSearch('q', event.target.value)}
+                placeholder="Buscar por área o auditor…"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none focus:border-marca-secundario focus:ring-1 focus:ring-marca-secundario h-9"
+              />
+            </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            icon="tune"
-            iconSize="16px"
-            onClick={() => setShowMobileFilters(true)}
-            className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
-          >
-            Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-          </Button>
-
-          {tieneFiltrosActivos && (
-            <button
-              type="button"
-              onClick={limpiarFiltros}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+            <Select
+              value={params.estado}
+              onChange={(event) => onSetParam('estado', event.target.value)}
+              className="bg-white text-xs font-semibold h-9"
             >
-              Limpiar
-            </button>
-          )}
-        </div>
-      </div>
+              {ESTADOS_ASIGNACION.map((estado) => (
+                <option key={estado.value} value={estado.value}>{estado.label}</option>
+              ))}
+            </Select>
 
-      {/* Desktop: Filtros directos */}
-      <div className="hidden md:block rounded-xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm space-y-2">
-        <div className="grid gap-2.5 md:grid-cols-[1fr_180px_220px_auto]">
+            <Select
+              value={params.auditor}
+              onChange={(event) => onSetParam('auditor', event.target.value)}
+              className="bg-white text-xs font-semibold h-9"
+            >
+              <option value="">Todos los auditores</option>
+              {auditores.map((auditor) => (
+                <option key={auditor.id} value={auditor.id}>{auditor.nombre}</option>
+              ))}
+            </Select>
+
+            {tieneFiltrosActivos && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon="filter_alt_off"
+                onClick={limpiarFiltros}
+                className="text-slate-500 hover:text-slate-900 h-9"
+              >
+                Limpiar
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Mobile: Búsqueda + Botón Filtros Modal */
+        <div className="space-y-2">
           <div className="relative">
             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
               <Icon name="search" size="18px" />
@@ -166,45 +182,34 @@ function FiltrosAsignaciones({ params, auditores, mensaje, onSetParam, onSetSear
               value={params.q}
               onChange={(event) => onSetSearch('q', event.target.value)}
               placeholder="Buscar por área o auditor…"
-              className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none focus:border-marca-secundario focus:ring-1 focus:ring-marca-secundario h-9"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-marca-secundario focus:ring-1 focus:ring-marca-secundario h-9"
             />
           </div>
 
-          <Select
-            value={params.estado}
-            onChange={(event) => onSetParam('estado', event.target.value)}
-            className="bg-white text-xs font-semibold h-9"
-          >
-            {ESTADOS_ASIGNACION.map((estado) => (
-              <option key={estado.value} value={estado.value}>{estado.label}</option>
-            ))}
-          </Select>
-
-          <Select
-            value={params.auditor}
-            onChange={(event) => onSetParam('auditor', event.target.value)}
-            className="bg-white text-xs font-semibold h-9"
-          >
-            <option value="">Todos los auditores</option>
-            {auditores.map((auditor) => (
-              <option key={auditor.id} value={auditor.id}>{auditor.nombre}</option>
-            ))}
-          </Select>
-
-          {tieneFiltrosActivos && (
+          <div className="flex items-center justify-between gap-2">
             <Button
               type="button"
-              variant="ghost"
-              size="sm"
-              icon="filter_alt_off"
-              onClick={limpiarFiltros}
-              className="text-slate-500 hover:text-slate-900 h-9"
+              variant="outline"
+              icon="tune"
+              iconSize="16px"
+              onClick={() => setShowMobileFilters(true)}
+              className="h-8 px-3 text-xs font-black gap-1.5 bg-white shadow-sm"
             >
-              Limpiar
+              Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
             </Button>
-          )}
+
+            {tieneFiltrosActivos && (
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-1"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Modal de Filtros Mobile */}
       <Modal isOpen={showMobileFilters} onClose={() => setShowMobileFilters(false)} className="max-w-md">

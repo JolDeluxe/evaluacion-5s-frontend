@@ -77,7 +77,7 @@ export async function subirACloudinary(file, firma, { maxIntentos = 4, baseDelay
         // Backoff exponencial con jitter: base * 2^(intento-1) ± 20 %
         const delay = baseDelayMs * Math.pow(2, intento - 1);
         const jitter = delay * (0.8 + Math.random() * 0.4); // ×0.8 a ×1.2
-        await esperar(Math.min(jitter, 30_000)); // tope 30 s
+        await esperar(Math.min(jitter, 30000)); // tope 30 s
         continue;
       }
 

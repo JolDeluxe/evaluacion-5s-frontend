@@ -1,5 +1,6 @@
 // src/components/ui/summary-bar.jsx
 import { cn } from '@/utils/cn';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 
 const VARIANTS = {
     por_defecto: {
@@ -126,6 +127,7 @@ export const SummaryBar = ({
     className,
     // separateFirstMobile ya no se usa — la lógica es automática
 }) => {
+    const isDesktop = useIsDesktop();
     if (!items.length) return null;
 
     let gridColsClass = "grid-cols-5 lg:grid-cols-1";
@@ -212,46 +214,48 @@ export const SummaryBar = ({
     return (
         <div className={cn("w-full", className)}>
 
-            {/* 💻 VISTA ESCRITORIO — sin cambios */}
-            <div className={cn("hidden lg:grid gap-4 mb-4", gridColsClass)}>
-                {items.map((item) => {
-                    const isActive = activeId === item.id;
-                    const styles = VARIANTS[item.color] || VARIANTS.por_defecto;
+            {/* 💻 VISTA ESCRITORIO */}
+            {isDesktop ? (
+                <div className={cn("grid gap-4 mb-4", gridColsClass)}>
+                    {items.map((item) => {
+                        const isActive = activeId === item.id;
+                        const styles = VARIANTS[item.color] || VARIANTS.por_defecto;
 
-                    return (
-                        <div
-                            key={item.id}
-                            onClick={() => !loading && !isActive && onSelect?.(item.id)}
-                            className={cn(
-                                "flex flex-col justify-center items-center py-4 px-3 rounded-2xl select-none",
-                                isActive || loading ? "cursor-default" : "cursor-pointer",
-                                "transition-all duration-200 ease-out will-change-transform",
-                                isActive ? styles.desktopActive : styles.desktopBase,
-                                loading && !isActive && "opacity-50 cursor-wait active:translate-y-0 active:scale-100",
-                                item.className
-                            )}
-                        >
-                            <span className={cn(
-                                "text-[11px] font-bold uppercase tracking-wider opacity-80 mb-1.5",
-                                item.labelClassName
-                            )}>
-                                {item.label}
-                            </span>
-                            <span className={cn(
-                                "text-3xl font-extrabold font-mono leading-none tracking-tight drop-shadow-sm",
-                                item.valueClassName
-                            )}>
-                                {loading ? "-" : item.value}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* 📱 VISTA MÓVIL — layout dinámico por paridad */}
-            <div className="lg:hidden flex flex-col px-4 gap-3 mb-5">
-                {renderMobileLayout()}
-            </div>
+                        return (
+                            <div
+                                key={item.id}
+                                onClick={() => !loading && !isActive && onSelect?.(item.id)}
+                                className={cn(
+                                    "flex flex-col justify-center items-center py-4 px-3 rounded-2xl select-none",
+                                    isActive || loading ? "cursor-default" : "cursor-pointer",
+                                    "transition-all duration-200 ease-out will-change-transform",
+                                    isActive ? styles.desktopActive : styles.desktopBase,
+                                    loading && !isActive && "opacity-50 cursor-wait active:translate-y-0 active:scale-100",
+                                    item.className
+                                )}
+                            >
+                                <span className={cn(
+                                    "text-[11px] font-bold uppercase tracking-wider opacity-80 mb-1.5",
+                                    item.labelClassName
+                                )}>
+                                    {item.label}
+                                </span>
+                                <span className={cn(
+                                    "text-3xl font-extrabold font-mono leading-none tracking-tight drop-shadow-sm",
+                                    item.valueClassName
+                                )}>
+                                    {loading ? "-" : item.value}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                /* 📱 VISTA MÓVIL — layout dinámico por paridad */
+                <div className="flex flex-col px-4 gap-3 mb-5">
+                    {renderMobileLayout()}
+                </div>
+            )}
 
         </div>
     );
