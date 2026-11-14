@@ -72,8 +72,14 @@ const formatearFecha = (fechaStr) => {
 
 const leerBorrador = (asignacion) => {
   const prefix = `encuestas-5s:auditoria-draft:autenticado:${asignacion.id}:`;
+  const versionVigenteId =
+    asignacion?.objetivoAuditoria?.versionFormularioId
+    ?? asignacion?.versionFormularioId
+    ?? null;
 
   try {
+    let borradorVersionAnterior = null;
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
 
@@ -91,16 +97,29 @@ const leerBorrador = (asignacion) => {
           ).length;
 
           const total = Object.keys(respuestas).length;
+          const esVersionVigente =
+            !versionVigenteId ||
+            String(parsed?.versionFormularioId) === String(versionVigenteId);
 
           if (respondidas > 0) {
-            return {
+            if (esVersionVigente) {
+              return {
+                respondidas,
+                total,
+                requiereRevisionFormulario: false,
+              };
+            }
+            borradorVersionAnterior = {
               respondidas,
               total,
+              requiereRevisionFormulario: true,
             };
           }
         }
       }
     }
+
+    if (borradorVersionAnterior) return borradorVersionAnterior;
   } catch {
     // noop
   }
@@ -117,7 +136,12 @@ const leerColaPendiente = (asignacionId) => {
     if (!raw) return false;
     const cola = JSON.parse(raw);
     if (!Array.isArray(cola)) return false;
-    return cola.some((e) => e.asignacionId === String(asignacionId));
+    return cola.some(
+      (e) =>
+        String(e.asignacionId) === String(asignacionId)
+        && !e.conflictoFormulario
+        && !e.detenerReintentoAutomatico,
+    );
   } catch {
     return false;
   }

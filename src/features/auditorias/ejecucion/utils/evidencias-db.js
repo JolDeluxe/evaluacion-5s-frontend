@@ -49,6 +49,21 @@ export const evidenciasOffline = {
       .delete();
   },
 
+  async reasignarCriterio(auditoriaId, identificadorCliente, nuevoCriterioId) {
+    if (!identificadorCliente || !nuevoCriterioId) return null;
+    const existente = await this.obtener(identificadorCliente);
+    if (!existente) return null;
+    await db.evidenciasPendientes.update(existente.id, {
+      auditoriaId: String(auditoriaId),
+      criterioId: String(nuevoCriterioId),
+    });
+    return {
+      ...existente,
+      auditoriaId: String(auditoriaId),
+      criterioId: String(nuevoCriterioId),
+    };
+  },
+
   async limpiarAuditoria(auditoriaId) {
     const aid = String(auditoriaId);
     const registros = await this.obtenerPorAuditoria(aid);

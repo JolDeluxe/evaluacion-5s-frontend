@@ -17,9 +17,13 @@ import { auditoriasApi } from '@/features/auditorias/ejecucion/api/auditorias-ap
 import { markAuditDraftDirty, markAuditDraftSaved, subscribeAuditRuntimeStatus } from '@/features/auditorias/ejecucion/utils/auditoria-runtime-status';
 import { evidenciasOffline } from '@/features/auditorias/ejecucion/utils/evidencias-db';
 import {
+  buscarBorradoresVersionAnterior,
   eliminarDeCola,
   encolarAuditoriaPendiente,
+  esErrorIncompatibilidadFormulario,
+  extraerDatosRecuperables,
   marcarColaFallida,
+  marcarConflictoFormularioEnCola,
   obtenerPendienteDeAsignacion,
 } from '@/features/auditorias/ejecucion/utils/auditoria-cola-pendiente';
 import { sincronizarEvidenciasDexie } from '@/features/auditorias/ejecucion/utils/cloudinary-evidencias';
@@ -177,6 +181,175 @@ function DraftNotice({ onClear }) {
   );
 }
 
+function RecuperacionCambioFormularioPanel({
+  datosRecuperacion,
+  criterios,
+  onAplicarHallazgo,
+  onReasignarEvidencia,
+}) {
+  const [abierto, setAbierto] = useState(true);
+  const [criterioDestinoPorHallazgo, setCriterioDestinoPorHallazgo] = useState({});
+  const [criterioDestinoPorEvidencia, setCriterioDestinoPorEvidencia] = useState({});
+  const [copiadoId, setCopiadoId] = useState(null);
+
+  if (!datosRecuperacion?.tieneDatosRecuperables) return null;
+
+  const primerCriterioId = criterios[0]?.id ? String(criterios[0].id) : '';
+  const {
+    verificacionQrRecuperada,
+    hallazgosRecuperados = [],
+    evidenciasRecuperadas = [],
+    teniaColaConflicto,
+  } = datosRecuperacion;
+
+  const copiarTexto = async (id, texto) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(texto);
+        setCopiadoId(id);
+        setTimeout(() => setCopiadoId(null), 2000);
+      }
+    } catch {
+      // noop
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-amber-300/90 bg-amber-50/90 p-4 shadow-sm space-y-3" data-testid="recuperacion-cambio-formulario-banner">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5 min-w-0">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-200/80 text-amber-900">
+            <Icon name="sync" size="sm" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-black text-amber-950">
+              El formulario del área fue actualizado por cambio de clasificación
+            </p>
+            <p className="mt-0.5 text-xs font-semibold text-amber-800">
+              {teniaColaConflicto
+                ? 'Tu envío pendiente se detuvo para evitar reintentos con el formulario anterior. Se conservaron tu verificación QR, hallazgos y fotografías.'
+                : 'Se conservaron tu verificación QR, tus hallazgos escritos y tus fotografías locales para que puedas aplicarlos en el formulario vigente sin perder información.'}
+            </p>
+          </div>
+        </div>
+        {(hallazgosRecuperados.length > 0 || evidenciasRecuperadas.length > 0) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setAbierto((v) => !v)}
+            className="shrink-0 text-amber-900 hover:bg-amber-100"
+          >
+            {abierto ? 'Ocultar' : 'Ver datos'}
+          </Button>
+        )}
+      </div>
+
+      {verificacionQrRecuperada?.verificado && (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-100/80 px-3 py-2 text-xs font-bold text-emerald-900" data-testid="qr-recuperado-badge">
+          <Icon name="check_circle" size="sm" />
+          <span>Verificación QR recuperada automáticamente ({verificacionQrRecuperada.codigoQr})</span>
+        </div>
+      )}
+
+      {abierto && hallazgosRecuperados.length > 0 && (
+        <div className="space-y-2 rounded-xl bg-white/90 p-3 border border-amber-200/80">
+          <p className="text-xs font-black uppercase tracking-wider text-slate-700">
+            Hallazgos escritos recuperados ({hallazgosRecuperados.length})
+          </p>
+          <div className="space-y-2">
+            {hallazgosRecuperados.map((item) => {
+              const destinoId = criterioDestinoPorHallazgo[item.id] ?? primerCriterioId;
+              return (
+                <div key={item.id} className="rounded-lg border border-slate-200 p-2.5 space-y-2 bg-slate-50/70">
+                  <p className="text-xs font-semibold text-slate-800 break-words">{item.hallazgo}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      aria-label="Seleccionar pregunta destino para hallazgo"
+                      className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 max-w-full flex-1"
+                      value={destinoId}
+                      onChange={(e) => setCriterioDestinoPorHallazgo((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                    >
+                      {criterios.map((c, idx) => (
+                        <option key={c.id} value={String(c.id)}>
+                          {`P${idx + 1}: ${(c.etiqueta || c.texto || '').slice(0, 55)}`}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copiarTexto(item.id, item.hallazgo)}
+                    >
+                      {copiadoId === item.id ? 'Copiado' : 'Copiar'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onAplicarHallazgo(destinoId, item.hallazgo)}
+                    >
+                      Usar en pregunta
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {abierto && evidenciasRecuperadas.length > 0 && (
+        <div className="space-y-2 rounded-xl bg-white/90 p-3 border border-amber-200/80">
+          <p className="text-xs font-black uppercase tracking-wider text-slate-700">
+            Fotografías y evidencias preservadas ({evidenciasRecuperadas.length})
+          </p>
+          <div className="space-y-2">
+            {evidenciasRecuperadas.map((ev) => {
+              const destinoId = criterioDestinoPorEvidencia[ev.identificadorCliente] ?? primerCriterioId;
+              return (
+                <div key={ev.identificadorCliente} className="rounded-lg border border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate">
+                      {ev.nombreArchivo || ev.publicIdCloudinary || ev.identificadorCliente}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      {ev.publicIdCloudinary ? 'Sincronizada en Cloudinary' : 'Resguardada en dispositivo (IndexedDB)'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      aria-label="Seleccionar pregunta destino para evidencia"
+                      className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                      value={destinoId}
+                      onChange={(e) => setCriterioDestinoPorEvidencia((prev) => ({ ...prev, [ev.identificadorCliente]: e.target.value }))}
+                    >
+                      {criterios.map((c, idx) => (
+                        <option key={c.id} value={String(c.id)}>
+                          {`P${idx + 1}: ${(c.etiqueta || c.texto || '').slice(0, 45)}`}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onReasignarEvidencia(destinoId, ev)}
+                    >
+                      Adjuntar a pregunta
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FormularioDinamico({ contexto, modo = 'autenticado', token, currentUser, nombreInvitado, preview = false, onExit }) {
   const navigate = useNavigate();
   const [fase, setFase] = useState(!preview && contexto.area?.verificacionQrActiva ? 'qr' : 'captura');
@@ -194,6 +367,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   const [enColaPendiente, setEnColaPendiente] = useState(false);
   const [reintentandoOffline, setReintentandoOffline] = useState(false);
   const [uploadsActivos, setUploadsActivos] = useState(0);
+  const [datosRecuperacion, setDatosRecuperacion] = useState(null);
   const reintentarOfflineRef = useRef(null);
 
   // Suscribirse al estado de subidas activas (reactivo, sin polling)
@@ -235,25 +409,113 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
   useEffect(() => {
     if (preview || !draftKey || !criterios.length) return;
 
-    try {
-      const raw = localStorage.getItem(draftKey);
-      if (raw) {
-        const draft = JSON.parse(raw);
-        if (draft?.versionFormularioId === contexto.versionFormulario?.id) {
-          setRespuestas(draft.respuestas ?? {});
-          setVerificacionArea(draft.verificacionArea ?? null);
-          setIdentificadorCliente(draft.identificadorCliente || uuid());
-          if (draft.fase && draft.fase !== 'enviado') setFase(draft.fase);
-          setDraftRestored(Boolean(Object.keys(draft.respuestas ?? {}).length));
-          setDraftSavedAt(draft.updatedAt ?? null);
+    let cancelado = false;
+
+    const hidratarBorradorYRecuperacion = async () => {
+      let verificacionCargada = null;
+
+      try {
+        const raw = localStorage.getItem(draftKey);
+        if (raw) {
+          const draft = JSON.parse(raw);
+          if (draft?.versionFormularioId === contexto.versionFormulario?.id) {
+            setRespuestas(draft.respuestas ?? {});
+            verificacionCargada = draft.verificacionArea ?? null;
+            setVerificacionArea(verificacionCargada);
+            setIdentificadorCliente(draft.identificadorCliente || uuid());
+            if (draft.fase && draft.fase !== 'enviado') setFase(draft.fase);
+            setDraftRestored(Boolean(Object.keys(draft.respuestas ?? {}).length));
+            setDraftSavedAt(draft.updatedAt ?? null);
+          }
+        }
+      } catch {
+        localStorage.removeItem(draftKey);
+      }
+
+      try {
+        const borradoresAnteriores = buscarBorradoresVersionAnterior(
+          modo,
+          auditoriaIdActual,
+          contexto.versionFormulario?.id,
+        );
+
+        const asignacionId = contexto.asignacion?.id;
+        let pendienteCola = asignacionId ? obtenerPendienteDeAsignacion(asignacionId) : null;
+        const idsCriteriosActuales = new Set(
+          criterios.map((c) => Number(c.preguntaFormularioId ?? c.id)),
+        );
+
+        let entradaColaConflicto = null;
+        if (pendienteCola) {
+          const respuestasCola = pendienteCola.payload?.respuestas ?? [];
+          const respuestasIncompatibles =
+            (pendienteCola.versionFormularioId
+              && String(pendienteCola.versionFormularioId) !== String(contexto.versionFormulario?.id))
+            || (respuestasCola.length > 0
+              && (respuestasCola.length !== criterios.length
+                || respuestasCola.some((r) => !idsCriteriosActuales.has(Number(r.preguntaFormularioId)))));
+
+          if (pendienteCola.conflictoFormulario || respuestasIncompatibles) {
+            entradaColaConflicto =
+              marcarConflictoFormularioEnCola(
+                pendienteCola.id,
+                'El tipo del área cambió y el formulario fue actualizado. Revisa el formulario vigente.',
+                409,
+              ) || pendienteCola;
+            setEnColaPendiente(false);
+          }
+        }
+
+        const evidenciasDexie =
+          borradoresAnteriores.length > 0 || entradaColaConflicto
+            ? await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual)
+            : [];
+
+        if (cancelado) return;
+
+        if (borradoresAnteriores.length > 0 || entradaColaConflicto) {
+          const recuperado = extraerDatosRecuperables({
+            borradoresAnteriores,
+            entradaColaConflicto,
+            evidenciasDexie,
+            codigoVerificacionEsperado:
+              contexto.area?.codigoVerificacion || contexto.area?.codigo || '',
+          });
+
+          setDatosRecuperacion(recuperado);
+
+          if (!verificacionCargada?.verificado && recuperado.verificacionQrRecuperada?.verificado) {
+            setVerificacionArea(recuperado.verificacionQrRecuperada);
+            setFase('captura');
+          } else if (entradaColaConflicto) {
+            setFase('captura');
+          }
+        }
+      } catch {
+        // noop
+      } finally {
+        if (!cancelado) {
+          setDraftHydrated(true);
         }
       }
-    } catch {
-      localStorage.removeItem(draftKey);
-    } finally {
-      setDraftHydrated(true);
-    }
-  }, [contexto.versionFormulario?.id, criterios.length, draftKey, preview]);
+    };
+
+    hidratarBorradorYRecuperacion();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [
+    auditoriaIdActual,
+    contexto.area?.codigo,
+    contexto.area?.codigoVerificacion,
+    contexto.asignacion?.id,
+    contexto.versionFormulario?.id,
+    criterios,
+    draftKey,
+    modo,
+    preview,
+  ]);
 
   useEffect(() => {
     if (preview || !draftHydrated || !draftKey || fase === 'enviado') return undefined;
@@ -356,13 +618,71 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
     return { isValid: Object.keys(nuevosErrores).length === 0, faltantes: Object.keys(nuevosErrores).length };
   };
 
-  // Verificar al montar si hay una cola pendiente para esta auditoría
+  const aplicarHallazgoRecuperado = (criterioDestinoId, textoHallazgo) => {
+    const criterio = criterios.find((c) => String(c.id) === String(criterioDestinoId));
+    if (!criterio) return;
+    const opcionNo = (criterio.opciones ?? []).find(
+      (o) => o.valor === 'NO' || Number(o.valorPuntaje ?? 1) === 0,
+    );
+    actualizarRespuesta(criterio.id, (prevActual) => ({
+      ...(opcionNo && !respuestas[criterio.id]?.opcionFormularioIds?.length
+        ? { opcionFormularioIds: [opcionNo.id], cumple: false }
+        : {}),
+      hallazgo: prevActual ? `${prevActual}\n${textoHallazgo}`.trim() : textoHallazgo,
+    }));
+  };
+
+  const reasignarEvidenciaRecuperada = async (criterioDestinoId, evidencia) => {
+    const criterio = criterios.find((c) => String(c.id) === String(criterioDestinoId));
+    if (!criterio || !evidencia?.identificadorCliente) return;
+
+    try {
+      await evidenciasOffline.reasignarCriterio(
+        auditoriaIdActual,
+        evidencia.identificadorCliente,
+        criterio.id,
+      );
+    } catch {
+      // noop
+    }
+
+    const opcionNo = (criterio.opciones ?? []).find(
+      (o) => o.valor === 'NO' || Number(o.valorPuntaje ?? 1) === 0,
+    );
+
+    actualizarRespuesta(criterio.id, {
+      ...(opcionNo && !respuestas[criterio.id]?.opcionFormularioIds?.length
+        ? { opcionFormularioIds: [opcionNo.id], cumple: false }
+        : {}),
+      evidencias: (actuales = []) => {
+        if (actuales.some((e) => e.identificadorCliente === evidencia.identificadorCliente)) {
+          return actuales;
+        }
+        return [...actuales, evidencia];
+      },
+    });
+  };
+
+  // Verificar al montar si hay una cola pendiente compatible para esta auditoría
   useEffect(() => {
     if (preview) return;
     const asignacionId = contexto.asignacion?.id;
     if (!asignacionId) return;
     const pendiente = obtenerPendienteDeAsignacion(asignacionId);
-    if (pendiente) {
+    if (!pendiente || pendiente.conflictoFormulario || pendiente.detenerReintentoAutomatico) return;
+
+    const idsCriteriosActuales = new Set(
+      criterios.map((c) => Number(c.preguntaFormularioId ?? c.id)),
+    );
+    const respuestasCola = pendiente.payload?.respuestas ?? [];
+    const incompatible =
+      (pendiente.versionFormularioId
+        && String(pendiente.versionFormularioId) !== String(contexto.versionFormulario?.id))
+      || (respuestasCola.length > 0
+        && (respuestasCola.length !== criterios.length
+          || respuestasCola.some((r) => !idsCriteriosActuales.has(Number(r.preguntaFormularioId)))));
+
+    if (!incompatible) {
       setEnColaPendiente(true);
       setFase('revision');
     }
@@ -462,6 +782,7 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           asignacionId: contexto.asignacion?.id,
           modo,
           token,
+          versionFormularioId: contexto.versionFormulario?.id ?? null,
           payload: payloadParaCola,
         });
 
@@ -474,22 +795,25 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
       let payload;
       if (desdeColaOffline) {
         const entrada = obtenerPendienteDeAsignacion(contexto.asignacion?.id);
-        if (!entrada) {
+        if (!entrada || entrada.conflictoFormulario || entrada.detenerReintentoAutomatico) {
           setEnColaPendiente(false);
           setFase('captura');
           return;
         }
+        const tieneRespuestasEnMemoria = Object.keys(respuestasActuales || {}).length > 0;
         payload = {
           ...entrada.payload,
-          respuestas: criterios.map((item) => {
-            const r = respuestasActuales[item.id] ?? crearRespuestaInicial(item);
-            return {
-              preguntaFormularioId: item.preguntaFormularioId ?? item.id,
-              cumple: r.cumple === true,
-              hallazgo: r.hallazgo?.trim() || null,
-              fotos: (r.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
-            };
-          }),
+          respuestas: tieneRespuestasEnMemoria
+            ? criterios.map((item) => {
+                const r = respuestasActuales[item.id] ?? crearRespuestaInicial(item);
+                return {
+                  preguntaFormularioId: item.preguntaFormularioId ?? item.id,
+                  cumple: r.cumple === true,
+                  hallazgo: r.hallazgo?.trim() || null,
+                  fotos: (r.evidencias ?? []).map(limpiarEvidenciaParaEnvio),
+                };
+              })
+            : (entrada.payload?.respuestas ?? []),
         };
       } else {
         payload = {
@@ -558,10 +882,48 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
           asignacionId: contexto.asignacion?.id,
           modo,
           token,
+          versionFormularioId: contexto.versionFormulario?.id ?? null,
           payload: payloadParaCola,
         });
         setEnColaPendiente(true);
         setEnvioError('');
+        return;
+      }
+
+      if (esErrorIncompatibilidadFormulario(err)) {
+        const entradaActual = obtenerPendienteDeAsignacion(contexto.asignacion?.id);
+        const idCola = entradaActual?.id || identificadorCliente;
+        const entradaMarcada = marcarConflictoFormularioEnCola(
+          idCola,
+          err?.message || 'El formulario asignado al área fue actualizado por un cambio de clasificación.',
+          err?.status || 409,
+        );
+        setEnColaPendiente(false);
+        setReintentandoOffline(false);
+
+        try {
+          const borradoresAnteriores = buscarBorradoresVersionAnterior(
+            modo,
+            auditoriaIdActual,
+            contexto.versionFormulario?.id,
+          );
+          const evidenciasDexie = await evidenciasOffline.obtenerPorAuditoria(auditoriaIdActual);
+          const recuperado = extraerDatosRecuperables({
+            borradoresAnteriores,
+            entradaColaConflicto: entradaMarcada || entradaActual,
+            evidenciasDexie,
+            codigoVerificacionEsperado:
+              contexto.area?.codigoVerificacion || contexto.area?.codigo || '',
+          });
+          setDatosRecuperacion(recuperado);
+        } catch {
+          // noop
+        }
+
+        setEnvioError(
+          'El tipo del área cambió y el formulario fue actualizado. Se detuvo el reintento automático y se conservaron tu verificación QR, hallazgos y fotografías.',
+        );
+        setFase('captura');
         return;
       }
 
@@ -581,6 +943,11 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
 
   // Función de reintento offline que se conecta al listener window.online
   const handleReintentarOffline = async () => {
+    const entrada = obtenerPendienteDeAsignacion(contexto.asignacion?.id);
+    if (!entrada || entrada.conflictoFormulario || entrada.detenerReintentoAutomatico) {
+      setEnColaPendiente(false);
+      return;
+    }
     setReintentandoOffline(true);
     await enviar(undefined, { desdeColaOffline: true });
     setReintentandoOffline(false);
@@ -797,6 +1164,13 @@ export function FormularioDinamico({ contexto, modo = 'autenticado', token, curr
         )}
 
         {draftRestored && <DraftNotice onClear={limpiarDraft} />}
+
+        <RecuperacionCambioFormularioPanel
+          datosRecuperacion={datosRecuperacion}
+          criterios={criterios}
+          onAplicarHallazgo={aplicarHallazgoRecuperado}
+          onReasignarEvidencia={reasignarEvidenciaRecuperada}
+        />
 
         {envioError && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
